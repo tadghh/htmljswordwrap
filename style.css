@@ -1,0 +1,16 @@
+body {
+	background-color: darkgray;
+}
+.floatingControls {
+	position: absolute;
+	background-color: blue;
+	opacity: 0.1;
+	transition: opacity 0.3s;
+	padding: 5px;
+	border-radius: 4px;
+	float: left;
+	color: white;
+}
+.floatingControls:hover {
+	opacity: 1;
+}
