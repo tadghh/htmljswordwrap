@@ -124,9 +124,49 @@ document.addEventListener("DOMContentLoaded", () => {
     if (letterIndex >= 0 && letterIndex < contentTextCleaned.length) {
       outputHover.textContent = `Letter under mouse: ${contentTextCleaned[letterIndex]}`;
     }
-
+    hoveringComment(relativeX, divRect.top)
   });
+  function hoveringComment(relativeX, newTopPadding) {
+    console.log("loo")
+    floatingDivsMap.forEach((div, key) => {
+      let hoverItem = document.getElementById(`floating-${key}`);
 
+      // console.log(`floating-${key}  ${key}`);
+      if (hoverItem) {
+        let ids = hoverItem.id
+          .replace("floating-highlighted-", "")
+          .split("-");
+        let yColIndex = findColIndexY(wordStats, parseInt(ids[1]));
+        let xCol = findValueX(
+          yColIndex,
+          contentTextCleaned,
+          parseInt(ids[0])
+        );
+
+        let top = findValueY(wordStats, parseInt(ids[1]));
+        let highLightedWord = contentTextCleaned.substring(parseInt(ids[1]), parseInt(ids[0]))
+        let topBorder = top - 25;
+        let minXBorder = xCol - 25;
+        let bottomBorder = top;
+        let maxXBorder = xCol + getWordWidth(highLightedWord)
+        const isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
+        const isInsideY = relativeY >= topBorder && relativeY <= bottomBorder;
+        const isInside = isInsideX && isInsideY;
+        let newRelY = relativeY + newTopPadding
+        console.log(`MinX: ${minXBorder} | MaxX: ${maxXBorder} | MouseX: ${relativeX} MinY: ${topBorder} | MaxY: ${bottomBorder} | MouseY: ${newRelY}`);
+
+        if (relativeX >= minXBorder && relativeX <= maxXBorder) {
+          // console.log("yooooXX")
+          if (newRelY >= topBorder && newRelY <= bottomBorder) {
+            console.log("yooooYYY")
+          }
+        }
+
+
+      }
+    });
+
+  }
   hoverableDiv.addEventListener("mousedown", (event) => {
     const relativeX = event.clientX - divRect.left;
     let cumulativeWidth = 0;
@@ -144,15 +184,16 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
       }
     }
-    // if (
-    //   endLetterIndex >= 0 &&
-    //   endLetterIndex < contentTextCleaned.length
-    // ) {
-    //   output.textContent = `Selected text: ${contentTextCleaned.slice(
-    //     startLetterIndex,
-    //     endLetterIndex + 1
-    //   )}`;
-    // }
+    if (
+      endLetterIndex >= 0 &&
+      endLetterIndex < contentTextCleaned.length
+    ) {
+      output.textContent = `Selected text: ${contentTextCleaned.slice(
+        startLetterIndex,
+        endLetterIndex + 1
+      )}`;
+    }
+    // liveHighlight()
   });
 
   hoverableDiv.addEventListener("mouseup", () => {
@@ -225,11 +266,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!floatingDivsMap.has(uniqueId)) {
       const floatingDiv = document.createElement("div");
+      const floatingCommentContent = document.createElement("p");
       floatingDiv.id = `floating-${uniqueId}`;
+      floatingCommentContent.id = `comment-${uniqueId}`;
+      floatingCommentContent.textContent = "this is a test comment"
+      floatingCommentContent.style.display = "none"
       floatingDiv.className = "floatingControls";
-      floatingDiv.textContent = selectedText
+
+      floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+      console.log(getWordWidth(selectedText))
+      floatingDiv.appendChild(floatingCommentContent)
       document.body.appendChild(floatingDiv);
       floatingDivsMap.set(uniqueId, floatingDiv);
+
     }
     // Add the div element relative to the span
     const spanElement = document.getElementById(uniqueId);
@@ -238,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Position the div relative to the span
     function positionFloatingDiv() {
       const spanRect = spanElement.getBoundingClientRect();
-      floatingDiv.style.top = `${spanRect.bottom + window.scrollY}px`;
+      floatingDiv.style.top = `${(spanRect.bottom + window.scrollY) - 25}px`;
       floatingDiv.style.left = `${spanRect.left + window.scrollX}px`;
     }
     function positionFloatingComment(element, startId, endId) {
@@ -249,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
         endId
       );
       let top = findValueY(wordStats, startId);
-      element.style.top = `${top}px`;
+      element.style.top = `${top - 25}px`;
       element.style.left = `${xCol}px`;
     }
 

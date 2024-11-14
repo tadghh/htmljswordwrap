@@ -1,16 +1,38 @@
 body {
 	background-color: darkgray;
 }
+#hoverableDiv {
+	z-index: 50;
+	position: relative;
+}
 .floatingControls {
 	position: absolute;
-	background-color: blue;
-	opacity: 0.1;
+	border: none; /* Remove all borders */
+	margin-top: 1px;
+	border-bottom: 3px solid white; /* Add only the top border */
+	/* background-color: transparent; */
+	background: #ffffff4d;
+	opacity: 1;
+	/* background-o: white; */
+	height: 25px;
 	transition: opacity 0.3s;
-	padding: 5px;
+	padding: 0px;
 	border-radius: 4px;
-	float: left;
+	font-size: 20px;
 	color: white;
+	z-index: 10;
 }
 .floatingControls:hover {
 	opacity: 1;
+}
+/* * {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+} */
+::selection {
+	background: yellow;
 }
