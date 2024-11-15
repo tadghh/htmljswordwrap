@@ -217,7 +217,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function findColIndexY(updatedWordStats, startLetterIndex) {
     let previousValue = null;
-
+    // console.log(startLetterIndex)
+    // console.log(updatedWordStats)
+    let lastSize = updatedWordStats[updatedWordStats.length - 1][1]
+    // console.log(lastSize)
+    if (lastSize < startLetterIndex) {
+      return lastSize
+    }
     for (const value of Object.values(updatedWordStats)) {
       if (startLetterIndex <= value[1]) {
 
@@ -231,7 +237,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function findValueY(wordStats, startLetterIndex) {
     let previousValue = null;
-
+    let lastSize = wordStats[wordStats.length - 1][1]
+    if (lastSize < startLetterIndex) {
+      return ((wordStats.length - 1) * textAreaYSections) + divStartY;
+    }
     for (const value of Object.values(wordStats)) {
       let yPx = (value[0] * textAreaYSections) + divStartY;
 
@@ -246,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function findValueX(yCol, mainText, startIndex) {
     let cumulativeWidth = 0;
-
+    console.log(`y col ${yCol} startI ${startIndex}`)
     for (let i = yCol; i < mainText.length; i++) {
       if (i == startIndex) {
         return cumulativeWidth;
