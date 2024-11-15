@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     hoveringComment(relativeX, divRect.top)
   });
-  function hoveringComment(relativeX, newTopPadding) {
+  function hoveringComment(relativeX) {
     console.log("loo")
     floatingDivsMap.forEach((div, key) => {
       let hoverItem = document.getElementById(`floating-${key}`);
@@ -136,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let ids = hoverItem.id
           .replace("floating-highlighted-", "")
           .split("-");
-        let yColIndex = findColIndexY(wordStats, parseInt(ids[1]));
+        let yColIndex = findColIndexY(wordStats, parseInt(ids[0]));
         let xCol = findValueX(
           yColIndex,
           contentTextCleaned,
@@ -144,25 +144,21 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
         let top = findValueY(wordStats, parseInt(ids[1]));
-        let highLightedWord = contentTextCleaned.substring(parseInt(ids[1]), parseInt(ids[0]))
-        let topBorder = top - 25;
-        let minXBorder = xCol - 25;
-        let bottomBorder = top;
+        let highLightedWord = contentTextCleaned.substring(parseInt(ids[0]), parseInt(ids[1]) + 1)
+        let topBorder = top;
+        let minXBorder = xCol;
+        let bottomBorder = top + 25;
         let maxXBorder = xCol + getWordWidth(highLightedWord)
+        let newRelY = event.clientY
         const isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
-        const isInsideY = relativeY >= topBorder && relativeY <= bottomBorder;
+        const isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
         const isInside = isInsideX && isInsideY;
-        let newRelY = relativeY + newTopPadding
+        console.log(highLightedWord)
         console.log(`MinX: ${minXBorder} | MaxX: ${maxXBorder} | MouseX: ${relativeX} MinY: ${topBorder} | MaxY: ${bottomBorder} | MouseY: ${newRelY}`);
 
-        if (relativeX >= minXBorder && relativeX <= maxXBorder) {
-          // console.log("yooooXX")
-          if (newRelY >= topBorder && newRelY <= bottomBorder) {
-            console.log("yooooYYY")
-          }
+        if (isInside) {
+          console.log("yooooYYY")
         }
-
-
       }
     });
 
@@ -227,13 +223,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     for (const value of Object.values(wordStats)) {
       let yPx = (value[0] * textAreaYSections) + divStartY;
-      console.log(`str: ${startLetterIndex}, value[1]: ${value[1]}`);
 
       if (startLetterIndex <= value[1]) {
-        console.log("Returning");
-        console.log(previousValue !== null ? previousValue : yPx);
-
-        // Return previousValue if it's set; otherwise, return current yPx
         return previousValue !== null ? previousValue : yPx;
       }
       previousValue = yPx;
@@ -246,12 +237,14 @@ document.addEventListener("DOMContentLoaded", () => {
     let cumulativeWidth = 0;
 
     for (let i = yCol; i < mainText.length; i++) {
-      cumulativeWidth += getCharacterWidth(mainText[i]);
       if (i == startIndex) {
         return cumulativeWidth;
       }
+      cumulativeWidth += getCharacterWidth(mainText[i]);
+
     }
   }
+
   function positionFloatingComment(element, startId, endId) {
     let yColIndex = findColIndexY(wordStats, startId);
     let xCol = findValueX(
@@ -260,9 +253,11 @@ document.addEventListener("DOMContentLoaded", () => {
       endId
     );
     let top = findValueY(wordStats, startId);
+    console.log(divRect.left)
     element.style.top = `${top}px`;
-    element.style.left = `${xCol}px`;
+    element.style.left = `${xCol + divRect.left}px`;
   }
+
   function updateHighlightedText() {
     if (contentTextCleaned[startLetterIndex] == " ") startLetterIndex++;
     if (contentTextCleaned[endLetterIndex] == " ") endLetterIndex--;
