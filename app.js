@@ -53,27 +53,34 @@ document.addEventListener("DOMContentLoaded", () => {
     let wordCols = 1;
     let currentStringIndex = 0;
     let tempWidth = 0;
-
+    let iter = 0;
     for (let i = 0; i < wordArray.length - 1; i++) {
       wordArray[i] += " ";
     }
 
     for (const word of wordArray) {
       let testWidth = tempWidth + getWordWidth(word);
-
+      const isLastWord = iter === wordArray.length - 1;
       if (testWidth <= divWidth) {
         tempWidth = testWidth;
       } else {
         let endTest = testWidth - spaceSize;
+        if (isLastWord) {
+          endTest = testWidth;
+        }
+
         if (endTest <= divWidth) {
           tempWidth = testWidth;
+          console.log(word)
         } else {
           tempWidth = getWordWidth(word);
+          // console.log(word)
           widthCache.push([wordCols, currentStringIndex]);
           wordCols += 1;
         }
       }
       currentStringIndex += word.length;
+      iter++;
     }
 
     return widthCache;
@@ -87,8 +94,13 @@ document.addEventListener("DOMContentLoaded", () => {
     divRect = hoverableDiv.getBoundingClientRect();
     divWidth = divRect.width;
     wordStats = calcWords(contentTextCleaned);
+    console.log(wordStats)
+    console.log(getWordWidth(contentTextCleaned.substring(820)))
+    console.log(divWidth)
     divStartY = divRect.top;
     textAreaYSections = divRect.height / wordStats.length;
+
+    console.log(`sections ${textAreaYSections} len ${wordStats.length} `)
   }
 
   window.addEventListener("resize", () => {
@@ -101,12 +113,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   hoverableDiv.addEventListener("mousemove", (event) => {
     const relativeX = event.clientX - divRect.left;
-    relativeY = event.clientY - divRect.top; // Relative Y position within the container
-
     let cumulativeWidth = 0;
     let letterIndex = -1;
-    mouseCol = Math.floor((relativeY) / textAreaYSections);
 
+    relativeY = event.clientY - divRect.top; // Relative Y position within the container
+    mouseCol = Math.floor(relativeY / textAreaYSections);
     mouseColSafe = Math.max(0, Math.min(mouseCol, wordStats.length - 1));
 
     for (
