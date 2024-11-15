@@ -223,10 +223,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function findValueY(wordStats, startLetterIndex) {
+    let previousValue = null;
+
     for (const value of Object.values(wordStats)) {
+      let yPx = (value[0] * textAreaYSections) + divStartY;
+      console.log(`str: ${startLetterIndex}, value[1]: ${value[1]}`);
+
       if (startLetterIndex <= value[1]) {
-        return value[0] * textAreaYSections + divStartY;
+        console.log("Returning");
+        console.log(previousValue !== null ? previousValue : yPx);
+
+        // Return previousValue if it's set; otherwise, return current yPx
+        return previousValue !== null ? previousValue : yPx;
       }
+      previousValue = yPx;
     }
 
     return null;
@@ -298,7 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
         endId
       );
       let top = findValueY(wordStats, startId);
-      element.style.top = `${top - 25}px`;
+      element.style.top = `${top}px`;
       element.style.left = `${xCol}px`;
     }
 
