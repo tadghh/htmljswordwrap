@@ -252,7 +252,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
-
+  function positionFloatingComment(element, startId, endId) {
+    let yColIndex = findColIndexY(wordStats, startId);
+    let xCol = findValueX(
+      yColIndex,
+      contentTextCleaned,
+      endId
+    );
+    let top = findValueY(wordStats, startId);
+    element.style.top = `${top}px`;
+    element.style.left = `${xCol}px`;
+  }
   function updateHighlightedText() {
     if (contentTextCleaned[startLetterIndex] == " ") startLetterIndex++;
     if (contentTextCleaned[endLetterIndex] == " ") endLetterIndex--;
@@ -291,29 +301,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }
     // Add the div element relative to the span
-    const spanElement = document.getElementById(uniqueId);
     const floatingDiv = floatingDivsMap.get(uniqueId);
-
-    // Position the div relative to the span
-    function positionFloatingDiv() {
-      const spanRect = spanElement.getBoundingClientRect();
-      floatingDiv.style.top = `${(spanRect.bottom + window.scrollY) - 25}px`;
-      floatingDiv.style.left = `${spanRect.left + window.scrollX}px`;
-    }
-    function positionFloatingComment(element, startId, endId) {
-      let yColIndex = findColIndexY(wordStats, startId);
-      let xCol = findValueX(
-        yColIndex,
-        contentTextCleaned,
-        endId
-      );
-      let top = findValueY(wordStats, startId);
-      element.style.top = `${top}px`;
-      element.style.left = `${xCol}px`;
-    }
-
+    positionFloatingComment(floatingDiv, endLetterIndex, startLetterIndex);
     // Initially position the div
-    positionFloatingDiv();
+
     if (!floatingDivsMap.has("listenersAdded")) {
       // window.addEventListener("scroll", () => {
       // 	floatingDivsMap.forEach((div, key) => {
@@ -333,13 +324,11 @@ document.addEventListener("DOMContentLoaded", () => {
         floatingDivsMap.forEach((div, key) => {
           let hoverItem = document.getElementById(`floating-${key}`);
 
-          console.log(`floating-${key}  ${key}`);
           if (hoverItem) {
             let ids = hoverItem.id
               .replace("floating-highlighted-", "")
               .split("-");
             positionFloatingComment(hoverItem, parseInt(ids[1]), parseInt(ids[0]))
-
           }
         });
       });
