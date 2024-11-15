@@ -2,7 +2,7 @@ body {
 	background-color: darkgray;
 }
 #hoverableDiv {
-	z-index: 50;
+	z-index: 5;
 	position: relative;
 }
 .floatingControls {
@@ -20,9 +20,16 @@ body {
 	border-radius: 4px;
 	font-size: 20px;
 	color: white;
-	z-index: 10;
+	opacity: 1;
 }
 .floatingControls:hover {
+	opacity: 1;
+}
+.floatingControlsTwo {
+	transition: opacity 0.3s;
+	opacity: 0.1;
+}
+.floatingControlsTwo:hover {
 	opacity: 1;
 }
 /* * {

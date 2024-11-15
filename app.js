@@ -2,6 +2,7 @@ const widthCache = {};
 let startLetterIndex = -1; // Start of selection
 let endLetterIndex = -1; // End of selection
 const floatingDivsMap = new Map();
+const floatingDivsMapTwo = new Map();
 const canvas = document.createElement("canvas");
 const context = canvas.getContext("2d");
 
@@ -71,7 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (endTest <= divWidth) {
           tempWidth = testWidth;
-          console.log(word)
         } else {
           tempWidth = getWordWidth(word);
           widthCache.push([wordCols, currentStringIndex]);
@@ -161,12 +161,30 @@ document.addEventListener("DOMContentLoaded", () => {
         const isInside = isInsideX && isInsideY;
 
         if (isInside) {
-          console.log("yooooYYY")
+          const uniqueId = `hover-comment-${xIndex}-${yIndex}`;
+
+          if (!floatingDivsMapTwo.has(uniqueId)) {
+            const hoverComment = document.createElement("div");
+            hoverComment.id = uniqueId
+            hoverComment.textContent = "test comment here"
+            hoverComment.className = "floatingControlsTwo"
+            hoverComment.style.position = "absolute"
+            hoverComment.style.fontSize = "20px"
+            hoverComment.style.color = "white"
+            hoverComment.style.background = "green"
+            hoverComment.style.zIndex = 10
+
+            document.body.appendChild(hoverComment);
+            floatingDivsMapTwo.set(uniqueId, hoverComment);
+          }
+          const hoverComment = floatingDivsMapTwo.get(uniqueId);
+          positionFloatingCommentContent(hoverComment, yIndex, xIndex);
+
         }
       }
     });
-
   }
+
   hoverableDiv.addEventListener("mousedown", (event) => {
     const relativeX = event.clientX - divRect.left;
     let cumulativeWidth = 0;
@@ -265,6 +283,18 @@ document.addEventListener("DOMContentLoaded", () => {
     element.style.top = `${top - 5}px`;
     element.style.left = `${xCol + divRect.left + 2}px`;
   }
+  function positionFloatingCommentContent(element, startId, endId) {
+    let yColIndex = findColIndexY(wordStats, startId);
+    let xCol = findValueX(
+      yColIndex,
+      contentTextCleaned,
+      endId
+    );
+    let top = findValueY(wordStats, startId);
+
+    element.style.top = `${top + 25}px`;
+    element.style.left = `${xCol + divRect.left + 2}px`;
+  }
 
   function updateHighlightedText() {
     if (contentTextCleaned[startLetterIndex] == " ") startLetterIndex++;
@@ -289,16 +319,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!floatingDivsMap.has(uniqueId)) {
       const floatingDiv = document.createElement("div");
-      const floatingCommentContent = document.createElement("p");
+      // const floatingCommentContent = document.createElement("p");
       floatingDiv.id = `floating-${uniqueId}`;
       floatingDiv.className = "floatingControls";
       floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
 
-      floatingCommentContent.id = `comment-${uniqueId}`;
-      floatingCommentContent.textContent = "this is a test comment"
-      floatingCommentContent.style.display = "none"
-
-      floatingDiv.appendChild(floatingCommentContent)
       document.body.appendChild(floatingDiv);
       floatingDivsMap.set(uniqueId, floatingDiv);
     }
@@ -322,7 +347,23 @@ document.addEventListener("DOMContentLoaded", () => {
       // });
 
       window.addEventListener("resize", () => {
+        floatingDivsMapTwo.forEach((div, key) => {
+          console.log(key)
+          let hoverItem = document.getElementById(`${key}`);
+          console.log("floating resized")
+          if (hoverItem) {
+            console.log("got item")
+            const ids = hoverItem.id
+              .replace("hover-comment-", "")
+              .split("-");
+            const xIndex = parseInt(ids[0])
+            const yIndex = parseInt(ids[1])
 
+
+            positionFloatingCommentContent(hoverItem, yIndex, xIndex);
+
+          }
+        });
         floatingDivsMap.forEach((div, key) => {
           let hoverItem = document.getElementById(`floating-${key}`);
 
