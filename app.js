@@ -54,18 +54,18 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentStringIndex = 0;
     let tempWidth = 0;
     let iter = 0;
+
     for (let i = 0; i < wordArray.length - 1; i++) {
       wordArray[i] += " ";
     }
 
     for (const word of wordArray) {
       let testWidth = tempWidth + getWordWidth(word);
-      const isLastWord = iter === wordArray.length - 1;
       if (testWidth <= divWidth) {
         tempWidth = testWidth;
       } else {
         let endTest = testWidth - spaceSize;
-        if (isLastWord) {
+        if (iter === wordArray.length - 1) {
           endTest = testWidth;
         }
 
@@ -74,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
           console.log(word)
         } else {
           tempWidth = getWordWidth(word);
-          // console.log(word)
           widthCache.push([wordCols, currentStringIndex]);
           wordCols += 1;
         }
@@ -94,13 +93,8 @@ document.addEventListener("DOMContentLoaded", () => {
     divRect = hoverableDiv.getBoundingClientRect();
     divWidth = divRect.width;
     wordStats = calcWords(contentTextCleaned);
-    console.log(wordStats)
-    console.log(getWordWidth(contentTextCleaned.substring(820)))
-    console.log(divWidth)
     divStartY = divRect.top;
     textAreaYSections = divRect.height / wordStats.length;
-
-    console.log(`sections ${textAreaYSections} len ${wordStats.length} `)
   }
 
   window.addEventListener("resize", () => {
@@ -116,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let cumulativeWidth = 0;
     let letterIndex = -1;
 
-    relativeY = event.clientY - divRect.top; // Relative Y position within the container
+    relativeY = event.clientY - divStartY; // Relative Y position within the container
     mouseCol = Math.floor(relativeY / textAreaYSections);
     mouseColSafe = Math.max(0, Math.min(mouseCol, wordStats.length - 1));
 
@@ -135,37 +129,36 @@ document.addEventListener("DOMContentLoaded", () => {
     if (letterIndex >= 0 && letterIndex < contentTextCleaned.length) {
       outputHover.textContent = `Letter under mouse: ${contentTextCleaned[letterIndex]}`;
     }
-    hoveringComment(relativeX, divRect.top)
+    hoveringComment(relativeX)
   });
   function hoveringComment(relativeX) {
-    console.log("loo")
     floatingDivsMap.forEach((div, key) => {
       let hoverItem = document.getElementById(`floating-${key}`);
 
-      // console.log(`floating-${key}  ${key}`);
       if (hoverItem) {
-        let ids = hoverItem.id
+        const ids = hoverItem.id
           .replace("floating-highlighted-", "")
           .split("-");
-        let yColIndex = findColIndexY(wordStats, parseInt(ids[0]));
-        let xCol = findValueX(
+        const xIndex = parseInt(ids[0])
+        const yIndex = parseInt(ids[1])
+
+        const yColIndex = findColIndexY(wordStats, xIndex);
+        const xCol = findValueX(
           yColIndex,
           contentTextCleaned,
-          parseInt(ids[0])
+          xIndex
         );
 
-        let top = findValueY(wordStats, parseInt(ids[1]));
-        let highLightedWord = contentTextCleaned.substring(parseInt(ids[0]), parseInt(ids[1]) + 1)
-        let topBorder = top;
-        let minXBorder = xCol;
-        let bottomBorder = top + 25;
-        let maxXBorder = xCol + getWordWidth(highLightedWord)
-        let newRelY = event.clientY
+        const top = findValueY(wordStats, yIndex);
+        const highLightedWord = contentTextCleaned.substring(xIndex, yIndex + 1)
+        const topBorder = top;
+        const minXBorder = xCol;
+        const bottomBorder = top + 20;
+        const maxXBorder = xCol + getWordWidth(highLightedWord)
+        const newRelY = event.clientY
         const isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
         const isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
         const isInside = isInsideX && isInsideY;
-        console.log(highLightedWord)
-        console.log(`MinX: ${minXBorder} | MaxX: ${maxXBorder} | MouseX: ${relativeX} MinY: ${topBorder} | MaxY: ${bottomBorder} | MouseY: ${newRelY}`);
 
         if (isInside) {
           console.log("yooooYYY")
@@ -217,10 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function findColIndexY(updatedWordStats, startLetterIndex) {
     let previousValue = null;
-    // console.log(startLetterIndex)
-    // console.log(updatedWordStats)
     let lastSize = updatedWordStats[updatedWordStats.length - 1][1]
-    // console.log(lastSize)
     if (lastSize < startLetterIndex) {
       return lastSize
     }
@@ -255,13 +245,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function findValueX(yCol, mainText, startIndex) {
     let cumulativeWidth = 0;
-    console.log(`y col ${yCol} startI ${startIndex}`)
     for (let i = yCol; i < mainText.length; i++) {
       if (i == startIndex) {
         return cumulativeWidth;
       }
       cumulativeWidth += getCharacterWidth(mainText[i]);
-
     }
   }
 
@@ -273,9 +261,9 @@ document.addEventListener("DOMContentLoaded", () => {
       endId
     );
     let top = findValueY(wordStats, startId);
-    console.log(divRect.left)
-    element.style.top = `${top}px`;
-    element.style.left = `${xCol + divRect.left}px`;
+
+    element.style.top = `${top - 5}px`;
+    element.style.left = `${xCol + divRect.left + 2}px`;
   }
 
   function updateHighlightedText() {
@@ -303,17 +291,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const floatingDiv = document.createElement("div");
       const floatingCommentContent = document.createElement("p");
       floatingDiv.id = `floating-${uniqueId}`;
+      floatingDiv.className = "floatingControls";
+      floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+
       floatingCommentContent.id = `comment-${uniqueId}`;
       floatingCommentContent.textContent = "this is a test comment"
       floatingCommentContent.style.display = "none"
-      floatingDiv.className = "floatingControls";
 
-      floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
-      console.log(getWordWidth(selectedText))
       floatingDiv.appendChild(floatingCommentContent)
       document.body.appendChild(floatingDiv);
       floatingDivsMap.set(uniqueId, floatingDiv);
-
     }
     // Add the div element relative to the span
     const floatingDiv = floatingDivsMap.get(uniqueId);
