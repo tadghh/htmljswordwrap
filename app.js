@@ -142,14 +142,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const xIndex = parseInt(ids[0])
         const yIndex = parseInt(ids[1])
 
-        const yColIndex = findColIndexY(wordStats, xIndex);
-        const xCol = findValueX(
+        const yColIndex = findStartIndexFromIndex(wordStats, xIndex);
+        const xCol = findXValueFromIndex(
           yColIndex,
           contentTextCleaned,
           xIndex
         );
 
-        const top = findValueY(wordStats, yIndex);
+        const top = findYValueFromIndex(wordStats, yIndex);
         const highLightedWord = contentTextCleaned.substring(xIndex, yIndex + 1)
         const topBorder = top;
         const minXBorder = xCol;
@@ -226,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
-  function findColIndexY(updatedWordStats, startLetterIndex) {
+  function findStartIndexFromIndex(updatedWordStats, startLetterIndex) {
     let previousValue = null;
     let lastSize = updatedWordStats[updatedWordStats.length - 1][1]
     if (lastSize < startLetterIndex) {
@@ -242,8 +242,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return null;
   }
+  function findIndexFromCol(updatedWordStats, col) {
 
-  function findValueY(wordStats, startLetterIndex) {
+    return updatedWordStats[col][1]
+  }
+  function findColFromIndex(updatedWordStats, startLetterIndex) {
+    let previousValue = null;
+    let lastSize = updatedWordStats[updatedWordStats.length - 1][1]
+    if (lastSize < startLetterIndex) {
+      return lastSize
+    }
+    for (const value of Object.values(updatedWordStats)) {
+      if (startLetterIndex <= value[1]) {
+
+        return previousValue ? previousValue[0] : null;
+      }
+      previousValue = value;
+    }
+
+    return null;
+  }
+
+  function findYValueFromIndex(wordStats, startLetterIndex) {
     let previousValue = null;
     let lastSize = wordStats[wordStats.length - 1][1]
     if (lastSize < startLetterIndex) {
@@ -261,7 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return null;
   }
 
-  function findValueX(yCol, mainText, startIndex) {
+  function findXValueFromIndex(yCol, mainText, startIndex) {
     let cumulativeWidth = 0;
     for (let i = yCol; i < mainText.length; i++) {
       if (i == startIndex) {
@@ -272,30 +292,83 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function positionFloatingComment(element, startId, endId) {
-    let yColIndex = findColIndexY(wordStats, startId);
-    let xCol = findValueX(
+    let yColIndex = findStartIndexFromIndex(wordStats, startId);
+    let xCol = findXValueFromIndex(
       yColIndex,
       contentTextCleaned,
       endId
     );
-    let top = findValueY(wordStats, startId);
+    let top = findYValueFromIndex(wordStats, startId);
+    let yColStart = findYValueFromIndex(wordStats, startId)
+    let yColEnd = findYValueFromIndex(wordStats, endId)
+    let yCol1 = findColFromIndex(wordStats, startId)
+    let yCol2 = findColFromIndex(wordStats, endId)
+    console.log(`split text ${yCol1} ${yCol2}  ${startId} ${endId}`)
+    console.log(wordStats)
+    if (yCol1 != yCol2) {
+      console.log("split")
+      console.log(`split text ${yColEnd}`)
+      const selectedText = contentTextCleaned.substring(
+        startId,
+        wordStats[yColEnd][1] - 1
+      );
+      console.log(`split text ${selectedText}`)
+      const uniqueId = `highlighted2-${startId}-${endId}`;
 
+      // const floatingDiv = document.createElement("div");
+      // floatingDiv.id = `floating-${uniqueId}`;
+      // floatingDiv.className = "floatingControls";
+      // floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+
+      // document.body.appendChild(floatingDiv);
+    }
+    // if the end and start col !=
+    // check end col <-- start index for other
+    // check highlighted text, add previous. find what words wraps on
+    // could just use index instead from wordStats
+    // method to get col based on index
     element.style.top = `${top - 5}px`;
     element.style.left = `${xCol + divRect.left + 2}px`;
   }
   function positionFloatingCommentContent(element, startId, endId) {
-    let yColIndex = findColIndexY(wordStats, startId);
-    let xCol = findValueX(
+    let yColIndex = findStartIndexFromIndex(wordStats, startId);
+    let xCol = findXValueFromIndex(
       yColIndex,
       contentTextCleaned,
       endId
     );
-    let top = findValueY(wordStats, startId);
+    let top = findYValueFromIndex(wordStats, startId);
 
     element.style.top = `${top + 25}px`;
     element.style.left = `${xCol + divRect.left + 2}px`;
   }
+  function repositionItems() {
+    floatingDivsMapTwo.forEach((div, key) => {
+      console.log(key)
+      let hoverItem = document.getElementById(`${key}`);
+      console.log("floating resized")
+      if (hoverItem) {
+        console.log("got item")
+        const ids = hoverItem.id
+          .replace("hover-comment-", "")
+          .split("-");
+        const xIndex = parseInt(ids[0])
+        const yIndex = parseInt(ids[1])
 
+        positionFloatingCommentContent(hoverItem, yIndex, xIndex);
+      }
+    });
+
+    floatingDivsMap.forEach((div, key) => {
+      let hoverItem = document.getElementById(`floating-${key}`);
+      if (hoverItem) {
+        let ids = hoverItem.id
+          .replace("floating-highlighted-", "")
+          .split("-");
+        positionFloatingComment(hoverItem, parseInt(ids[1]), parseInt(ids[0]))
+      }
+    });
+  }
   function updateHighlightedText() {
     if (contentTextCleaned[startLetterIndex] == " ") startLetterIndex++;
     if (contentTextCleaned[endLetterIndex] == " ") endLetterIndex--;
@@ -319,7 +392,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!floatingDivsMap.has(uniqueId)) {
       const floatingDiv = document.createElement("div");
-      // const floatingCommentContent = document.createElement("p");
       floatingDiv.id = `floating-${uniqueId}`;
       floatingDiv.className = "floatingControls";
       floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
@@ -333,47 +405,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initially position the div
 
     if (!floatingDivsMap.has("listenersAdded")) {
-      // window.addEventListener("scroll", () => {
-      // 	floatingDivsMap.forEach((div, key) => {
-      // 		const span = document.getElementById(
-      // 			key.replace("floating-", "")
-      // 		);
-      // 		if (span) {
-      // 			const spanRect = span.getBoundingClientRect();
-      // 			div.style.top = `${spanRect.bottom + window.scrollY}px`;
-      // 			div.style.left = `${spanRect.left + window.scrollX}px`;
-      // 		}
-      // 	});
-      // });
+      window.addEventListener("scroll", () => {
+        repositionItems()
+      });
 
       window.addEventListener("resize", () => {
-        floatingDivsMapTwo.forEach((div, key) => {
-          console.log(key)
-          let hoverItem = document.getElementById(`${key}`);
-          console.log("floating resized")
-          if (hoverItem) {
-            console.log("got item")
-            const ids = hoverItem.id
-              .replace("hover-comment-", "")
-              .split("-");
-            const xIndex = parseInt(ids[0])
-            const yIndex = parseInt(ids[1])
-
-
-            positionFloatingCommentContent(hoverItem, yIndex, xIndex);
-
-          }
-        });
-        floatingDivsMap.forEach((div, key) => {
-          let hoverItem = document.getElementById(`floating-${key}`);
-
-          if (hoverItem) {
-            let ids = hoverItem.id
-              .replace("floating-highlighted-", "")
-              .split("-");
-            positionFloatingComment(hoverItem, parseInt(ids[1]), parseInt(ids[0]))
-          }
-        });
+        repositionItems()
       });
     }
   }
