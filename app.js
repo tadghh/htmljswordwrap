@@ -3,6 +3,7 @@ let startLetterIndex = -1; // Start of selection
 let endLetterIndex = -1; // End of selection
 const floatingDivsMap = new Map();
 const floatingDivsMapTwo = new Map();
+const floatingDivsSplit = new Map();
 const canvas = document.createElement("canvas");
 const context = canvas.getContext("2d");
 
@@ -242,10 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return null;
   }
-  function findIndexFromCol(updatedWordStats, col) {
 
-    return updatedWordStats[col][1]
-  }
   function findColFromIndex(updatedWordStats, startLetterIndex) {
     let previousValue = null;
     let lastSize = updatedWordStats[updatedWordStats.length - 1][1]
@@ -303,26 +301,58 @@ document.addEventListener("DOMContentLoaded", () => {
     let yColEnd = findYValueFromIndex(wordStats, endId)
     let yCol1 = findColFromIndex(wordStats, startId)
     let yCol2 = findColFromIndex(wordStats, endId)
-    console.log(`split text ${yCol1} ${yCol2}  ${startId} ${endId}`)
-    console.log(wordStats)
-    if (yCol1 != yCol2) {
-      console.log("split")
-      console.log(`split text ${yColEnd}`)
-      const selectedText = contentTextCleaned.substring(
-        startId,
-        wordStats[yColEnd][1] - 1
-      );
-      console.log(`split text ${selectedText}`)
-      const uniqueId = `highlighted2-${startId}-${endId}`;
+    let hoverItem = document.getElementById(`floating-highlighted-${endId}-${startId}`);
+    //console.log(`Line one ${endId} ${startId} `)
 
-      // const floatingDiv = document.createElement("div");
-      // floatingDiv.id = `floating-${uniqueId}`;
-      // floatingDiv.className = "floatingControls";
-      // floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
-
-      // document.body.appendChild(floatingDiv);
-    }
     // if the end and start col !=
+    // if (hoverItem) {
+    //   if (yCol1 != yCol2) {
+
+    //     hoverItem.style.display = "none"
+
+
+    //     const uniqueId = `split-${endId}-${wordStats[yCol1][1] - 1}`;
+    //     const splitId = `split-${wordStats[yCol1][1]}-${startId}`
+    //     console.log(`Line one ${endId} ${wordStats[yCol1][1] - 1} Line two ${wordStats[yCol1][1]}-${startId}`)
+    //     if (!floatingDivsSplit.has(uniqueId)) {
+    //       console.log("wasnt found first split ")
+    //       // console.log(`split text ${yColEnd} `)
+    //       const selectedText = contentTextCleaned.substring(
+    //         endId,
+    //         wordStats[yCol1][1] - 1
+    //       );
+    //       console.log(`split text ${selectedText}`)
+
+    //       const floatingDiv = document.createElement("div");
+    //       floatingDiv.id = uniqueId;
+    //       floatingDiv.className = "floatingControls";
+    //       floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+
+    //       document.body.appendChild(floatingDiv);
+    //       floatingDivsSplit.set(uniqueId, floatingDiv);
+    //     }
+    //     if (!floatingDivsSplit.has(splitId)) {
+    //       console.log("wasnt found second split ")
+
+    //       const selectedText = contentTextCleaned.substring(
+    //         wordStats[yCol1][1],
+    //         startId
+    //       );
+    //       console.log(`split text ${selectedText}`)
+
+    //       const floatingDiv = document.createElement("div");
+    //       floatingDiv.id = splitId;
+    //       floatingDiv.className = "floatingControls";
+    //       floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+
+    //       document.body.appendChild(floatingDiv);
+    //       floatingDivsSplit.set(splitId, floatingDiv);
+    //     }
+
+    //   } else if (hoverItem.style.display == "none") {
+    //     hoverItem.style.display = "inline"
+    //   }
+    // }
     // check end col <-- start index for other
     // check highlighted text, add previous. find what words wraps on
     // could just use index instead from wordStats
@@ -330,6 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
     element.style.top = `${top - 5}px`;
     element.style.left = `${xCol + divRect.left + 2}px`;
   }
+
   function positionFloatingCommentContent(element, startId, endId) {
     let yColIndex = findStartIndexFromIndex(wordStats, startId);
     let xCol = findXValueFromIndex(
@@ -342,32 +373,39 @@ document.addEventListener("DOMContentLoaded", () => {
     element.style.top = `${top + 25}px`;
     element.style.left = `${xCol + divRect.left + 2}px`;
   }
+
   function repositionItems() {
     floatingDivsMapTwo.forEach((div, key) => {
-      console.log(key)
       let hoverItem = document.getElementById(`${key}`);
-      console.log("floating resized")
       if (hoverItem) {
-        console.log("got item")
-        const ids = hoverItem.id
-          .replace("hover-comment-", "")
-          .split("-");
-        const xIndex = parseInt(ids[0])
-        const yIndex = parseInt(ids[1])
+
+        const xIndex = div.getAttribute("start")
+        const yIndex = div.getAttribute("end")
 
         positionFloatingCommentContent(hoverItem, yIndex, xIndex);
       }
     });
 
     floatingDivsMap.forEach((div, key) => {
-      let hoverItem = document.getElementById(`floating-${key}`);
+      let hoverItem = document.getElementById(key);
       if (hoverItem) {
-        let ids = hoverItem.id
-          .replace("floating-highlighted-", "")
-          .split("-");
-        positionFloatingComment(hoverItem, parseInt(ids[1]), parseInt(ids[0]))
+
+        const xIndex = div.getAttribute("start")
+        const yIndex = div.getAttribute("end")
+        positionFloatingComment(hoverItem, yIndex, xIndex)
       }
     });
+    // floatingDivsSplit.forEach((div, key) => {
+    //   let hoverItem = document.getElementById(key);
+    //   console.log(key)
+    //   if (hoverItem) {
+    //     let ids = hoverItem.id
+    //       .replace("split-", "")
+    //       .split("-");
+
+    //     positionFloatingComment(hoverItem, parseInt(ids[0]), parseInt(ids[1]))
+    //   }
+    // });
   }
   function updateHighlightedText() {
     if (contentTextCleaned[startLetterIndex] == " ") startLetterIndex++;
@@ -377,7 +415,7 @@ document.addEventListener("DOMContentLoaded", () => {
       startLetterIndex = endLetterIndex
       endLetterIndex = temp
     }
-    const uniqueId = `highlighted-${startLetterIndex}-${endLetterIndex}`;
+    const uniqueId = `floating-highlighted-${startLetterIndex}-${endLetterIndex}`;
 
     const selectedText = contentTextCleaned.substring(
       startLetterIndex,
@@ -386,16 +424,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const highlightedText = `${contentTextCleaned.substring(
       0,
       startLetterIndex
-    )}<span id="${uniqueId}" style="background-color: yellow">${selectedText}</span>${contentTextCleaned.substring(endLetterIndex + 1)}`;
+    )}<span  style="background-color: yellow">${selectedText}</span>${contentTextCleaned.substring(endLetterIndex + 1)}`;
 
     hoverableDiv.innerHTML = highlightedText;
 
     if (!floatingDivsMap.has(uniqueId)) {
       const floatingDiv = document.createElement("div");
-      floatingDiv.id = `floating-${uniqueId}`;
+      floatingDiv.id = uniqueId;
       floatingDiv.className = "floatingControls";
       floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
-
+      floatingDiv.setAttribute("start", startLetterIndex)
+      floatingDiv.setAttribute("end", endLetterIndex)
       document.body.appendChild(floatingDiv);
       floatingDivsMap.set(uniqueId, floatingDiv);
     }
