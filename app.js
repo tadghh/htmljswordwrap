@@ -289,19 +289,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function positionFloatingComment(element, startId, endId) {
+  function positionFloatingComment(element) {
+
+    const startId = element.getAttribute("start")
+    const endId = element.getAttribute("end")
     let yColIndex = findStartIndexFromIndex(wordStats, startId);
     let xCol = findXValueFromIndex(
       yColIndex,
       contentTextCleaned,
-      endId
+      startId
     );
     let top = findYValueFromIndex(wordStats, startId);
-    let yColStart = findYValueFromIndex(wordStats, startId)
-    let yColEnd = findYValueFromIndex(wordStats, endId)
-    let yCol1 = findColFromIndex(wordStats, startId)
-    let yCol2 = findColFromIndex(wordStats, endId)
-    let hoverItem = document.getElementById(`floating-highlighted-${endId}-${startId}`);
+    // let yColStart = findYValueFromIndex(wordStats, startId)
+    // let yColEnd = findYValueFromIndex(wordStats, endId)
+    // let yCol1 = findColFromIndex(wordStats, startId)
+    // let yCol2 = findColFromIndex(wordStats, endId)
+    // let hoverItem = document.getElementById(`floating-highlighted-${endId}-${startId}`);
     //console.log(`Line one ${endId} ${startId} `)
 
     // if the end and start col !=
@@ -361,7 +364,9 @@ document.addEventListener("DOMContentLoaded", () => {
     element.style.left = `${xCol + divRect.left + 2}px`;
   }
 
-  function positionFloatingCommentContent(element, startId, endId) {
+  function positionFloatingCommentContent(element) {
+    const startId = element.getAttribute("start")
+    const endId = element.getAttribute("end")
     let yColIndex = findStartIndexFromIndex(wordStats, startId);
     let xCol = findXValueFromIndex(
       yColIndex,
@@ -379,10 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
       let hoverItem = document.getElementById(`${key}`);
       if (hoverItem) {
 
-        const xIndex = div.getAttribute("start")
-        const yIndex = div.getAttribute("end")
-
-        positionFloatingCommentContent(hoverItem, yIndex, xIndex);
+        positionFloatingCommentContent(hoverItem);
       }
     });
 
@@ -390,9 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
       let hoverItem = document.getElementById(key);
       if (hoverItem) {
 
-        const xIndex = div.getAttribute("start")
-        const yIndex = div.getAttribute("end")
-        positionFloatingComment(hoverItem, yIndex, xIndex)
+        positionFloatingComment(hoverItem)
       }
     });
     // floatingDivsSplit.forEach((div, key) => {
@@ -435,6 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
       floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
       floatingDiv.setAttribute("start", startLetterIndex)
       floatingDiv.setAttribute("end", endLetterIndex)
+      floatingDiv.setAttribute("rawId", `${startLetterIndex}-${endLetterIndex}`)
       document.body.appendChild(floatingDiv);
       floatingDivsMap.set(uniqueId, floatingDiv);
     }
