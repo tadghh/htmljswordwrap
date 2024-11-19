@@ -302,60 +302,72 @@ document.addEventListener("DOMContentLoaded", () => {
     let top = findYValueFromIndex(wordStats, startId);
     // let yColStart = findYValueFromIndex(wordStats, startId)
     // let yColEnd = findYValueFromIndex(wordStats, endId)
-    // let yCol1 = findColFromIndex(wordStats, startId)
-    // let yCol2 = findColFromIndex(wordStats, endId)
-    // let hoverItem = document.getElementById(`floating-highlighted-${endId}-${startId}`);
+    let yCol1 = findColFromIndex(wordStats, startId)
+    let yCol2 = findColFromIndex(wordStats, endId)
+    // let hoverItem = document.getElementById(`floating-highlighted-${startId}-${endId}`);
     //console.log(`Line one ${endId} ${startId} `)
 
     // if the end and start col !=
-    // if (hoverItem) {
-    //   if (yCol1 != yCol2) {
+    if (element.id.includes("floating-highlighted")) {
+      if (yCol1 != yCol2) {
 
-    //     hoverItem.style.display = "none"
+        element.style.display = "none"
+        const rowId = element.getAttribute("rawId")
 
 
-    //     const uniqueId = `split-${endId}-${wordStats[yCol1][1] - 1}`;
-    //     const splitId = `split-${wordStats[yCol1][1]}-${startId}`
-    //     console.log(`Line one ${endId} ${wordStats[yCol1][1] - 1} Line two ${wordStats[yCol1][1]}-${startId}`)
-    //     if (!floatingDivsSplit.has(uniqueId)) {
-    //       console.log("wasnt found first split ")
-    //       // console.log(`split text ${yColEnd} `)
-    //       const selectedText = contentTextCleaned.substring(
-    //         endId,
-    //         wordStats[yCol1][1] - 1
-    //       );
-    //       console.log(`split text ${selectedText}`)
+        const uniqueId = `split-${startId}-${wordStats[yCol1][1] - 1}`;
+        const splitId = `split-${wordStats[yCol1][1]}-${endId}`
+        //     console.log(`Line one ${endId} ${wordStats[yCol1][1] - 1} Line two ${wordStats[yCol1][1]}-${startId}`)
+        if (!floatingDivsSplit.has(uniqueId)) {
+          console.log("wasnt found first split ")
+          // console.log(`split text ${yColEnd} `)
+          const selectedText = contentTextCleaned.substring(
+            endId,
+            wordStats[yCol1][1] - 1
+          );
+          console.log(`split text ${selectedText}`)
 
-    //       const floatingDiv = document.createElement("div");
-    //       floatingDiv.id = uniqueId;
-    //       floatingDiv.className = "floatingControls";
-    //       floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+          const floatingDiv = document.createElement("div");
+          floatingDiv.id = uniqueId;
+          floatingDiv.className = "floatingControls";
+          floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+          floatingDiv.setAttribute("rawId", rowId)
 
-    //       document.body.appendChild(floatingDiv);
-    //       floatingDivsSplit.set(uniqueId, floatingDiv);
-    //     }
-    //     if (!floatingDivsSplit.has(splitId)) {
-    //       console.log("wasnt found second split ")
+          document.body.appendChild(floatingDiv);
+          floatingDivsSplit.set(uniqueId, floatingDiv);
+        }
+        if (!floatingDivsSplit.has(splitId)) {
+          console.log("wasnt found second split ")
 
-    //       const selectedText = contentTextCleaned.substring(
-    //         wordStats[yCol1][1],
-    //         startId
-    //       );
-    //       console.log(`split text ${selectedText}`)
+          const selectedText = contentTextCleaned.substring(
+            wordStats[yCol1][1],
+            startId
+          );
+          console.log(`split text ${selectedText}`)
 
-    //       const floatingDiv = document.createElement("div");
-    //       floatingDiv.id = splitId;
-    //       floatingDiv.className = "floatingControls";
-    //       floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+          const floatingDiv = document.createElement("div");
+          floatingDiv.id = splitId;
+          floatingDiv.className = "floatingControls";
+          floatingDiv.style.width = `${getWordWidth(selectedText)}px`;
+          floatingDiv.setAttribute("rawId", rowId)
+          document.body.appendChild(floatingDiv);
+          floatingDivsSplit.set(splitId, floatingDiv);
+        }
 
-    //       document.body.appendChild(floatingDiv);
-    //       floatingDivsSplit.set(splitId, floatingDiv);
-    //     }
+      } else if (element.style.display == "none" && (yCol1 === yCol2)) {
+        element.style.display = "inline"
+        const rowId = element.getAttribute("rawId")
 
-    //   } else if (hoverItem.style.display == "none") {
-    //     hoverItem.style.display = "inline"
-    //   }
-    // }
+        let splits = document.querySelectorAll(`[rawId="${rowId}"][id*="split"]`);
+
+        splits.forEach(element => {
+          const splitId = element.id; // Get the ID of the element
+          floatingDivsSplit.delete(splitId); // Remove the entry from the Map
+          element.remove(); // Remove the element from the DOM
+        });
+      }
+
+    }
     // check end col <-- start index for other
     // check highlighted text, add previous. find what words wraps on
     // could just use index instead from wordStats
@@ -395,18 +407,19 @@ document.addEventListener("DOMContentLoaded", () => {
         positionFloatingComment(hoverItem)
       }
     });
-    // floatingDivsSplit.forEach((div, key) => {
-    //   let hoverItem = document.getElementById(key);
-    //   console.log(key)
-    //   if (hoverItem) {
-    //     let ids = hoverItem.id
-    //       .replace("split-", "")
-    //       .split("-");
+    floatingDivsSplit.forEach((div, key) => {
+      let hoverItem = document.getElementById(key);
+      console.log(key)
+      if (hoverItem) {
+        let ids = hoverItem.id
+          .replace("split-", "")
+          .split("-");
 
-    //     positionFloatingComment(hoverItem, parseInt(ids[0]), parseInt(ids[1]))
-    //   }
-    // });
+        positionFloatingComment(hoverItem, parseInt(ids[0]), parseInt(ids[1]))
+      }
+    });
   }
+
   function updateHighlightedText() {
     if (contentTextCleaned[startLetterIndex] == " ") startLetterIndex++;
     if (contentTextCleaned[endLetterIndex] == " ") endLetterIndex--;
