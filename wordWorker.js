@@ -29,24 +29,85 @@ export class TextHighlighter {
 
     this.contentTextCleaned = this.hoverableDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
 
-    this.wordStats = this.#calcWords(this.contentTextCleaned);
+    this.wordStats = this.calcWords(this.contentTextCleaned);
     this.textAreaYSections = this.divRect.height / this.wordStats.length;
 
     this.#addEventListeners();
   }
-  #getCharacterWidth(char) {
+  getCharacterWidth(char) {
     if (this.widthCache[char] === undefined) {
       this.widthCache[char] = this.context.measureText(char).width;
     }
     return this.widthCache[char];
   }
 
-  #getWordWidth(word) {
-    return [...word].reduce((total, char) => total + this.#getCharacterWidth(char), 0);
+  getWordWidth(word) {
+    return [...word].reduce((total, char) => total + this.getCharacterWidth(char), 0);
   }
 
-  #calcWords(words) {
-    const spaceSize = this.#getWordWidth(" ");
+  findStartIndexFromIndex(updatedWordStats, startLetterIndex) {
+    let previousValue = null;
+    let lastSize = updatedWordStats[updatedWordStats.length - 1][1]
+    if (lastSize < startLetterIndex) {
+      return lastSize
+    }
+    for (const value of Object.values(updatedWordStats)) {
+      if (startLetterIndex <= value[1]) {
+
+        return previousValue ? previousValue[1] : null;
+      }
+      previousValue = value;
+    }
+
+    return null;
+  }
+
+  findColFromIndex(startLetterIndex) {
+    let previousValue = null;
+    let lastSize = this.wordStats[this.wordStats.length - 1][1]
+    if (lastSize < startLetterIndex) {
+      return lastSize
+    }
+    for (const value of Object.values(this.wordStats)) {
+      if (startLetterIndex <= value[1]) {
+
+        return previousValue ? previousValue[0] : null;
+      }
+      previousValue = value;
+    }
+
+    return null;
+  }
+
+  findYValueFromIndex(startLetterIndex) {
+    let previousValue = null;
+    let lastSize = this.wordStats[this.wordStats.length - 1][1]
+    if (lastSize < startLetterIndex) {
+      return ((this.wordStats.length - 1) * this.textAreaYSections) + this.divStartY;
+    }
+    for (const value of Object.values(this.wordStats)) {
+      let yPx = (value[0] * this.textAreaYSections) + this.divStartY;
+
+      if (startLetterIndex <= value[1]) {
+        return previousValue !== null ? previousValue : yPx;
+      }
+      previousValue = yPx;
+    }
+
+    return null;
+  }
+
+  findXValueFromIndex(yColIndex, startIndex) {
+    let cumulativeWidth = 0;
+    for (let i = yColIndex; i < this.contentTextCleaned.length; i++) {
+      if (i == startIndex) {
+        return cumulativeWidth;
+      }
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+    }
+  }
+  calcWords(words) {
+    const spaceSize = this.getWordWidth(" ");
     const wordArray = words.split(" ").map((word, i, arr) =>
       i < arr.length - 1 ? word + " " : word
     );
@@ -57,7 +118,7 @@ export class TextHighlighter {
     let tempWidth = 0;
 
     wordArray.forEach((word, iter) => {
-      let testWidth = tempWidth + this.#getWordWidth(word);
+      let testWidth = tempWidth + this.getWordWidth(word);
       if (testWidth <= this.divWidth) {
         tempWidth = testWidth;
       } else {
@@ -65,7 +126,7 @@ export class TextHighlighter {
         if (endTest <= this.divWidth) {
           tempWidth = testWidth;
         } else {
-          tempWidth = this.#getWordWidth(word);
+          tempWidth = this.getWordWidth(word);
           widthCache.push([wordCols, currentStringIndex]);
           wordCols++;
         }
@@ -76,40 +137,32 @@ export class TextHighlighter {
     return widthCache;
   }
 
-  #updateDivValues() {
+  updateDivValues() {
     this.divRect = this.hoverableDiv.getBoundingClientRect();
     this.divWidth = this.divRect.width;
     this.divStartY = this.divRect.top;
 
-    this.wordStats = this.#calcWords(this.contentTextCleaned);
+    this.wordStats = this.calcWords(this.contentTextCleaned);
     this.textAreaYSections = this.divRect.height / this.wordStats.length;
   }
 
   #handleResizeOrScroll = () => {
-    this.#updateDivValues();
+    this.updateDivValues();
     this.#repositionItems();
   };
 
   #positionFloatingComment(element) {
-
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
-    let yColIndex = this.#findStartIndexFromIndex(this.wordStats, startId);
-    // console.log(`ycol index ${yColIndex}`)
-    let xCol = this.#findXValueFromIndex(
+    let yColIndex = this.findStartIndexFromIndex(this.wordStats, startId);
+    let xCol = this.findXValueFromIndex(
       yColIndex,
-      this.contentTextCleaned,
       startId
     );
-    let top = this.#findYValueFromIndex(startId);
-    // let yColStart = findYValueFromIndex(wordStats, startId)
-    // let yColEnd = findYValueFromIndex(wordStats, endId)
-    let yCol1 = this.#findColFromIndex(startId)
-    let yCol2 = this.#findColFromIndex(endId)
-    // let hoverItem = document.getElementById(`floating-highlighted-${startId}-${endId}`);
-    //console.log(`Line one ${endId} ${startId} `)
+    let top = this.findYValueFromIndex(startId);
+    let yCol1 = this.findColFromIndex(startId)
+    let yCol2 = this.findColFromIndex(endId)
 
-    // if the end and start col !=
     if (element.id.includes("floating-highlighted")) {
       if (yCol1 != yCol2) {
 
@@ -119,9 +172,8 @@ export class TextHighlighter {
 
         const uniqueId = `split-${startId}-${this.wordStats[yCol1][1] - 1}`;
         const splitId = `split-${this.wordStats[yCol1][1]}-${endId}`
-        //     console.log(`Line one ${endId} ${wordStats[yCol1][1] - 1} Line two ${wordStats[yCol1][1]}-${startId}`)
-        if (!this.floatingDivsSplit.has(uniqueId)) {
 
+        if (!this.floatingDivsSplit.has(uniqueId)) {
           const selectedText = this.contentTextCleaned.substring(
             startId, this.wordStats[yCol1 + 1][1] - 1
 
@@ -132,7 +184,7 @@ export class TextHighlighter {
           const floatingDiv = document.createElement("div");
           floatingDiv.id = uniqueId;
           floatingDiv.className = "floatingControls";
-          floatingDiv.style.width = `${this.#getWordWidth(selectedText)}px`;
+          floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
           floatingDiv.setAttribute("rawId", rowId)
           floatingDiv.setAttribute("end", this.wordStats[yCol1 + 1][1] - 1)
           floatingDiv.setAttribute("start", startId)
@@ -151,13 +203,12 @@ export class TextHighlighter {
           console.log(this.wordStats)
           console.log(`yColIndex ${this.findStartIndexFromIndex(this.wordStats, testStartIndex)} xcol ${this.findXValueFromIndex(
             gaycat,
-            this.contentTextCleaned,
             testStartIndex
           )} top${this.findYValueFromIndex(testStartIndex)} startIndex${testStartIndex} `)
           const floatingDiv = document.createElement("div");
           floatingDiv.id = splitId;
           floatingDiv.className = "floatingControls";
-          floatingDiv.style.width = `${this.#getWordWidth(selectedText)}px`;
+          floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
           floatingDiv.setAttribute("rawId", rowId)
           floatingDiv.setAttribute("start", this.wordStats[yCol1 + 1][1] + 1)
           floatingDiv.setAttribute("start2", this.wordStats[yCol1 + 1][1])
@@ -188,67 +239,6 @@ export class TextHighlighter {
     element.style.left = `${xCol + this.divRect.left + 2}px`;
   }
 
-  #findStartIndexFromIndex(updatedWordStats, startLetterIndex) {
-    let previousValue = null;
-    let lastSize = updatedWordStats[updatedWordStats.length - 1][1]
-    if (lastSize < startLetterIndex) {
-      return lastSize
-    }
-    for (const value of Object.values(updatedWordStats)) {
-      if (startLetterIndex <= value[1]) {
-
-        return previousValue ? previousValue[1] : null;
-      }
-      previousValue = value;
-    }
-
-    return null;
-  }
-
-  #findColFromIndex(startLetterIndex) {
-    let previousValue = null;
-    let lastSize = this.wordStats[this.wordStats.length - 1][1]
-    if (lastSize < startLetterIndex) {
-      return lastSize
-    }
-    for (const value of Object.values(this.wordStats)) {
-      if (startLetterIndex <= value[1]) {
-
-        return previousValue ? previousValue[0] : null;
-      }
-      previousValue = value;
-    }
-
-    return null;
-  }
-
-  #findYValueFromIndex(startLetterIndex) {
-    let previousValue = null;
-    let lastSize = this.wordStats[this.wordStats.length - 1][1]
-    if (lastSize < startLetterIndex) {
-      return ((this.wordStats.length - 1) * this.textAreaYSections) + this.divStartY;
-    }
-    for (const value of Object.values(this.wordStats)) {
-      let yPx = (value[0] * this.textAreaYSections) + this.divStartY;
-
-      if (startLetterIndex <= value[1]) {
-        return previousValue !== null ? previousValue : yPx;
-      }
-      previousValue = yPx;
-    }
-
-    return null;
-  }
-
-  #findXValueFromIndex(yColIndex, mainText, startIndex) {
-    let cumulativeWidth = 0;
-    for (let i = yColIndex; i < mainText.length; i++) {
-      if (i == startIndex) {
-        return cumulativeWidth;
-      }
-      cumulativeWidth += this.#getCharacterWidth(mainText[i]);
-    }
-  }
 
   #handleMouseMove = (event) => {
     const relativeX = event.clientX - this.divRect.left;
@@ -260,7 +250,7 @@ export class TextHighlighter {
     let letterIndex = -1;
 
     for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
-      cumulativeWidth += this.#getCharacterWidth(this.contentTextCleaned[i]);
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
       if (cumulativeWidth >= relativeX) {
         letterIndex = i;
         this.endLetterIndex = i;
@@ -278,7 +268,7 @@ export class TextHighlighter {
     let cumulativeWidth = 0;
 
     for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
-      cumulativeWidth += this.#getCharacterWidth(this.contentTextCleaned[i]);
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
       if (cumulativeWidth >= relativeX) {
         this.startLetterIndex = i;
         this.endLetterIndex = i;
@@ -325,7 +315,7 @@ export class TextHighlighter {
       const floatingDiv = document.createElement("div");
       floatingDiv.id = uniqueId;
       floatingDiv.className = "floatingControls";
-      floatingDiv.style.width = `${this.#getWordWidth(selectedText)}px`;
+      floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
       floatingDiv.setAttribute("start", this.startLetterIndex)
       floatingDiv.setAttribute("end", this.endLetterIndex)
       floatingDiv.setAttribute("rawId", `${this.startLetterIndex}-${this.endLetterIndex}`)
@@ -343,13 +333,12 @@ export class TextHighlighter {
   #positionFloatingCommentContent(element) {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
-    let yColIndex = this.#findStartIndexFromIndex(this.wordStats, startId);
-    let xCol = this.#findXValueFromIndex(
+    let yColIndex = this.findStartIndexFromIndex(this.wordStats, startId);
+    let xCol = this.findXValueFromIndex(
       yColIndex,
-      this.contentTextCleaned,
       endId
     );
-    let top = this.#findYValueFromIndex(startId);
+    let top = this.findYValueFromIndex(startId);
 
     element.style.top = `${top + 25}px`;
     element.style.left = `${xCol + this.divRect.left + 2}px`;
