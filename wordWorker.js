@@ -91,17 +91,15 @@ export class TextHighlighter {
 
   findYValueFromIndex(startLetterIndex) {
     let previousValue = null;
-    let lastSize = this.wordStats[this.wordStats.length - 1][1]
+    let lastColIndex = this.wordStats[this.wordStats.length - 1][1]
 
-    if (lastSize <= startLetterIndex) {
+    if (lastColIndex <= startLetterIndex) {
       return ((this.wordStats.length - 1) * this.textAreaYSections) + this.divStartY;
     }
 
     for (const value of Object.values(this.wordStats)) {
       let yPx = (value[0] * this.textAreaYSections) + this.divStartY;
-      // if (startLetterIndex === value[1]) {
-      //   return yPx;  // Exact match on boundary
-      // }
+
       if (startLetterIndex < value[1]) {
         return previousValue !== null ? previousValue : yPx;
       }

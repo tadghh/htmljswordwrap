@@ -117,17 +117,21 @@ in thermodynamics, do not grasp the implications of the eternal plume of
       const result = textHighlighter.findYValueFromIndex(5);
       expect(typeof result).toBe('number');
     });
+    test('should calculate correct Y value for given index on start col', () => {
+      const result = textHighlighter.findYValueFromIndex(73);
+      expect(result).toBe(57.142857142857146);
+    });
+    test('should calculate correct Y value for given index on end col', () => {
+      const result = textHighlighter.findYValueFromIndex(139);
+      expect(result).toBe(57.142857142857146);
+    });
 
     test('should handle index beyond text length', () => {
       const lastIndex = textHighlighter.contentTextCleaned.length + 10;
       const result = textHighlighter.findYValueFromIndex(lastIndex);
       expect(result).not.toBeNull();
     });
-    test('should handle middle index', () => {
-      const lastIndex = 486;
-      const result = textHighlighter.findColFromIndex(lastIndex);
-      expect(result).toBe(7);
-    });
+
 
     test('last row last index', () => {
       const lastIndex = textHighlighter.contentTextCleaned.length;
@@ -148,6 +152,15 @@ in thermodynamics, do not grasp the implications of the eternal plume of
       expect(result).toBe(0);
     });
   });
+
+  describe('Find col from index', () => {
+    test('should handle middle index', () => {
+      const lastIndex = 486;
+      const result = textHighlighter.findColFromIndex(lastIndex);
+      expect(result).toBe(7);
+    });
+  });
+
   describe('Get width Calculations', () => {
     test('should calculate correct Y value for given index', () => {
       const startIndex = 1;
