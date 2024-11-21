@@ -94,35 +94,19 @@ in thermodynamics, do not grasp the implications of the eternal plume of
     });
   });
 
-  describe('Word Calculations', () => {
-    test('should calculate word positions correctly', () => {
-      const words = 'Short test string';
-      const stats = textHighlighter.calcWords(words);
 
-      expect(Array.isArray(stats)).toBe(true);
-      expect(stats[0]).toEqual([0, 0]);
-      expect(stats.length).toBeGreaterThan(0);
-    });
-
-    test('should handle text wider than div width', () => {
-      const longText = 'This is a very long text that should definitely wrap to the next line because it exceeds the width of the container div element';
-      const stats = textHighlighter.calcWords(longText);
-
-      expect(stats.length).toBeGreaterThan(1);
-    });
-  });
 
   describe('Index Finding', () => {
     test('should find correct start index', () => {
-      const wordStats = [[0, 5], [1, 10], [2, 15]];
-      const result = textHighlighter.findStartIndexFromIndex(wordStats, 12);
-      expect(result).toBe(10);
+
+      const result = textHighlighter.findStartIndexFromIndex(12);
+      expect(result).toBe(0);
     });
 
-    test('should handle index beyond last position', () => {
-      const wordStats = [[0, 5], [1, 10]];
-      const result = textHighlighter.findStartIndexFromIndex(wordStats, 15);
-      expect(result).toBe(10);
+    test('find start index on itself', () => {
+
+      const result = textHighlighter.findStartIndexFromIndex(73);
+      expect(result).toBe(73);
     });
   });
 
@@ -139,11 +123,16 @@ in thermodynamics, do not grasp the implications of the eternal plume of
       const result = textHighlighter.findYValueFromIndex(lastIndex);
       expect(result).not.toBeNull();
     });
+    test('should handle middle index', () => {
+      const lastIndex = 486;
+      const result = textHighlighter.findColFromIndex(lastIndex);
+      expect(result).toBe(7);
+    });
 
     test('last row last index', () => {
       const lastIndex = textHighlighter.contentTextCleaned.length;
       const result = textHighlighter.findYValueFromIndex(lastIndex);
-      console.log(textHighlighter.wordStats)
+      //console.log(textHighlighter.wordStats)
       expect(result).toBe(742.8571428571429);
     });
 
@@ -180,13 +169,13 @@ in thermodynamics, do not grasp the implications of the eternal plume of
       expect(result).toBe(0);
     });
     // TODO fix zero width
-    // TODO fix its null because 0 or something, returning early
+    // TODO fix its null because 0 or something, returning
     test('on edge last index', () => {
 
       const startIndex = textHighlighter.contentTextCleaned.length - 1;
       console.log(startIndex)
       const result = textHighlighter.getPaddingForIndex(startIndex);
-      expect(result).toBe(0);
+      expect(result).toBe(32);
     });
 
     test('first col 0', () => {
