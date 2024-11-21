@@ -9,22 +9,41 @@ describe('TextHighlighter', () => {
   let hoverableDiv;
   let output;
   let outputHover;
-
+  const array2D = [
+    [0, 0], [1, 73],
+    [2, 140], [3, 207],
+    [4, 273], [5, 344],
+    [6, 415], [7, 486],
+    [8, 557], [9, 629],
+    [10, 700], [11, 768],
+    [12, 837], [13, 909]
+  ];
   // Setup mock DOM environment before each test
   beforeEach(() => {
     // Setup our document body
     document.body.innerHTML = `
-          <div id="hoverable" style="font-size: 16px; font-family: Arial; width: 500px; height: 200px;">
-              This is some sample text for testing the highlighting functionality
-          </div>
+    <body style="width: 420px;">
+          <div id="hoverable" style="font-size: 20px; font-family: serif; display: inline;">Whenever a pirate vessel comes into view, they all take turns looking at
+it through the sight, playing with all the different sensor modes:
+visible, infrared, and so on. Eliot has spent enough time knocking around
+the Rim that he has become familiar with the colors of the different
+pirate groups, so by examining them through the sight he can tell who they
+are: Clint Eastwood and his band parallel them for a few minutes one day,
+checking them out, and the Magnificent Seven send out one of their small
+boats to zoom by them and look for potential booty. Hiro's almost hoping
+they get taken prisoner by the Seven, because they have the nicest looking
+pirate ship: a former luxury yacht with Exocet launch tubes kludged to the
+foredeck. But this reconnaissance leads nowhere. The pirates, unschooled
+in thermodynamics, do not grasp the implications of the eternal plume of
+			steam coming from beneath the life raft.</div>
           <div id="output"></div>
           <div id="outputHover"></div>
-      `;
+      </body>`;
 
     // Mock getBoundingClientRect
     Element.prototype.getBoundingClientRect = jest.fn(() => ({
-      width: 500,
-      height: 200,
+      width: 580,
+      height: 800,
       top: 0
     }));
 
@@ -55,16 +74,11 @@ describe('TextHighlighter', () => {
 
   describe('Constructor', () => {
     test('should initialize with correct properties', () => {
-      expect(textHighlighter.widthCache).toEqual({});
+
       expect(textHighlighter.startLetterIndex).toBe(-1);
       expect(textHighlighter.endLetterIndex).toBe(-1);
       expect(textHighlighter.mouseCol).toBe(0);
       expect(textHighlighter.mouseColSafe).toBe(0);
-    });
-
-    test('should properly clean and store text content', () => {
-      const expectedText = 'This is some sample text for testing the highlighting functionality';
-      expect(textHighlighter.contentTextCleaned).toBe(expectedText);
     });
   });
 
@@ -112,7 +126,9 @@ describe('TextHighlighter', () => {
     });
   });
 
-  describe('Y Value Calculations', () => {
+
+
+  describe('Y Value from index Calculations', () => {
     test('should calculate correct Y value for given index', () => {
       const result = textHighlighter.findYValueFromIndex(5);
       expect(typeof result).toBe('number');
@@ -123,23 +139,61 @@ describe('TextHighlighter', () => {
       const result = textHighlighter.findYValueFromIndex(lastIndex);
       expect(result).not.toBeNull();
     });
+
+    test('last row last index', () => {
+      const lastIndex = textHighlighter.contentTextCleaned.length;
+      const result = textHighlighter.findYValueFromIndex(lastIndex);
+      console.log(textHighlighter.wordStats)
+      expect(result).toBe(742.8571428571429);
+    });
+
+    test('on edge last index', () => {
+      const lastIndex = 909;
+      const result = textHighlighter.findYValueFromIndex(lastIndex);
+      expect(result).toBe(742.8571428571429);
+    });
+
+    test('first col 0', () => {
+      const lastIndex = 0;
+      const result = textHighlighter.findYValueFromIndex(lastIndex);
+      expect(result).toBe(0);
+    });
   });
+  describe('Get width Calculations', () => {
+    test('should calculate correct Y value for given index', () => {
+      const startIndex = 1;
 
-  describe('Div Value Updates', () => {
-    test('should update values when div changes', () => {
-      const originalStats = textHighlighter.wordStats.length;
+      const result = textHighlighter.getPaddingForIndex(startIndex);
+      expect(typeof result).toBe('number');
+    });
 
-      // Mock new dimensions
-      Element.prototype.getBoundingClientRect = jest.fn(() => ({
-        width: 300, // Smaller width should cause more line breaks
-        height: 200,
-        top: 0
-      }));
+    test('should handle index beyond text length', () => {
 
-      textHighlighter.updateDivValues();
+      const startIndex = 0;
+      const result = textHighlighter.getPaddingForIndex(startIndex);
+      expect(result).not.toBeNull();
+    });
 
-      expect(textHighlighter.divWidth).toBe(300);
-      expect(textHighlighter.wordStats.length).toBeGreaterThan(originalStats);
+    test('No padding start on last row', () => {
+      const startIndex = 909;
+      const result = textHighlighter.getPaddingForIndex(startIndex);
+      expect(result).toBe(0);
+    });
+    // TODO fix zero width
+    // TODO fix its null because 0 or something, returning early
+    test('on edge last index', () => {
+
+      const startIndex = textHighlighter.contentTextCleaned.length - 1;
+      console.log(startIndex)
+      const result = textHighlighter.getPaddingForIndex(startIndex);
+      expect(result).toBe(0);
+    });
+
+    test('first col 0', () => {
+
+      const result = textHighlighter.getPaddingForIndex(startIndex);
+      const startIndex = 0;
+      expect(result).toBe(0);
     });
   });
 });

@@ -26,7 +26,7 @@ export class TextHighlighter {
     this.divStartY = this.divRect.top;
 
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
-
+    // console.log(this.context.font)
     this.contentTextCleaned = this.hoverableDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
 
     this.wordStats = this.calcWords(this.contentTextCleaned);
@@ -48,7 +48,10 @@ export class TextHighlighter {
   findStartIndexFromIndex(updatedWordStats, startLetterIndex) {
     let previousValue = null;
     let lastSize = updatedWordStats[updatedWordStats.length - 1][1]
-    if (lastSize < startLetterIndex) {
+    if (startLetterIndex == 0) {
+      return 0
+    }
+    if (lastSize <= startLetterIndex) {
       return lastSize
     }
     for (const value of Object.values(updatedWordStats)) {
@@ -65,11 +68,12 @@ export class TextHighlighter {
   findColFromIndex(startLetterIndex) {
     let previousValue = null;
     let lastSize = this.wordStats[this.wordStats.length - 1][1]
-    if (lastSize < startLetterIndex) {
-      return lastSize
+    // chaanf
+    if (lastSize <= startLetterIndex) {
+      return this.wordStats[this.wordStats.length - 1][0]
     }
     for (const value of Object.values(this.wordStats)) {
-      if (startLetterIndex <= value[1]) {
+      if (startLetterIndex < value[1]) {
 
         return previousValue ? previousValue[0] : null;
       }
@@ -80,9 +84,10 @@ export class TextHighlighter {
   }
 
   findYValueFromIndex(startLetterIndex) {
+    console.log(this.wordStats)
     let previousValue = null;
     let lastSize = this.wordStats[this.wordStats.length - 1][1]
-    if (lastSize < startLetterIndex) {
+    if (lastSize <= startLetterIndex) {
       return ((this.wordStats.length - 1) * this.textAreaYSections) + this.divStartY;
     }
     for (const value of Object.values(this.wordStats)) {
@@ -97,15 +102,33 @@ export class TextHighlighter {
     return null;
   }
 
-  findXValueFromIndex(yColIndex, startIndex) {
+  getWidthFromRange(startIndex, yColIndex) {
+    if (startIndex < 0 || yColIndex < 0) return null
+    // if (yColIndex < startIndex) return null
     let cumulativeWidth = 0;
-    for (let i = yColIndex; i < this.contentTextCleaned.length; i++) {
+    for (let i = startIndex; i < this.contentTextCleaned.length; i++) {
+      if (i == yColIndex) {
+        return cumulativeWidth;
+      }
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+    }
+  }
+  getPaddingForIndex(startIndex) {
+    if (startIndex < 0) return null
+
+    let colStartIndex = this.findStartIndexFromIndex(this.wordStats, startIndex);
+    if (colStartIndex < 0) return null
+
+    // if (yColIndex < startIndex) return null
+    let cumulativeWidth = 0;
+    for (let i = colStartIndex; i < this.contentTextCleaned.length; i++) {
       if (i == startIndex) {
         return cumulativeWidth;
       }
       cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
     }
   }
+
   calcWords(words) {
     const spaceSize = this.getWordWidth(" ");
     const wordArray = words.split(" ").map((word, i, arr) =>
@@ -116,7 +139,7 @@ export class TextHighlighter {
     let wordCols = 1;
     let currentStringIndex = 0;
     let tempWidth = 0;
-
+    // console.log(this.divWidth)
     wordArray.forEach((word, iter) => {
       let testWidth = tempWidth + this.getWordWidth(word);
       if (testWidth <= this.divWidth) {
@@ -144,6 +167,7 @@ export class TextHighlighter {
 
     this.wordStats = this.calcWords(this.contentTextCleaned);
     this.textAreaYSections = this.divRect.height / this.wordStats.length;
+    console.log(this.wordStats)
   }
 
   #handleResizeOrScroll = () => {
@@ -155,28 +179,21 @@ export class TextHighlighter {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
     let yColIndex = this.findStartIndexFromIndex(this.wordStats, startId);
-    let xCol = this.findXValueFromIndex(
-      yColIndex,
-      startId
-    );
+    let linePadding = this.getPaddingForIndex(startId);
     let top = this.findYValueFromIndex(startId);
     let yCol1 = this.findColFromIndex(startId)
     let yCol2 = this.findColFromIndex(endId)
 
     if (element.id.includes("floating-highlighted")) {
       if (yCol1 != yCol2) {
-
         element.style.display = "none"
         const rowId = element.getAttribute("rawId")
-
-
         const uniqueId = `split-${startId}-${this.wordStats[yCol1][1] - 1}`;
         const splitId = `split-${this.wordStats[yCol1][1]}-${endId}`
 
         if (!this.floatingDivsSplit.has(uniqueId)) {
           const selectedText = this.contentTextCleaned.substring(
             startId, this.wordStats[yCol1 + 1][1] - 1
-
           );
 
           console.log(selectedText)
@@ -201,16 +218,15 @@ export class TextHighlighter {
 
           console.log(selectedText)
           console.log(this.wordStats)
-          console.log(`yColIndex ${this.findStartIndexFromIndex(this.wordStats, testStartIndex)} xcol ${this.findXValueFromIndex(
-            gaycat,
-            testStartIndex
+          console.log(`yColIndex ${this.findStartIndexFromIndex(this.wordStats, testStartIndex)} xcol ${this.getWidthFromRange(
+            gaycat, testStartIndex
           )} top${this.findYValueFromIndex(testStartIndex)} startIndex${testStartIndex} `)
           const floatingDiv = document.createElement("div");
           floatingDiv.id = splitId;
           floatingDiv.className = "floatingControls";
           floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
           floatingDiv.setAttribute("rawId", rowId)
-          floatingDiv.setAttribute("start", this.wordStats[yCol1 + 1][1] + 1)
+          floatingDiv.setAttribute("start", this.wordStats[yCol1 + 1][1])
           floatingDiv.setAttribute("start2", this.wordStats[yCol1 + 1][1])
           floatingDiv.setAttribute("end", endId)
           document.body.appendChild(floatingDiv);
@@ -220,7 +236,6 @@ export class TextHighlighter {
       } else if (element.style.display == "none" && (yCol1 === yCol2)) {
         element.style.display = "inline"
         const rowId = element.getAttribute("rawId")
-
         let splits = document.querySelectorAll(`[rawId="${rowId}"][id*="split"]`);
 
         splits.forEach(element => {
@@ -229,14 +244,13 @@ export class TextHighlighter {
           element.remove(); // Remove the element from the DOM
         });
       }
-
     }
     // check end col <-- start index for other
     // check highlighted text, add previous. find what words wraps on
     // could just use index instead from wordStats
     // method to get col based on index
     element.style.top = `${top - 5 + this.mouseTopOffset}px`;
-    element.style.left = `${xCol + this.divRect.left + 2}px`;
+    element.style.left = `${linePadding + this.divRect.left + 2}px`;
   }
 
 
@@ -326,7 +340,7 @@ export class TextHighlighter {
     const floatingDiv = this.floatingDivsMap.get(uniqueId);
     this.#positionFloatingComment(floatingDiv, this.endLetterIndex, this.startLetterIndex);
     // Initially position the div
-    this.repositionItems()
+    this.#repositionItems()
 
   }
 
@@ -334,7 +348,7 @@ export class TextHighlighter {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
     let yColIndex = this.findStartIndexFromIndex(this.wordStats, startId);
-    let xCol = this.findXValueFromIndex(
+    let xCol = this.getWidthFromRange(
       yColIndex,
       endId
     );
