@@ -6,9 +6,9 @@ import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 
 describe('TextHighlighter', () => {
   let textHighlighter;
-  // let hoverableDiv;
-  // let output;
-  // let outputHover;
+  let hoverableDiv;
+  let output;
+  let outputHover;
   // const array2D = [
   //   [0, 0], [1, 73],
   //   [2, 140], [3, 207],
@@ -178,10 +178,8 @@ in thermodynamics, do not grasp the implications of the eternal plume of
       const result = textHighlighter.getPaddingForIndex(startIndex);
       expect(result).toBe(0);
     });
-    // TODO fix zero width
-    // TODO fix its null because 0 or something, returning
-    test('on edge last index', () => {
 
+    test('on edge last index', () => {
       const startIndex = textHighlighter.contentTextCleaned.length - 1;
       console.log(startIndex)
       const result = textHighlighter.getPaddingForIndex(startIndex);
@@ -189,7 +187,6 @@ in thermodynamics, do not grasp the implications of the eternal plume of
     });
 
     test('first col 0', () => {
-
       const result = textHighlighter.getPaddingForIndex(startIndex);
       const startIndex = 0;
       expect(result).toBe(0);
