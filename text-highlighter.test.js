@@ -6,18 +6,18 @@ import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 
 describe('TextHighlighter', () => {
   let textHighlighter;
-  let hoverableDiv;
-  let output;
-  let outputHover;
-  const array2D = [
-    [0, 0], [1, 73],
-    [2, 140], [3, 207],
-    [4, 273], [5, 344],
-    [6, 415], [7, 486],
-    [8, 557], [9, 629],
-    [10, 700], [11, 768],
-    [12, 837], [13, 909]
-  ];
+  // let hoverableDiv;
+  // let output;
+  // let outputHover;
+  // const array2D = [
+  //   [0, 0], [1, 73],
+  //   [2, 140], [3, 207],
+  //   [4, 273], [5, 344],
+  //   [6, 415], [7, 486],
+  //   [8, 557], [9, 629],
+  //   [10, 700], [11, 768],
+  //   [12, 837], [13, 909]
+  // ];
   // Setup mock DOM environment before each test
   beforeEach(() => {
     // Setup our document body
@@ -94,8 +94,6 @@ in thermodynamics, do not grasp the implications of the eternal plume of
     });
   });
 
-
-
   describe('Index Finding', () => {
     test('should find correct start index', () => {
 
@@ -110,17 +108,17 @@ in thermodynamics, do not grasp the implications of the eternal plume of
     });
   });
 
-
-
   describe('Y Value from index Calculations', () => {
     test('should calculate correct Y value for given index', () => {
       const result = textHighlighter.findYValueFromIndex(5);
       expect(typeof result).toBe('number');
     });
+
     test('should calculate correct Y value for given index on start col', () => {
       const result = textHighlighter.findYValueFromIndex(73);
       expect(result).toBe(57.142857142857146);
     });
+
     test('should calculate correct Y value for given index on end col', () => {
       const result = textHighlighter.findYValueFromIndex(139);
       expect(result).toBe(57.142857142857146);
@@ -131,7 +129,6 @@ in thermodynamics, do not grasp the implications of the eternal plume of
       const result = textHighlighter.findYValueFromIndex(lastIndex);
       expect(result).not.toBeNull();
     });
-
 
     test('last row last index', () => {
       const lastIndex = textHighlighter.contentTextCleaned.length;
