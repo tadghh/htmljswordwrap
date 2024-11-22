@@ -180,7 +180,10 @@ export class TextHighlighter {
     this.updateDivValues();
     this.#repositionItems();
   };
-
+  #calcCols(startIndex, endIndex) {
+    // there is always one col
+    return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
+  }
   #positionFloatingComment(element) {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
@@ -189,62 +192,20 @@ export class TextHighlighter {
     let top = this.findYValueFromIndex(startId);
     let yCol1 = this.findColFromIndex(startId)
     let yCol2 = this.findColFromIndex(endId)
-    if (element.id.includes("yo")) {
-      console.log(this.wordStats)
 
-      console.log(`yo ${top} ${yCol1} ${yCol2} ${startId}`)
-    }
     if (element.id.includes("floating-highlighted")) {
-      if (yCol1 != yCol2) {
+      // check how many cols spanned
+      // enter if creater than one
+      let spanningColCount = this.#calcCols(startId, endId)
+      console.log(spanningColCount)
+      if (spanningColCount > 1) {
         element.style.display = "none"
-        const rowId = element.getAttribute("rawId")
-        const uniqueId = `split-${startId}-${this.wordStats[yCol1][1] - 1}`;
-        const splitId = `split-${this.wordStats[yCol1][1]}-${endId}`
-
-        // if (!this.floatingDivsSplit.has(uniqueId)) {
-        //   const selectedText = this.contentTextCleaned.substring(
-        //     startId, this.wordStats[yCol1 + 1][1] - 1
-        //   );
-
-        //   console.log(selectedText)
-
-        //   const floatingDiv = document.createElement("div");
-        //   floatingDiv.id = uniqueId;
-        //   floatingDiv.className = "floatingControls";
-        //   floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
-        //   floatingDiv.setAttribute("rawId", rowId)
-        //   floatingDiv.setAttribute("end", this.wordStats[yCol1 - 1][1] - 1)
-        //   floatingDiv.setAttribute("start", startId)
-        //   document.body.appendChild(floatingDiv);
-        //   this.floatingDivsSplit.set(uniqueId, floatingDiv);
-        // }
-        if (!this.floatingDivsSplit.has(splitId)) {
-          let testStartIndex = this.wordStats[yCol1 + 1][1]
-          let gaycat = this.findStartIndexFromIndex(testStartIndex + 1);
-
-          const selectedText = this.contentTextCleaned.substring(
-            testStartIndex,
-            endId
-          );
-
-          // console.log(selectedText)
-          // console.log(this.wordStats)
-          console.log(`yColIndex ${gaycat} xcol ${this.getWidthFromRange(
-            gaycat, testStartIndex
-          )} top${this.findYValueFromIndex(testStartIndex)} startIndex${testStartIndex} endid ${endId} selected ${selectedText}`)
-          const floatingDiv = document.createElement("div");
-          floatingDiv.id = "yo";
-          floatingDiv.className = "floatingControls";
-          floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
-          floatingDiv.setAttribute("rawId", rowId)
-          floatingDiv.setAttribute("start", this.wordStats[yCol1 + 1][1])
-          floatingDiv.setAttribute("start2", this.wordStats[yCol1 + 1][1])
-          floatingDiv.setAttribute("end", endId)
-          document.body.appendChild(floatingDiv);
-          this.floatingDivsSplit.set("yo", floatingDiv);
-        }
-        // this.#repositionItems()
-        // return;
+        console.log(spanningColCount)
+        // for loop on col count
+        // create element, + tag with rawid
+        // tag each with uniqueid and col number
+        // if we arent the start or end set width the whole line
+        // add elements to map,
       } else if (element.style.display == "none" && (yCol1 === yCol2)) {
         element.style.display = "inline"
         const rowId = element.getAttribute("rawId")
@@ -257,10 +218,7 @@ export class TextHighlighter {
         });
       }
     }
-    // check end col <-- start index for other
-    // check highlighted text, add previous. find what words wraps on
-    // could just use index instead from wordStats
-    // method to get col based on index
+
     element.style.top = `${top - 5 + this.mouseTopOffset}px`;
     element.style.left = `${linePadding + this.divRect.left + 2}px`;
   }
