@@ -185,46 +185,67 @@ export class TextHighlighter {
     // there is always one col
     return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
   }
-
   #positionFloatingComment(element) {
-    const startId = element.getAttribute("start")
-    const endId = element.getAttribute("end")
-    let yColIndex = this.findStartIndexFromIndex(startId);
-    let linePadding = this.getPaddingForIndex(startId);
-    let top = this.findYValueFromIndex(startId);
-    let yCol1 = this.findColFromIndex(startId)
-    let yCol2 = this.findColFromIndex(endId)
-
-    if (element.id.includes("floating-highlighted")) {
-      // check how many cols spanned
-      // enter if creater than one
-      let spanningColCount = this.#calcCols(startId, endId)
-      console.log(spanningColCount)
-      if (spanningColCount > 1) {
-        element.style.display = "none"
-        console.log(spanningColCount)
-        // for loop on col count
-        // create element, + tag with rawid
-        // tag each with uniqueid and col number
-        // if we arent the start or end set width the whole line
-        // add elements to map,
-      } else if (element.style.display == "none" && (yCol1 === yCol2)) {
-        element.style.display = "inline"
-        const rowId = element.getAttribute("rawId")
-        let splits = document.querySelectorAll(`[rawId="${rowId}"][id*="split"]`);
-
-        splits.forEach(element => {
-          const splitId = element.id; // Get the ID of the element
-          this.floatingDivsSplit.delete(splitId); // Remove the entry from the Map
-          element.remove(); // Remove the element from the DOM
-        });
-      }
+    // Early return if element is undefined or null
+    if (!element) {
+      console.warn('Element is undefined or null in positionFloatingComment');
+      return;
     }
 
-    element.style.top = `${top - 5 + this.mouseTopOffset}px`;
-    element.style.left = `${linePadding + this.divRect.left + 2}px`;
-  }
+    // Safely get attributes with null checks
+    const startId = element.getAttribute("start");
+    const endId = element.getAttribute("end");
 
+    // Validate required attributes
+    if (!startId || !endId) {
+      console.warn('Missing required attributes (start or end) on element');
+      return;
+    }
+
+    try {
+      let yColIndex = this.findStartIndexFromIndex(startId);
+      let linePadding = this.getPaddingForIndex(startId);
+      let top = this.findYValueFromIndex(startId);
+      let yCol1 = this.findColFromIndex(startId);
+      let yCol2 = this.findColFromIndex(endId);
+
+      if (element.id && element.id.includes("floating-highlighted")) {
+        let spanningColCount = this.#calcCols(startId, endId);
+
+        if (spanningColCount > 1) {
+          element.style.display = "none";
+          // Implementation for multi-column spanning
+          // TODO: Add your multi-column logic here
+        } else if (element.style.display === "none" && (yCol1 === yCol2)) {
+          element.style.display = "inline";
+          const rowId = element.getAttribute("rawId");
+
+          if (rowId) {
+            let splits = document.querySelectorAll(`[rawId="${rowId}"][id*="split"]`);
+            splits.forEach(splitElement => {
+              if (splitElement) {
+                const splitId = splitElement.id;
+                this.floatingDivsSplit.delete(splitId);
+                splitElement.remove();
+              }
+            });
+          }
+        }
+      }
+
+      // Apply styles safely
+      if (typeof top === 'number' && !isNaN(top)) {
+        element.style.top = `${top - 5 + this.mouseTopOffset}px`;
+      }
+
+      if (typeof linePadding === 'number' && !isNaN(linePadding) &&
+        typeof this.divRect?.left === 'number' && !isNaN(this.divRect.left)) {
+        element.style.left = `${linePadding + this.divRect.left + 2}px`;
+      }
+    } catch (error) {
+      console.error('Error in positionFloatingComment:', error);
+    }
+  }
 
   #handleMouseMove = (event) => {
     const relativeX = event.clientX - this.divRect.left;
