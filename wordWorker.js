@@ -218,9 +218,8 @@ export class TextHighlighter {
           let lowerCol = yCol1;
           let upperCol = yCol1 + spanningColCount;
           const oldSpanCount = this.floatingSelectionCols.get(elementsRawUniqueId) || 0;
-          console.log(`${oldSpanCount} ${spanningColCount}`)
-          if (oldSpanCount != spanningColCount) {
 
+          if (oldSpanCount != spanningColCount) {
             if (spanningColCount >= 2) {
               const splits = document.querySelectorAll(`[rawId="${elementsRawUniqueId}"].split`);
               if (splits.length > 0) {

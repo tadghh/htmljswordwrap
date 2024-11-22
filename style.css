@@ -4,6 +4,10 @@ body {
 #hoverableDiv {
 	z-index: 5;
 	position: relative;
+	/* font-family: Nunito; */
+	cursor: pointer;
+	font-size: 20px;
+	display: inline;
 }
 .floatingControls {
 	position: absolute;
@@ -19,6 +23,7 @@ body {
 	padding: 0px;
 	border-radius: 4px;
 	font-size: 20px;
+
 	color: white;
 	opacity: 1;
 }
