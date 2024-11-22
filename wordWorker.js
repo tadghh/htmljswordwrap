@@ -180,10 +180,12 @@ export class TextHighlighter {
     this.updateDivValues();
     this.#repositionItems();
   };
+
   #calcCols(startIndex, endIndex) {
     // there is always one col
     return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
   }
+
   #positionFloatingComment(element) {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
@@ -270,7 +272,7 @@ export class TextHighlighter {
 
   #handleMouseUp = () => {
     if (this.startLetterIndex !== -1 && this.endLetterIndex !== -1) {
-      this.#updateHighlightedText();
+      this.#createHighlight();
     }
     this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
       this.startLetterIndex,
@@ -278,7 +280,7 @@ export class TextHighlighter {
     )}`;
   };
 
-  #updateHighlightedText() {
+  #createHighlight() {
     if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
     if (this.contentTextCleaned[this.endLetterIndex] === " ") this.endLetterIndex--;
     if (this.startLetterIndex > this.endLetterIndex) {
@@ -354,23 +356,16 @@ export class TextHighlighter {
     this.floatingDivsMapTwo.forEach((div, key) => {
       let hoverItem = document.getElementById(`${key} `);
       if (hoverItem) {
-
         this.#positionFloatingCommentContent(hoverItem);
       }
     });
 
-    this.floatingDivsMap.forEach((div, key) => {
-      let hoverItem = document.getElementById(key);
-      if (hoverItem) {
-
-        this.#positionFloatingComment(hoverItem)
-      }
+    this.floatingDivsMap.forEach((div) => {
+      this.#positionFloatingComment(div)
     });
     this.floatingDivsSplit.forEach((div, key) => {
       let hoverItem = document.getElementById(key);
-      // console.log(key)
       if (hoverItem) {
-        // console.log("found split")
         this.#positionFloatingComment(hoverItem)
       }
     });
