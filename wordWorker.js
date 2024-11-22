@@ -1,4 +1,5 @@
 export class TextHighlighter {
+  static TEXT_RENDER_BUFFER = 3;
   constructor(hoverableDivId, outputId, outputHoverId) {
     this.widthCache = {};
     this.startLetterIndex = -1;
@@ -24,18 +25,15 @@ export class TextHighlighter {
     this.fontFamily = computedStyle.fontFamily;
 
     this.divRect = this.hoverableDiv.getBoundingClientRect();
-    this.divWidth = this.divRect.width;
-    this.divStartY = this.divRect.top;
 
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
-    // console.log(this.context.font)
     this.contentTextCleaned = this.hoverableDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
     this.spaceSize = this.getWordWidth(" ");
     this.wordArray = this.contentTextCleaned.split(" ").map((word, i, arr) =>
       i < arr.length - 1 ? word + " " : word
     );
     this.wordStats = this.calcWordPositions(this.contentTextCleaned);
-    this.textAreaYSections = this.divRect.height / this.wordStats.length;
+
 
     this.#addEventListeners();
   }
@@ -45,6 +43,14 @@ export class TextHighlighter {
       this.widthCache[char] = this.context.measureText(char).width;
     }
     return this.widthCache[char];
+  }
+
+  getLeftPadding() {
+    return this.divRect.left
+  }
+
+  getTopWordPadding() {
+    return this.divRect.top
   }
 
   getWordWidth(word) {
@@ -76,7 +82,7 @@ export class TextHighlighter {
   findColFromIndex(startLetterIndex) {
     let previousValue = null;
     let lastSize = this.wordStats[this.wordStats.length - 1][1]
-    // chaanf
+
     if (lastSize <= startLetterIndex) {
       return this.wordStats[this.wordStats.length - 1][0]
     }
@@ -96,13 +102,14 @@ export class TextHighlighter {
     let lastColIndex = this.wordStats[this.wordStats.length - 1][1]
 
     if (lastColIndex <= startLetterIndex) {
-      return ((this.wordStats.length - 1) * this.textAreaYSections) + this.divStartY;
+      return ((this.wordStats.length - 1) * this.getTextYSections()) + this.getTopWordPadding();
     }
 
     for (const value of Object.values(this.wordStats)) {
-      let yPx = (value[0] * this.textAreaYSections) + this.divStartY;
+      let yPx = (value[0] * this.getTextYSections()) + this.getTopWordPadding();
 
       if (startLetterIndex < value[1]) {
+        console.log(`split on ${yPx} current ${(value[0] * this.getTextYSections())} ${(this.getTextYSections())}  end ${this.getTopWordPadding()} max `)
         return previousValue !== null ? previousValue : yPx;
       }
       previousValue = yPx;
@@ -139,24 +146,29 @@ export class TextHighlighter {
     }
   }
 
+  getMaxWidth() {
+    return this.divRect.width
+  }
   calcWordPositions() {
     const widthCache = [[0, 0]];
-
+    let bigMax = this.getMaxWidth()
 
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
     this.wordArray.forEach((word, iter) => {
       let currentWordWidth = this.getWordWidth(word)
-      let testWidth = currentWidth + currentWordWidth;
+      let testWidth = currentWidth + (currentWordWidth);
 
-      if (testWidth <= this.divWidth) {
+      if (testWidth <= bigMax) {
         currentWidth = testWidth;
       } else {
+        // Handles when one word on last line. otherwise removes space size before testing
         const endTest = iter === this.wordArray.length - 1 ? testWidth : testWidth - this.spaceSize;
-        if (endTest <= this.divWidth) {
-          currentWidth = testWidth;
+        if (endTest <= bigMax) {
+          currentWidth += endTest;
         } else {
+
           currentWidth = currentWordWidth;
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
@@ -167,14 +179,16 @@ export class TextHighlighter {
 
     return widthCache;
   }
-
+  getTextYSections() {
+    console.log(` ${this.divRect.height} ${this.wordStats.length} ${this.divRect.height % this.wordStats.length}`)
+    return this.divRect.height / (this.wordStats.length);
+  }
   updateDivValues() {
     this.divRect = this.hoverableDiv.getBoundingClientRect();
-    this.divWidth = this.divRect.width;
-    this.divStartY = this.divRect.top;
+
 
     this.wordStats = this.calcWordPositions();
-    this.textAreaYSections = this.divRect.height / this.wordStats.length;
+
     // console.log(this.wordStats)
   }
 
@@ -203,7 +217,6 @@ export class TextHighlighter {
     }
 
     try {
-      let yColIndex = this.findStartIndexFromIndex(startId);
       let linePadding = this.getPaddingForIndex(startId);
       let top = this.findYValueFromIndex(startId);
       let yCol1 = this.findColFromIndex(startId);
@@ -291,7 +304,7 @@ export class TextHighlighter {
             const colTop = this.findYValueFromIndex(floatingDiv.getAttribute("start"));
             floatingDiv.style.top = `${colTop - 5 + this.mouseTopOffset}px`;
             const colPadding = this.getPaddingForIndex(floatingDiv.getAttribute("start"));
-            floatingDiv.style.left = `${colPadding + this.divRect.left + 2}px`;
+            floatingDiv.style.left = `${colPadding + this.getLeftPadding() + 2}px`;
 
             // Only add to map and DOM if it's a new div
             if (isNewDiv) {
@@ -317,15 +330,16 @@ export class TextHighlighter {
           }
         }
       }
-
+      // console.log(this.divRect)
+      this.updateDivValues()
       // Apply styles safely
       if (typeof top === 'number' && !isNaN(top)) {
         element.style.top = `${top - 5 + this.mouseTopOffset}px`;
       }
 
       if (typeof linePadding === 'number' && !isNaN(linePadding) &&
-        typeof this.divRect?.left === 'number' && !isNaN(this.divRect.left)) {
-        element.style.left = `${linePadding + this.divRect.left + 2}px`;
+        typeof this.getLeftPadding() === 'number' && !isNaN(this.getLeftPadding())) {
+        element.style.left = `${linePadding + this.getLeftPadding() + 2}px`;
       }
     } catch (error) {
       console.error('Error in positionFloatingComment:', error);
@@ -333,9 +347,9 @@ export class TextHighlighter {
   }
 
   #handleMouseMove = (event) => {
-    const relativeX = event.clientX - this.divRect.left;
-    this.relativeY = event.clientY - this.divStartY;
-    this.mouseCol = Math.floor(this.relativeY / this.textAreaYSections);
+    const relativeX = event.clientX - this.getLeftPadding();
+    this.relativeY = event.clientY - this.getTopWordPadding();
+    this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.wordStats.length - 1));
 
     let cumulativeWidth = 0;
@@ -351,12 +365,16 @@ export class TextHighlighter {
     }
 
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
-      this.outputHover.textContent = `Letter under mouse: ${this.contentTextCleaned[letterIndex]}`;
+      const char = this.contentTextCleaned[letterIndex];
+      const charWidth = this.getCharacterWidth(char);
+      this.outputHover.textContent =
+        `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
+        `cumWidth: ${cumulativeWidth.toFixed(2)}px, relX: ${relativeX.toFixed(2)}px)`;
     }
   };
 
   #handleMouseDown = (event) => {
-    const relativeX = event.clientX - this.divRect.left;
+    const relativeX = event.clientX - this.getLeftPadding();
     let cumulativeWidth = 0;
 
     for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
@@ -425,7 +443,7 @@ export class TextHighlighter {
     let top = this.findYValueFromIndex(startId);
 
     element.style.top = `${top + 25}px`;
-    element.style.left = `${xCol + this.divRect.left + 2}px`;
+    element.style.left = `${xCol + this.getLeftPadding() + 2}px`;
   }
 
   printOutWordStats() {
