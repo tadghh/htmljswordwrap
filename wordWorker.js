@@ -286,24 +286,22 @@ export class TextHighlighter {
     }
 
     const uniqueId = `floating-highlighted-${this.startLetterIndex}-${this.endLetterIndex}`;
+    const rawUniqueId = `${this.startLetterIndex}-${this.endLetterIndex}`;
     const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
 
-
-
-    if (!this.floatingDivsMap.has(uniqueId)) {
+    if (!this.floatingDivsMap.has(rawUniqueId)) {
       const floatingDiv = document.createElement("div");
       floatingDiv.id = uniqueId;
       floatingDiv.className = "floatingControls";
       floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
       floatingDiv.setAttribute("start", this.startLetterIndex)
       floatingDiv.setAttribute("end", this.endLetterIndex)
-      floatingDiv.setAttribute("rawId", `${this.startLetterIndex}-${this.endLetterIndex}`)
+      floatingDiv.setAttribute("rawId", rawUniqueId)
       document.body.appendChild(floatingDiv);
-      this.floatingDivsMap.set(uniqueId, floatingDiv);
+      this.floatingDivsMap.set(rawUniqueId, floatingDiv);
     }
     // Add the div element relative to the span
-    const floatingDiv = this.floatingDivsMap.get(uniqueId);
-    this.#positionFloatingComment(floatingDiv, this.endLetterIndex, this.startLetterIndex);
+    this.#positionFloatingComment(this.floatingDivsMap.get(rawUniqueId));
     // Initially position the div
     this.#repositionItems()
   }
@@ -321,6 +319,7 @@ export class TextHighlighter {
     element.style.top = `${top + 25}px`;
     element.style.left = `${xCol + this.divRect.left + 2}px`;
   }
+
   printOutWordStats() {
     let printString = ""
     for (let i = 0; i < this.wordStats.length - 1; i++) {
@@ -333,6 +332,7 @@ export class TextHighlighter {
     printString += `${this.wordStats.length - 1} ${this.contentTextCleaned.slice(lastIndex[1])}`;
     console.log(printString)
   }
+
   #addEventListeners() {
     window.addEventListener("resize", this.#handleResizeOrScroll);
     window.addEventListener("scroll", () => {
