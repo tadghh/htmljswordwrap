@@ -7,6 +7,8 @@ export class TextHighlighter {
     this.mouseColSafe = 0;
     this.relativeY = 0;
     this.floatingDivsMap = new Map();
+    this.floatingSelectionCols = new Map();
+    this.floatingSelectionWrapped = new Map();
     this.floatingDivsMapTwo = new Map();
     this.floatingDivsSplit = new Map();
     this.mouseTopOffset = 0;
@@ -185,18 +187,16 @@ export class TextHighlighter {
     // there is always one col
     return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
   }
+
   #positionFloatingComment(element) {
-    // Early return if element is undefined or null
     if (!element) {
       console.warn('Element is undefined or null in positionFloatingComment');
       return;
     }
 
-    // Safely get attributes with null checks
     const startId = element.getAttribute("start");
     const endId = element.getAttribute("end");
 
-    // Validate required attributes
     if (!startId || !endId) {
       console.warn('Missing required attributes (start or end) on element');
       return;
@@ -210,12 +210,98 @@ export class TextHighlighter {
       let yCol2 = this.findColFromIndex(endId);
 
       if (element.id && element.id.includes("floating-highlighted")) {
-        let spanningColCount = this.#calcCols(startId, endId);
+        const spanningColCount = this.#calcCols(startId, endId);
+        const elementsRawUniqueId = element.getAttribute("rawId");
 
         if (spanningColCount > 1) {
           element.style.display = "none";
-          // Implementation for multi-column spanning
-          // TODO: Add your multi-column logic here
+          let lowerCol = yCol1;
+          let upperCol = yCol1 + spanningColCount;
+          const oldSpanCount = this.floatingSelectionCols.get(elementsRawUniqueId) || 0;
+          console.log(`${oldSpanCount} ${spanningColCount}`)
+          if (oldSpanCount != spanningColCount) {
+
+            if (spanningColCount >= 2) {
+              const splits = document.querySelectorAll(`[rawId="${elementsRawUniqueId}"].split`);
+              if (splits.length > 0) {
+                let lowestColSplit = null;
+                let lowestCol = Infinity;
+
+                splits.forEach(split => {
+                  const colVal = parseInt(split.getAttribute("col"));
+                  if (colVal < lowestCol) {
+                    lowestCol = colVal;
+                    lowestColSplit = split;
+                  }
+                });
+
+                if (lowestColSplit) {
+                  const splitId = lowestColSplit.id;
+                  this.floatingDivsSplit.delete(splitId);
+                  lowestColSplit.remove();
+                }
+              }
+            }
+
+          }
+          // Update or set the column count in the map
+          this.floatingSelectionCols.set(elementsRawUniqueId, spanningColCount);
+
+          for (let c = lowerCol; c < upperCol; c++) {
+            const splitId = `split-${elementsRawUniqueId}-col-${c}`;
+            let floatingDiv = this.floatingDivsSplit.get(splitId);
+            let isNewDiv = false;
+
+            if (!floatingDiv) {
+              floatingDiv = document.createElement("div");
+              floatingDiv.id = splitId;
+              floatingDiv.className = "floating-highlighted split";
+              isNewDiv = true;
+            }
+
+            // Set or update attributes and content based on column position
+            if (c === lowerCol) {
+              // First column
+              let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
+              let firstColStartIndex = startId;
+              const selectedText = this.contentTextCleaned.substring(firstColStartIndex, firstColEndIndex);
+              floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
+              floatingDiv.setAttribute("start", firstColStartIndex);
+              floatingDiv.setAttribute("end", firstColEndIndex);
+            } else if (c === upperCol - 1) {
+              // Last column
+              let lastColStartIndex = this.wordStats[c][1];
+              const selectedText = this.contentTextCleaned.substring(lastColStartIndex, endId);
+              floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
+              floatingDiv.setAttribute("start", lastColStartIndex);
+              floatingDiv.setAttribute("end", endId);
+            } else {
+              // Middle columns
+              let colStartIndex = this.wordStats[c][1];
+              let colEndIndex = this.wordStats[c + 1][1] - 1;
+              const selectedText = this.contentTextCleaned.substring(colStartIndex, colEndIndex);
+              floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
+              floatingDiv.setAttribute("start", colStartIndex);
+              floatingDiv.setAttribute("end", colEndIndex);
+            }
+
+            floatingDiv.setAttribute("col", c);
+            floatingDiv.setAttribute("rawId", elementsRawUniqueId);
+
+            // Update position for all splits (both new and existing)
+            const colTop = this.findYValueFromIndex(floatingDiv.getAttribute("start"));
+            floatingDiv.style.top = `${colTop - 5 + this.mouseTopOffset}px`;
+            const colPadding = this.getPaddingForIndex(floatingDiv.getAttribute("start"));
+            floatingDiv.style.left = `${colPadding + this.divRect.left + 2}px`;
+
+            // Only add to map and DOM if it's a new div
+            if (isNewDiv) {
+              this.floatingDivsSplit.set(splitId, floatingDiv);
+              document.body.appendChild(floatingDiv);
+            }
+          }
+
+          this.floatingSelectionWrapped.set(elementsRawUniqueId, spanningColCount);
         } else if (element.style.display === "none" && (yCol1 === yCol2)) {
           element.style.display = "inline";
           const rowId = element.getAttribute("rawId");

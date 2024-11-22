@@ -25,6 +25,27 @@ body {
 .floatingControls:hover {
 	opacity: 1;
 }
+
+.split {
+	position: absolute;
+	border: none; /* Remove all borders */
+	margin-top: 1px;
+	border-bottom: 3px solid white; /* Add only the top border */
+	/* background-color: transparent; */
+	background: #ffffff4d;
+	opacity: 1;
+	/* background-o: white; */
+	height: 25px;
+	transition: opacity 0.3s;
+	padding: 0px;
+	border-radius: 4px;
+	font-size: 20px;
+	color: white;
+	opacity: 1;
+}
+.split:hover {
+	opacity: 1;
+}
 .floatingControlsTwo {
 	transition: opacity 0.3s;
 	opacity: 0.1;
