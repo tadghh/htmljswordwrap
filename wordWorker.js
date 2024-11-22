@@ -288,12 +288,7 @@ export class TextHighlighter {
     const uniqueId = `floating-highlighted-${this.startLetterIndex}-${this.endLetterIndex}`;
     const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
 
-    this.hoverableDiv.innerHTML = `${this.contentTextCleaned.slice(
-      0,
-      this.startLetterIndex
-    )}<span style="background-color: yellow">${selectedText}</span>${this.contentTextCleaned.slice(
-      this.endLetterIndex + 1
-    )}`;
+
 
     if (!this.floatingDivsMap.has(uniqueId)) {
       const floatingDiv = document.createElement("div");
@@ -311,7 +306,6 @@ export class TextHighlighter {
     this.#positionFloatingComment(floatingDiv, this.endLetterIndex, this.startLetterIndex);
     // Initially position the div
     this.#repositionItems()
-
   }
 
   #positionFloatingCommentContent(element) {
