@@ -4,13 +4,13 @@ body {
 #hoverableDiv {
 	z-index: 5;
 	position: relative;
-	font-family: Nunito;
+	/* font-family: Nunito; */
 	/* font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; */
 	cursor: pointer;
 	overflow-wrap: break-word;
 	white-space: normal;
-	font-size: 20px;
-	/* display: inline; */
+	font-size: 16px;
+	display: inline;
 }
 .floatingControls {
 	position: absolute;
