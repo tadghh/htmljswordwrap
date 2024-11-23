@@ -7,7 +7,9 @@ body {
 	font-family: Nunito;
 	/* font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; */
 	cursor: pointer;
-	font-size: 16px;
+	overflow-wrap: break-word;
+	white-space: normal;
+	font-size: 20px;
 	/* display: inline; */
 }
 .floatingControls {

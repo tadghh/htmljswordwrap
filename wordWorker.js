@@ -44,7 +44,7 @@ export class TextHighlighter {
 
   getCharacterWidth(char) {
     if (this.widthCache[char] === undefined) {
-      this.widthCache[char] = this.context.measureText(char).width;
+      this.widthCache[char] = Number.parseFloat(Number.parseFloat(this.context.measureText(char).width).toFixed(2));
     }
     return this.widthCache[char];
   }
@@ -155,27 +155,57 @@ export class TextHighlighter {
   }
   calcWordPositions() {
     const widthCache = [[0, 0]];
-
-
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
-    this.wordArray.forEach((word, iter) => {
-      let currentWordWidth = this.getWordWidth(word)
-      let testWidth = currentWidth + (currentWordWidth);
+    let dd = this.getWordWidth("Whenever a pirate vessel comes into view, they all take turns looking atit through the sight, playing with all the different ");
+    console.log(this.getWordWidth("Whenever a pirate vessel comes into view, they all take turns looking atit through the sight, playing with all the different"))
+    console.log(this.getWordWidth("sensor modes:visible, infrared, and so on. Eliot has spent enough time knocking aroundthe Rim that he has become familiar"))
+    console.log(dd - this.spaceSize)
+    console.log(this.hoverableDiv.scrollWidth)
+    console.log(this.hoverableDiv.offsetWidth)
 
-      if (testWidth <= this.getMaxWidth()) {
+    const maxWidth = this.getMaxWidth();  // Cache this value
+    console.log(this.contentTextCleaned.indexOf('parallel'))
+    this.wordArray.forEach((word, iter) => {
+      const currentWordWidth = this.getWordWidth(word);
+      const testWidth = currentWidth + currentWordWidth;
+
+
+      // First test: does word fit on current line with space?
+      if (testWidth <= maxWidth) {
         currentWidth = testWidth;
       } else {
-        // Handles when one word on last line. otherwise removes space size before testing
-        const endTest = iter === this.wordArray.length - 1 ? testWidth : testWidth - this.spaceSize;
-        if (endTest <= this.getMaxWidth()) {
-          currentWidth += endTest;
-        } else {
+        // If it doesn't fit, test without trailing space
+        // Only subtract space if not last word and word has a space
+        const spaceToRemove = (iter === this.wordArray.length - 1 || !word.endsWith(' '))
+          ? 0
+          : this.spaceSize;
+        const endTest = Math.ceil(testWidth - spaceToRemove - 2);
 
-          currentWidth = currentWordWidth;
+        // Debug the wrapping decision
+        console.log(`Word: "${word}"`, {
+          currentWidth,
+          wordWidth: currentWordWidth,
+          testWidth,
+          withoutSpace: endTest,
+          maxWidth,
+          willWrap: endTest >= maxWidth
+        });
+
+        if (endTest < maxWidth) {
+          // Word fits without its trailing space
+          currentWidth = endTest;
+        } else if (endTest > maxWidth) {
+          // Word doesn't fit, wrap to new line
+
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
+          currentWidth = currentWordWidth;
+        } else if (endTest == maxWidth) {
+          // Word doesn't fit, wrap to new line
+
+          currentWidth = endTest;
         }
       }
       currentStringIndex += word.length;
@@ -509,7 +539,7 @@ export class TextHighlighter {
     for (let i = 0; i < this.wordStats.length - 1; i++) {
       const start = this.wordStats[i][1];
       const end = this.wordStats[i + 1][1];
-      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)}\n`;
+      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.getWidthFromRange(start, end)}\n`;
     }
     // Print last line
     const lastIndex = this.wordStats[this.wordStats.length - 1];
