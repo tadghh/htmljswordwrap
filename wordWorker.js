@@ -1,5 +1,7 @@
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
+  // Cache cumulative widths
+  #widthSums = new Map();
   constructor(hoverableDivId, outputId, outputHoverId) {
     this.widthCache = {};
     this.startLetterIndex = -1;
@@ -7,11 +9,13 @@ export class TextHighlighter {
     this.mouseCol = 0;
     this.mouseColSafe = 0;
     this.relativeY = 0;
+    this.relativeX = 0;
     this.floatingDivsMap = new Map();
     this.floatingSelectionCols = new Map();
     this.floatingSelectionWrapped = new Map();
     this.floatingDivsMapTwo = new Map();
     this.floatingDivsSplit = new Map();
+
     this.mouseTopOffset = 0;
     this.canvas = document.createElement("canvas");
     this.context = this.canvas.getContext("2d");
@@ -151,7 +155,7 @@ export class TextHighlighter {
   }
   calcWordPositions() {
     const widthCache = [[0, 0]];
-    let bigMax = this.getMaxWidth()
+
 
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
@@ -160,12 +164,12 @@ export class TextHighlighter {
       let currentWordWidth = this.getWordWidth(word)
       let testWidth = currentWidth + (currentWordWidth);
 
-      if (testWidth <= bigMax) {
+      if (testWidth <= this.getMaxWidth()) {
         currentWidth = testWidth;
       } else {
         // Handles when one word on last line. otherwise removes space size before testing
         const endTest = iter === this.wordArray.length - 1 ? testWidth : testWidth - this.spaceSize;
-        if (endTest <= bigMax) {
+        if (endTest <= this.getMaxWidth()) {
           currentWidth += endTest;
         } else {
 
@@ -347,31 +351,85 @@ export class TextHighlighter {
   }
 
   #handleMouseMove = (event) => {
-    const relativeX = event.clientX - this.getLeftPadding();
+    this.relativeX = event.clientX - this.getLeftPadding();
     this.relativeY = event.clientY - this.getTopWordPadding();
+    const wordStatsLengthReal = this.wordStats.length - 1;
+
+    // Single division operation
     this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
-    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.wordStats.length - 1));
+    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, wordStatsLengthReal));
 
-    let cumulativeWidth = 0;
-    let letterIndex = -1;
+    // Determine start and end indices once
+    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const endIndex = this.mouseColSafe === wordStatsLengthReal
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1];
 
-    for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
-      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
-      if (cumulativeWidth >= relativeX) {
-        letterIndex = i;
-        this.endLetterIndex = i;
-        break;
-      }
-    }
+    // Use binary search to find letter index
+    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, this.relativeX);
 
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
       const char = this.contentTextCleaned[letterIndex];
       const charWidth = this.getCharacterWidth(char);
+      // Create the output string only if needed
       this.outputHover.textContent =
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
-        `cumWidth: ${cumulativeWidth.toFixed(2)}px, relX: ${relativeX.toFixed(2)}px)`;
+        `cumWidth: ${this.#getCumulativeWidth(startIndex, letterIndex).toFixed(2)}px, ` +
+        `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
     }
+
+    this.endLetterIndex = letterIndex;
   };
+
+  // Binary search for letter index based on width
+  #findLetterIndexByWidth(start, end, targetWidth) {
+    let low = start;
+    let high = end - 1;
+    let cumulativeWidth = 0;
+
+    // First check if we're beyond the total width
+    const totalWidth = this.#getCumulativeWidth(start, end);
+    if (targetWidth >= totalWidth) {
+      return end - 1;
+    }
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      cumulativeWidth = this.#getCumulativeWidth(start, mid + 1);
+
+      if (cumulativeWidth === targetWidth) {
+        return mid;
+      }
+
+      if (cumulativeWidth < targetWidth) {
+        if (mid + 1 <= high &&
+          this.#getCumulativeWidth(start, mid + 2) > targetWidth) {
+          return mid + 1;
+        }
+        low = mid + 1;
+      } else {
+        if (mid - 1 >= low &&
+          this.#getCumulativeWidth(start, mid) < targetWidth) {
+          return mid;
+        }
+        high = mid - 1;
+      }
+    }
+
+    return low;
+  }
+
+  #getCumulativeWidth(start, end) {
+    const key = `${start}-${end}`;
+    if (!this.#widthSums.has(key)) {
+      let sum = 0;
+      for (let i = start; i < end; i++) {
+        sum += this.getCharacterWidth(this.contentTextCleaned[i]);
+      }
+      this.#widthSums.set(key, sum);
+    }
+    return this.#widthSums.get(key);
+  }
 
   #handleMouseDown = (event) => {
     const relativeX = event.clientX - this.getLeftPadding();
