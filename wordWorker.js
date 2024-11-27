@@ -37,187 +37,25 @@ export class TextHighlighter {
       i < arr.length - 1 ? word + " " : word
     );
     this.wordStats = this.calcWordPositions(this.contentTextCleaned);
-    console.log("font")
-    console.log(parseFloat(this.fontSize))
-    console.log(parseFloat(this.fontSize) / 10)
+
     this.charHoverPadding = this.getCharacterWidth("m")
     this.charHoverPaddingMouse = this.getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
     this.#addEventListeners();
   }
 
-  getCharacterWidth(char) {
-    if (this.widthCache[char] === undefined) {
-      this.widthCache[char] = Number.parseFloat(Number.parseFloat(this.context.measureText(char).width).toFixed(2));
-    }
-    return this.widthCache[char];
-  }
+  addAttributes(start, end, element) {
+    let hold = Number.parseFloat(end) + 1
 
-  getLeftPadding() {
-    return this.divRect.left
-  }
+    const selectedText = this.contentTextCleaned.substring(start, hold);
 
-  getTopWordPadding() {
-    return this.divRect.top
-  }
-
-  getWordWidth(word) {
-    return [...word].reduce((total, char) => total + this.getCharacterWidth(char), 0);
-  }
-
-  findStartIndexFromIndex(startLetterIndex) {
-    let previousValue = null;
-    let lastSize = this.wordStats[this.wordStats.length - 1][1]
-    if (startLetterIndex == 0) {
-      return 0
-    }
-    if (lastSize <= startLetterIndex) {
-      return lastSize
-    }
-    for (const value of Object.values(this.wordStats)) {
-      if (startLetterIndex === value[1]) {
-        return value[1];  // Exact match on boundary
-      }
-      if (startLetterIndex < value[1]) {
-        return previousValue ? previousValue[1] : 0;  // Return previous boundary
-      }
-      previousValue = value;
-    }
-
-    return null;
-  }
-
-  findColFromIndex(startLetterIndex) {
-    let previousValue = null;
-    let lastSize = this.wordStats[this.wordStats.length - 1][1]
-
-    if (lastSize <= startLetterIndex) {
-      return this.wordStats[this.wordStats.length - 1][0]
-    }
-    for (const value of Object.values(this.wordStats)) {
-      if (startLetterIndex < value[1]) {
-
-        return previousValue ? previousValue[0] : null;
-      }
-      previousValue = value;
-    }
-
-    return null;
-  }
-
-  findYValueFromIndex(startLetterIndex) {
-    let previousValue = null;
-    let lastColIndex = this.wordStats[this.wordStats.length - 1][1]
-
-    if (lastColIndex <= startLetterIndex) {
-      return ((this.wordStats.length - 1) * this.getTextYSections()) + this.getTopWordPadding();
-    }
-
-    for (const value of Object.values(this.wordStats)) {
-      let yPx = (value[0] * this.getTextYSections()) + this.getTopWordPadding();
-
-      if (startLetterIndex < value[1]) {
-
-        return previousValue !== null ? previousValue : yPx;
-      }
-      previousValue = yPx;
-    }
-
-    return null;
-  }
-
-  getWidthFromRange(startIndex, yColIndex) {
-    if (startIndex < 0 || yColIndex < 0) return null
-    // if (yColIndex < startIndex) return null
-    let cumulativeWidth = 0;
-    for (let i = startIndex; i < this.contentTextCleaned.length; i++) {
-      if (i == yColIndex) {
-        return cumulativeWidth;
-      }
-      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
-    }
-  }
-
-  getPaddingForIndex(startIndex) {
-    if (startIndex < 0) return null
-
-    let colStartIndex = this.findStartIndexFromIndex(startIndex);
-
-    if (colStartIndex < 0) return null
-
-    let cumulativeWidth = 0;
-    for (let i = colStartIndex; i < this.contentTextCleaned.length; i++) {
-      if (i == startIndex) {
-        return cumulativeWidth;
-      }
-      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
-    }
-  }
-
-  getMaxWidth() {
-    return this.divRect.width
-  }
-  calcWordPositions() {
-    const widthCache = [[0, 0]];
-    let wordColumnIndex = 1;
-    let currentStringIndex = 0;
-    let currentWidth = 0;
-
-    const maxWidth = this.getMaxWidth();  // Cache this value
-    this.wordArray.forEach((word, iter) => {
-      const currentWordWidth = this.getWordWidth(word);
-      const testWidth = currentWidth + currentWordWidth;
-
-
-      // First test: does word fit on current line with space?
-      if (testWidth <= maxWidth) {
-        currentWidth = testWidth;
-      } else {
-        // If it doesn't fit, test without trailing space
-        // Only subtract space if not last word and word has a space
-        const spaceToRemove = (iter === this.wordArray.length - 1 || !word.endsWith(' '))
-          ? 0
-          : this.spaceSize;
-        const endTest = Math.ceil(testWidth - spaceToRemove - 2);
-
-
-
-        if (endTest < maxWidth) {
-          // Word fits without its trailing space
-          currentWidth = endTest;
-        } else if (endTest > maxWidth) {
-          // Word doesn't fit, wrap to new line
-
-          widthCache.push([wordColumnIndex, currentStringIndex]);
-          wordColumnIndex++;
-          currentWidth = currentWordWidth;
-        } else if (endTest == maxWidth) {
-          // Word doesn't fit, wrap to new line
-
-          currentWidth = endTest;
-        }
-      }
-      currentStringIndex += word.length;
-    });
-
-    return widthCache;
-  }
-  getTextYSections() {
-
-    return this.divRect.height / (this.wordStats.length);
-  }
-  updateDivValues() {
-    this.divRect = this.highlightedDiv.getBoundingClientRect();
-    this.wordStats = this.calcWordPositions();
-  }
-
-  #handleResizeOrScroll = () => {
-    this.updateDivValues();
-    this.#repositionItems();
-  };
-
-  #calcCols(startIndex, endIndex) {
-    // there is always one col
-    return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
+    element.style.width = `${this.getWordWidth(selectedText)}px`;
+    element.setAttribute("start", start);
+    element.setAttribute("end", end);
+    let realNum = Number.parseFloat(start)
+    const colTop = this.findYValueFromIndex(realNum);
+    element.style.top = `${colTop - 5 + this.mouseTopOffset}px`;
+    const colPadding = this.getPaddingForIndex(realNum);
+    element.style.left = `${colPadding + this.getLeftPadding() + 2}px`;
   }
 
   #positionFloatingComment(element) {
@@ -288,45 +126,28 @@ export class TextHighlighter {
               floatingDiv.className = "floating-highlighted split";
               isNewDiv = true;
             }
-
-            // Set or update attributes and content based on column position
-            if (c === lowerCol) {
-              // First column
-              let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
-              let firstColStartIndex = startId;
-              const selectedText = this.contentTextCleaned.substring(firstColStartIndex, firstColEndIndex);
-              floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
-              floatingDiv.setAttribute("start", firstColStartIndex);
-              floatingDiv.setAttribute("end", firstColEndIndex);
-            } else if (c === upperCol - 1) {
-              // Last column
-              let hold = Number.parseFloat(endId) + 1
-              let lastColStartIndex = this.wordStats[c][1];
-              const selectedText = this.contentTextCleaned.substring(lastColStartIndex, hold);
-              console.log("f")
-              console.log(hold)
-              floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
-              floatingDiv.setAttribute("start", lastColStartIndex);
-              floatingDiv.setAttribute("end", endId);
-              floatingDiv.setAttribute("endd", "a");
-            } else {
-              // Middle columns
-              let colStartIndex = this.wordStats[c][1];
-              let colEndIndex = this.wordStats[c + 1][1] - 1;
-              const selectedText = this.contentTextCleaned.substring(colStartIndex, colEndIndex);
-              floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
-              floatingDiv.setAttribute("start", colStartIndex);
-              floatingDiv.setAttribute("end", colEndIndex);
-            }
-
             floatingDiv.setAttribute("col", c);
             floatingDiv.setAttribute("rawId", elementsRawUniqueId);
 
-            // Update position for all splits (both new and existing)
-            const colTop = this.findYValueFromIndex(floatingDiv.getAttribute("start"));
-            floatingDiv.style.top = `${colTop - 5 + this.mouseTopOffset}px`;
-            const colPadding = this.getPaddingForIndex(floatingDiv.getAttribute("start"));
-            floatingDiv.style.left = `${colPadding + this.getLeftPadding() + 2}px`;
+            // TODO flat line end
+
+            if (c === lowerCol) {
+              // First column
+              let firstColStartIndex = startId;
+              let firstColEndIndex = this.wordStats[yCol1 + 1][1];
+
+              this.addAttributes(firstColStartIndex, firstColEndIndex, floatingDiv)
+            } else if (c === upperCol - 1) {
+              // Last column
+              let lastColStartIndex = this.wordStats[c][1];
+              this.addAttributes(lastColStartIndex, endId, floatingDiv)
+            } else {
+              // Middle columns
+              let colStartIndex = this.wordStats[c][1];
+              let colEndIndex = this.wordStats[c + 1][1];
+
+              this.addAttributes(colStartIndex, colEndIndex, floatingDiv)
+            }
 
             // Only add to map and DOM if it's a new div
             if (isNewDiv) {
@@ -352,7 +173,7 @@ export class TextHighlighter {
           }
         }
       }
-      // console.log(this.divRect)
+
       this.updateDivValues()
       // Apply styles safely
       if (typeof top === 'number' && !isNaN(top)) {
@@ -367,9 +188,7 @@ export class TextHighlighter {
       console.error('Error in positionFloatingComment:', error);
     }
   }
-  getMouseIndex() {
 
-  }
   #handleMouseMove = (event) => {
     this.relativeX = event.clientX - this.getLeftPadding();
     this.relativeY = event.clientY - this.getTopWordPadding();
@@ -456,51 +275,31 @@ export class TextHighlighter {
   }
 
   #handleMouseDown = (event) => {
-    this.relativeX = event.clientX - this.getLeftPadding();
+    let relativeX = event.clientX - this.getLeftPadding();
     const wordStatsLengthReal = this.wordStats.length - 1;
-
-    // Single division operation
-
-
-    // Determine start and end indices once
+    if (relativeX % this.charHoverPadding != 0) {
+      relativeX -= this.charHoverPaddingMouse
+    }
     const startIndex = this.wordStats[this.mouseColSafe][1];
     const endIndex = this.mouseColSafe === wordStatsLengthReal
       ? this.contentTextCleaned.length
       : this.wordStats[this.mouseColSafe + 1][1];
 
     // Use binary search to find letter index
-    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, this.relativeX, false);
+    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX, false);
     this.startLetterIndex = letterIndex;
-    // const relativeX = event.clientX - this.getLeftPadding();
-    // let cumulativeWidth = 0;
 
-    // for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
-    //   cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
-    //   if (cumulativeWidth >= relativeX) {
-    //     this.startLetterIndex = i;
-    //     // this.endLetterIndex = i;
-    //     break;
-    //   }
-    // }
-
-    // if (this.endLetterIndex >= 0 && this.endLetterIndex < this.contentTextCleaned.length) {
-    //   this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
-    //     this.startLetterIndex,
-    //     this.endLetterIndex + 1
-    //   )}`;
-    // }
   };
 
   #handleMouseUp = (event) => {
     // need the mouse to be over the whole char so consider it selected
     let relativeX = event.clientX - this.getLeftPadding();
     const wordStatsLengthReal = this.wordStats.length;
-    console.log(this.getCharacterWidth("m"))
-    console.log(this.charHoverPadding)
+
     if (relativeX % this.charHoverPadding != 0) {
       relativeX -= this.charHoverPaddingMouse
     }
-    // Single division operation
+
     this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, wordStatsLengthReal));
 
@@ -509,45 +308,23 @@ export class TextHighlighter {
     const endIndex = this.mouseColSafe === wordStatsLengthReal
       ? this.contentTextCleaned.length
       : this.wordStats[this.mouseColSafe + 1][1];
-    console.log(`
-        start index
-        cols ${this.mouseColSafe} high ${this.mouseColSafe + 1}
-        start ${this.wordStats[this.mouseColSafe][0]} high ${this.wordStats[this.mouseColSafe][1]}
-        other
-        low ${this.wordStats[this.mouseColSafe + 1][0]} high ${this.wordStats[this.mouseColSafe + 1][1]}
-        other
-
-
-
-
-        `)
 
     // Use binary search to find letter index
     let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX, true);
     this.endLetterIndex = letterIndex;
-    // if (this.endLetterIndex >= 0 && this.endLetterIndex < this.contentTextCleaned.length) {
-    //   this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
-    //     this.startLetterIndex,
-    //     this.endLetterIndex + 1
-    //   )}`;
-    // }
+
     if (this.startLetterIndex !== -1 && this.endLetterIndex !== -1) {
       this.#createHighlight();
     }
-    // this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
-    //   this.startLetterIndex,
-    //   this.endLetterIndex + 1
-    // )}`;
   };
-  getNextLowestDivisibleByNinePointSix(num) {
-    return num % this.charHoverPadding === 0 ? num : num - (num % this.charHoverPadding);
-  }
+
   #createHighlight() {
-    if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
-    if (this.contentTextCleaned[this.endLetterIndex] === " ") this.endLetterIndex--;
     if (this.startLetterIndex > this.endLetterIndex) {
       [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
     }
+
+    if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
+    if (this.contentTextCleaned[this.endLetterIndex] === " ") this.endLetterIndex--;
 
     const uniqueId = `floating-highlighted-${this.startLetterIndex}-${this.endLetterIndex}`;
     const rawUniqueId = `${this.startLetterIndex}-${this.endLetterIndex}`;
@@ -557,20 +334,16 @@ export class TextHighlighter {
       const floatingDiv = document.createElement("div");
       floatingDiv.id = uniqueId;
       floatingDiv.className = "floatingControls";
-      console.log(selectedText)
-      console.log(this.contentTextCleaned[this.endLetterIndex])
-
 
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
-      console.log(width)
       floatingDiv.style.width = `${width}px`;
-      // console.log(this.getWordWidth(selectedText))
       floatingDiv.setAttribute("start", this.startLetterIndex)
       floatingDiv.setAttribute("end", this.endLetterIndex)
       floatingDiv.setAttribute("rawId", rawUniqueId)
-      document.body.appendChild(floatingDiv);
+
       this.floatingDivsMap.set(rawUniqueId, floatingDiv);
+      document.body.appendChild(floatingDiv);
     }
     // Add the div element relative to the span
     this.#positionFloatingComment(this.floatingDivsMap.get(rawUniqueId));
@@ -640,4 +413,186 @@ export class TextHighlighter {
       }
     });
   }
+
+  getNextLowestDivisibleByNinePointSix(num) {
+    return num % this.charHoverPadding === 0 ? num : num - (num % this.charHoverPadding);
+  }
+
+  getWidthFromRange(startIndex, yColIndex) {
+    if (startIndex < 0 || yColIndex < 0) return null
+    // if (yColIndex < startIndex) return null
+    let cumulativeWidth = 0;
+    for (let i = startIndex; i < this.contentTextCleaned.length; i++) {
+      if (i == yColIndex) {
+        return cumulativeWidth;
+      }
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+    }
+  }
+
+  getPaddingForIndex(startIndex) {
+    if (startIndex < 0) return null
+
+    let colStartIndex = this.findStartIndexFromIndex(startIndex);
+
+    if (colStartIndex < 0) return null
+
+    let cumulativeWidth = 0;
+    for (let i = colStartIndex; i < this.contentTextCleaned.length; i++) {
+      if (i == startIndex) {
+        return cumulativeWidth;
+      }
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+    }
+  }
+
+  getMaxWidth() {
+    return this.divRect.width
+  }
+  calcWordPositions() {
+    const widthCache = [[0, 0]];
+    let wordColumnIndex = 1;
+    let currentStringIndex = 0;
+    let currentWidth = 0;
+
+    const maxWidth = this.getMaxWidth();  // Cache this value
+    this.wordArray.forEach((word, iter) => {
+      const currentWordWidth = this.getWordWidth(word);
+      const testWidth = currentWidth + currentWordWidth;
+
+
+      // First test: does word fit on current line with space?
+      if (testWidth <= maxWidth) {
+        currentWidth = testWidth;
+      } else {
+        // If it doesn't fit, test without trailing space
+        // Only subtract space if not last word and word has a space
+        const spaceToRemove = (iter === this.wordArray.length - 1 || !word.endsWith(' '))
+          ? 0
+          : this.spaceSize;
+        const endTest = Math.ceil(testWidth - spaceToRemove - 2);
+
+
+
+        if (endTest < maxWidth) {
+          // Word fits without its trailing space
+          currentWidth = endTest;
+        } else if (endTest > maxWidth) {
+          // Word doesn't fit, wrap to new line
+
+          widthCache.push([wordColumnIndex, currentStringIndex]);
+          wordColumnIndex++;
+          currentWidth = currentWordWidth;
+        } else if (endTest == maxWidth) {
+          // Word doesn't fit, wrap to new line
+
+          currentWidth = endTest;
+        }
+      }
+      currentStringIndex += word.length;
+    });
+
+    return widthCache;
+  }
+  getTextYSections() {
+
+    return this.divRect.height / (this.wordStats.length);
+  }
+
+  getLeftPadding() {
+    return this.divRect.left
+  }
+
+  getTopWordPadding() {
+    return this.divRect.top
+  }
+
+  getCharacterWidth(char) {
+    if (this.widthCache[char] === undefined) {
+      this.widthCache[char] = Number.parseFloat(Number.parseFloat(this.context.measureText(char).width).toFixed(2));
+    }
+    return this.widthCache[char];
+  }
+
+
+  getWordWidth(word) {
+    return [...word].reduce((total, char) => total + this.getCharacterWidth(char), 0);
+  }
+
+  findStartIndexFromIndex(startLetterIndex) {
+    let previousValue = null;
+    let lastSize = this.wordStats[this.wordStats.length - 1][1]
+    if (startLetterIndex == 0) {
+      return 0
+    }
+    if (lastSize <= startLetterIndex) {
+      return lastSize
+    }
+    for (const value of Object.values(this.wordStats)) {
+      if (startLetterIndex === value[1]) {
+        return value[1];  // Exact match on boundary
+      }
+      if (startLetterIndex < value[1]) {
+        return previousValue ? previousValue[1] : 0;  // Return previous boundary
+      }
+      previousValue = value;
+    }
+
+    return null;
+  }
+
+  findColFromIndex(startLetterIndex) {
+    let previousValue = null;
+    let lastSize = this.wordStats[this.wordStats.length - 1][1]
+
+    if (lastSize <= startLetterIndex) {
+      return this.wordStats[this.wordStats.length - 1][0]
+    }
+    for (const value of Object.values(this.wordStats)) {
+      if (startLetterIndex < value[1]) {
+
+        return previousValue ? previousValue[0] : null;
+      }
+      previousValue = value;
+    }
+
+    return null;
+  }
+
+  findYValueFromIndex(startLetterIndex) {
+    let previousValue = null;
+    let lastColIndex = this.wordStats[this.wordStats.length - 1][1]
+
+    if (lastColIndex <= startLetterIndex) {
+      return ((this.wordStats.length - 1) * this.getTextYSections()) + this.getTopWordPadding();
+    }
+
+    for (const value of Object.values(this.wordStats)) {
+      let yPx = (value[0] * this.getTextYSections()) + this.getTopWordPadding();
+
+      if (startLetterIndex < value[1]) {
+
+        return previousValue !== null ? previousValue : yPx;
+      }
+      previousValue = yPx;
+    }
+
+    return null;
+  }
+
+  updateDivValues() {
+    this.divRect = this.highlightedDiv.getBoundingClientRect();
+    this.wordStats = this.calcWordPositions();
+  }
+
+  #handleResizeOrScroll = () => {
+    this.updateDivValues();
+    this.#repositionItems();
+  };
+
+  #calcCols(startIndex, endIndex) {
+    // there is always one col
+    return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
+  }
+
 }
