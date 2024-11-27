@@ -40,7 +40,7 @@ export class TextHighlighter {
     console.log("font")
     console.log(parseFloat(this.fontSize))
     console.log(parseFloat(this.fontSize) / 10)
-    this.charHoverPadding = this.getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
+    this.charHoverPadding = this.getCharacterWidth("m")
     this.#addEventListeners();
   }
 
@@ -115,7 +115,7 @@ export class TextHighlighter {
       let yPx = (value[0] * this.getTextYSections()) + this.getTopWordPadding();
 
       if (startLetterIndex < value[1]) {
-        console.log(`split on ${yPx} current ${(value[0] * this.getTextYSections())} ${(this.getTextYSections())}  end ${this.getTopWordPadding()} max `)
+
         return previousValue !== null ? previousValue : yPx;
       }
       previousValue = yPx;
@@ -362,7 +362,9 @@ export class TextHighlighter {
       console.error('Error in positionFloatingComment:', error);
     }
   }
+  getMouseIndex() {
 
+  }
   #handleMouseMove = (event) => {
     this.relativeX = event.clientX - this.getLeftPadding();
     this.relativeY = event.clientY - this.getTopWordPadding();
@@ -379,7 +381,7 @@ export class TextHighlighter {
       : this.wordStats[this.mouseColSafe + 1][1];
 
     // Use binary search to find letter index
-    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, this.relativeX);
+    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, this.relativeX, false);
 
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
       const char = this.contentTextCleaned[letterIndex];
@@ -391,18 +393,22 @@ export class TextHighlighter {
         `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
     }
 
-    this.endLetterIndex = letterIndex;
+    // this.endLetterIndex = letterIndex;
   };
 
   // Binary search for letter index based on width
-  #findLetterIndexByWidth(start, end, targetWidth) {
+  #findLetterIndexByWidth(start, end, targetWidth, testing) {
     let low = start;
-    let high = end - 1;
+    let high = end;
     let cumulativeWidth = 0;
+    if (testing) {
+      console.log(`low ${low} high ${high}`)
 
+    }
     // First check if we're beyond the total width
     const totalWidth = this.#getCumulativeWidth(start, end);
     if (targetWidth >= totalWidth) {
+
       return end - 1;
     }
 
@@ -445,18 +451,32 @@ export class TextHighlighter {
   }
 
   #handleMouseDown = (event) => {
+    this.relativeX = event.clientX - this.getLeftPadding();
+    const wordStatsLengthReal = this.wordStats.length - 1;
 
-    const relativeX = event.clientX - this.getLeftPadding();
-    let cumulativeWidth = 0;
+    // Single division operation
 
-    for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
-      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
-      if (cumulativeWidth >= relativeX) {
-        this.startLetterIndex = i;
-        // this.endLetterIndex = i;
-        break;
-      }
-    }
+
+    // Determine start and end indices once
+    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const endIndex = this.mouseColSafe === wordStatsLengthReal
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1];
+
+    // Use binary search to find letter index
+    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, this.relativeX, false);
+    this.startLetterIndex = letterIndex;
+    // const relativeX = event.clientX - this.getLeftPadding();
+    // let cumulativeWidth = 0;
+
+    // for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
+    //   cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+    //   if (cumulativeWidth >= relativeX) {
+    //     this.startLetterIndex = i;
+    //     // this.endLetterIndex = i;
+    //     break;
+    //   }
+    // }
 
     // if (this.endLetterIndex >= 0 && this.endLetterIndex < this.contentTextCleaned.length) {
     //   this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
@@ -466,20 +486,40 @@ export class TextHighlighter {
     // }
   };
 
-  #handleMouseUp = () => {
+  #handleMouseUp = (event) => {
     // need the mouse to be over the whole char so consider it selected
-    const relativeX = event.clientX - this.getLeftPadding() - this.charHoverPadding;
-    let cumulativeWidth = 0;
-
-    for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
-      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
-      if (cumulativeWidth >= relativeX) {
-        // this.startLetterIndex = i;
-        this.endLetterIndex = i;
-        break;
-      }
+    let relativeX = event.clientX - this.getLeftPadding();
+    const wordStatsLengthReal = this.wordStats.length;
+    console.log(this.getCharacterWidth("m"))
+    console.log(this.charHoverPadding)
+    if (relativeX % 4 != 0) {
+      //relativeX -= this.charHoverPadding
     }
+    // Single division operation
+    this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
+    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, wordStatsLengthReal));
 
+    // Determine start and end indices once
+    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const endIndex = this.mouseColSafe === wordStatsLengthReal
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1];
+    console.log(`
+        start index
+        cols ${this.mouseColSafe} high ${this.mouseColSafe + 1}
+        start ${this.wordStats[this.mouseColSafe][0]} high ${this.wordStats[this.mouseColSafe][1]}
+        other
+        low ${this.wordStats[this.mouseColSafe + 1][0]} high ${this.wordStats[this.mouseColSafe + 1][1]}
+        other
+
+
+
+
+        `)
+
+    // Use binary search to find letter index
+    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX, true);
+    this.endLetterIndex = letterIndex;
     // if (this.endLetterIndex >= 0 && this.endLetterIndex < this.contentTextCleaned.length) {
     //   this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
     //     this.startLetterIndex,
@@ -489,12 +529,14 @@ export class TextHighlighter {
     if (this.startLetterIndex !== -1 && this.endLetterIndex !== -1) {
       this.#createHighlight();
     }
-    this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
-      this.startLetterIndex,
-      this.endLetterIndex + 1
-    )}`;
+    // this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
+    //   this.startLetterIndex,
+    //   this.endLetterIndex + 1
+    // )}`;
   };
-
+  getNextLowestDivisibleByNinePointSix(num) {
+    return num % this.charHoverPadding === 0 ? num : num - (num % this.charHoverPadding);
+  }
   #createHighlight() {
     if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
     if (this.contentTextCleaned[this.endLetterIndex] === " ") this.endLetterIndex--;
@@ -510,7 +552,15 @@ export class TextHighlighter {
       const floatingDiv = document.createElement("div");
       floatingDiv.id = uniqueId;
       floatingDiv.className = "floatingControls";
-      floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
+      console.log(selectedText)
+      console.log(this.contentTextCleaned[this.endLetterIndex])
+
+
+      let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
+
+      console.log(this.getCharacterWidth("m"))
+      floatingDiv.style.width = `${width}px`;
+      // console.log(this.getWordWidth(selectedText))
       floatingDiv.setAttribute("start", this.startLetterIndex)
       floatingDiv.setAttribute("end", this.endLetterIndex)
       floatingDiv.setAttribute("rawId", rawUniqueId)
