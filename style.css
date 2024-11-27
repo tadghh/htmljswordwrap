@@ -1,5 +1,6 @@
 body {
 	background-color: darkgray;
+	margin: 0px;
 }
 #highlightedDiv {
 	z-index: 5;

@@ -41,6 +41,7 @@ export class TextHighlighter {
     console.log(parseFloat(this.fontSize))
     console.log(parseFloat(this.fontSize) / 10)
     this.charHoverPadding = this.getCharacterWidth("m")
+    this.charHoverPaddingMouse = this.getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
     this.#addEventListeners();
   }
 
@@ -299,11 +300,15 @@ export class TextHighlighter {
               floatingDiv.setAttribute("end", firstColEndIndex);
             } else if (c === upperCol - 1) {
               // Last column
+              let hold = Number.parseFloat(endId) + 1
               let lastColStartIndex = this.wordStats[c][1];
-              const selectedText = this.contentTextCleaned.substring(lastColStartIndex, endId);
+              const selectedText = this.contentTextCleaned.substring(lastColStartIndex, hold);
+              console.log("f")
+              console.log(hold)
               floatingDiv.style.width = `${this.getWordWidth(selectedText)}px`;
               floatingDiv.setAttribute("start", lastColStartIndex);
               floatingDiv.setAttribute("end", endId);
+              floatingDiv.setAttribute("endd", "a");
             } else {
               // Middle columns
               let colStartIndex = this.wordStats[c][1];
@@ -492,8 +497,8 @@ export class TextHighlighter {
     const wordStatsLengthReal = this.wordStats.length;
     console.log(this.getCharacterWidth("m"))
     console.log(this.charHoverPadding)
-    if (relativeX % 4 != 0) {
-      //relativeX -= this.charHoverPadding
+    if (relativeX % this.charHoverPadding != 0) {
+      relativeX -= this.charHoverPaddingMouse
     }
     // Single division operation
     this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
@@ -558,7 +563,7 @@ export class TextHighlighter {
 
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
-      console.log(this.getCharacterWidth("m"))
+      console.log(width)
       floatingDiv.style.width = `${width}px`;
       // console.log(this.getWordWidth(selectedText))
       floatingDiv.setAttribute("start", this.startLetterIndex)
