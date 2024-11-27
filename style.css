@@ -1,7 +1,7 @@
 body {
 	background-color: darkgray;
 }
-#hoverableDiv {
+#highlightedDiv {
 	z-index: 5;
 	position: relative;
 	/* font-family: Nunito; */
@@ -9,7 +9,7 @@ body {
 	cursor: pointer;
 	overflow-wrap: break-word;
 	white-space: normal;
-	font-size: 16px;
+	font-size: 20px;
 	display: inline;
 }
 .floatingControls {

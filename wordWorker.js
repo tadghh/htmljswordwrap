@@ -2,7 +2,7 @@ export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
   // Cache cumulative widths
   #widthSums = new Map();
-  constructor(hoverableDivId, outputId, outputHoverId) {
+  constructor(highlightedDiv, outputId, outputHoverId) {
     this.widthCache = {};
     this.startLetterIndex = -1;
     this.endLetterIndex = -1;
@@ -20,25 +20,27 @@ export class TextHighlighter {
     this.canvas = document.createElement("canvas");
     this.context = this.canvas.getContext("2d");
 
-    this.hoverableDiv = document.getElementById(hoverableDivId);
+    this.highlightedDiv = document.getElementById("highlightedDiv");
     this.output = document.getElementById(outputId);
     this.outputHover = document.getElementById(outputHoverId);
 
-    const computedStyle = getComputedStyle(this.hoverableDiv);
+    const computedStyle = getComputedStyle(this.highlightedDiv);
     this.fontSize = computedStyle.fontSize;
     this.fontFamily = computedStyle.fontFamily;
 
-    this.divRect = this.hoverableDiv.getBoundingClientRect();
+    this.divRect = this.highlightedDiv.getBoundingClientRect();
 
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
-    this.contentTextCleaned = this.hoverableDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
+    this.contentTextCleaned = this.highlightedDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
     this.spaceSize = this.getWordWidth(" ");
     this.wordArray = this.contentTextCleaned.split(" ").map((word, i, arr) =>
       i < arr.length - 1 ? word + " " : word
     );
     this.wordStats = this.calcWordPositions(this.contentTextCleaned);
-
-
+    console.log("font")
+    console.log(parseFloat(this.fontSize))
+    console.log(parseFloat(this.fontSize) / 10)
+    this.charHoverPadding = this.getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
     this.#addEventListeners();
   }
 
@@ -158,15 +160,8 @@ export class TextHighlighter {
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
-    let dd = this.getWordWidth("Whenever a pirate vessel comes into view, they all take turns looking atit through the sight, playing with all the different ");
-    console.log(this.getWordWidth("Whenever a pirate vessel comes into view, they all take turns looking atit through the sight, playing with all the different"))
-    console.log(this.getWordWidth("sensor modes:visible, infrared, and so on. Eliot has spent enough time knocking aroundthe Rim that he has become familiar"))
-    console.log(dd - this.spaceSize)
-    console.log(this.hoverableDiv.scrollWidth)
-    console.log(this.hoverableDiv.offsetWidth)
 
     const maxWidth = this.getMaxWidth();  // Cache this value
-    console.log(this.contentTextCleaned.indexOf('parallel'))
     this.wordArray.forEach((word, iter) => {
       const currentWordWidth = this.getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
@@ -183,15 +178,7 @@ export class TextHighlighter {
           : this.spaceSize;
         const endTest = Math.ceil(testWidth - spaceToRemove - 2);
 
-        // Debug the wrapping decision
-        console.log(`Word: "${word}"`, {
-          currentWidth,
-          wordWidth: currentWordWidth,
-          testWidth,
-          withoutSpace: endTest,
-          maxWidth,
-          willWrap: endTest >= maxWidth
-        });
+
 
         if (endTest < maxWidth) {
           // Word fits without its trailing space
@@ -214,16 +201,12 @@ export class TextHighlighter {
     return widthCache;
   }
   getTextYSections() {
-    console.log(` ${this.divRect.height} ${this.wordStats.length} ${this.divRect.height % this.wordStats.length}`)
+
     return this.divRect.height / (this.wordStats.length);
   }
   updateDivValues() {
-    this.divRect = this.hoverableDiv.getBoundingClientRect();
-
-
+    this.divRect = this.highlightedDiv.getBoundingClientRect();
     this.wordStats = this.calcWordPositions();
-
-    // console.log(this.wordStats)
   }
 
   #handleResizeOrScroll = () => {
@@ -462,6 +445,7 @@ export class TextHighlighter {
   }
 
   #handleMouseDown = (event) => {
+
     const relativeX = event.clientX - this.getLeftPadding();
     let cumulativeWidth = 0;
 
@@ -469,20 +453,39 @@ export class TextHighlighter {
       cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
       if (cumulativeWidth >= relativeX) {
         this.startLetterIndex = i;
+        // this.endLetterIndex = i;
+        break;
+      }
+    }
+
+    // if (this.endLetterIndex >= 0 && this.endLetterIndex < this.contentTextCleaned.length) {
+    //   this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
+    //     this.startLetterIndex,
+    //     this.endLetterIndex + 1
+    //   )}`;
+    // }
+  };
+
+  #handleMouseUp = () => {
+    // need the mouse to be over the whole char so consider it selected
+    const relativeX = event.clientX - this.getLeftPadding() - this.charHoverPadding;
+    let cumulativeWidth = 0;
+
+    for (let i = this.wordStats[this.mouseColSafe][1]; i < this.contentTextCleaned.length; i++) {
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+      if (cumulativeWidth >= relativeX) {
+        // this.startLetterIndex = i;
         this.endLetterIndex = i;
         break;
       }
     }
 
-    if (this.endLetterIndex >= 0 && this.endLetterIndex < this.contentTextCleaned.length) {
-      this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
-        this.startLetterIndex,
-        this.endLetterIndex + 1
-      )}`;
-    }
-  };
-
-  #handleMouseUp = () => {
+    // if (this.endLetterIndex >= 0 && this.endLetterIndex < this.contentTextCleaned.length) {
+    //   this.output.textContent = `Selected text: ${this.contentTextCleaned.slice(
+    //     this.startLetterIndex,
+    //     this.endLetterIndex + 1
+    //   )}`;
+    // }
     if (this.startLetterIndex !== -1 && this.endLetterIndex !== -1) {
       this.#createHighlight();
     }
@@ -559,9 +562,9 @@ export class TextHighlighter {
         this.printOutWordStats()
       }
     });
-    this.hoverableDiv.addEventListener("mousemove", this.#handleMouseMove);
-    this.hoverableDiv.addEventListener("mousedown", this.#handleMouseDown);
-    this.hoverableDiv.addEventListener("mouseup", this.#handleMouseUp);
+    this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
+    this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
+    this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
 
   #repositionItems() {
