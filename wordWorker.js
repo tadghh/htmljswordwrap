@@ -275,11 +275,9 @@ export class TextHighlighter {
   }
 
   #handleMouseDown = (event) => {
-    let relativeX = event.clientX - this.getLeftPadding();
+    let relativeX = event.clientX - this.getLeftPadding() + 2;
     const wordStatsLengthReal = this.wordStats.length - 1;
-    if (relativeX % this.charHoverPadding != 0) {
-      relativeX -= this.charHoverPaddingMouse
-    }
+
     const startIndex = this.wordStats[this.mouseColSafe][1];
     const endIndex = this.mouseColSafe === wordStatsLengthReal
       ? this.contentTextCleaned.length
@@ -321,6 +319,7 @@ export class TextHighlighter {
   #createHighlight() {
     if (this.startLetterIndex > this.endLetterIndex) {
       [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
+      this.startLetterIndex++
     }
 
     if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
@@ -329,7 +328,7 @@ export class TextHighlighter {
     const uniqueId = `floating-highlighted-${this.startLetterIndex}-${this.endLetterIndex}`;
     const rawUniqueId = `${this.startLetterIndex}-${this.endLetterIndex}`;
     const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
-
+    console.log(selectedText)
     if (!this.floatingDivsMap.has(rawUniqueId)) {
       const floatingDiv = document.createElement("div");
       floatingDiv.id = uniqueId;
@@ -449,6 +448,7 @@ export class TextHighlighter {
   getMaxWidth() {
     return this.divRect.width
   }
+
   calcWordPositions() {
     const widthCache = [[0, 0]];
     let wordColumnIndex = 1;
