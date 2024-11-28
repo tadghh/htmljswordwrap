@@ -216,10 +216,62 @@ export class TextHighlighter {
         `cumWidth: ${this.#getCumulativeWidth(startIndex, letterIndex).toFixed(2)}px, ` +
         `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
     }
-
+    this.hoveringComment(this.relativeX)
     // this.endLetterIndex = letterIndex;
   };
+  hoveringComment(relativeX) {
+    this.floatingDivsMapTwo.forEach((div, key) => {
+      let hoverItem = document.getElementById(`floating-${key}`);
 
+      if (hoverItem) {
+        const ids = hoverItem.id
+          .replace("floating-highlighted-", "")
+          .split("-");
+        const xIndex = parseInt(ids[0])
+        const yIndex = parseInt(ids[1])
+
+        const yColIndex = this.findStartIndexFromIndex(xIndex);
+        const xCol = this.findXValueFromIndex(
+          yColIndex,
+
+          xIndex
+        );
+
+        const top = this.findYValueFromIndex(yIndex);
+        const highLightedWord = this.contentTextCleaned.substring(xIndex, yIndex + 1)
+        const topBorder = top;
+        const minXBorder = xCol;
+        const bottomBorder = top + 20;
+        const maxXBorder = xCol + this.getWordWidth(highLightedWord)
+        const newRelY = event.clientY
+        const isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
+        const isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
+        const isInside = isInsideX && isInsideY;
+
+        if (isInside) {
+          const uniqueId = `hover-comment-${xIndex}-${yIndex}`;
+
+          if (!this.floatingDivsMapTwo.has(uniqueId)) {
+            const hoverComment = document.createElement("div");
+            hoverComment.id = uniqueId
+            hoverComment.textContent = "test comment here"
+            hoverComment.className = "floatingControlsTwo"
+            hoverComment.style.position = "absolute"
+            hoverComment.style.fontSize = "20px"
+            hoverComment.style.color = "white"
+            hoverComment.style.background = "green"
+            hoverComment.style.zIndex = 10
+
+            document.body.appendChild(hoverComment);
+            this.floatingDivsMapTwo.set(uniqueId, hoverComment);
+          }
+          const hoverComment = this.floatingDivsMapTwo.get(uniqueId);
+          this.positionFloatingCommentContent(hoverComment, yIndex, xIndex);
+
+        }
+      }
+    });
+  }
   // Binary search for letter index based on width
   #findLetterIndexByWidth(start, end, targetWidth, testing) {
     let low = start;
@@ -324,44 +376,60 @@ export class TextHighlighter {
 
     if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
     if (this.contentTextCleaned[this.endLetterIndex] === " ") this.endLetterIndex--;
-
+    // add example spans below
     const uniqueId = `floating-highlighted-${this.startLetterIndex}-${this.endLetterIndex}`;
     const rawUniqueId = `${this.startLetterIndex}-${this.endLetterIndex}`;
     const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
     console.log(selectedText)
+
     if (!this.floatingDivsMap.has(rawUniqueId)) {
       const floatingDiv = document.createElement("div");
+      const floatingDivContent = document.createElement("div");
+
+      let demo_test = "groups"
+      floatingDivContent.textContent = demo_test
+      let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
+      let contentCommentWidth = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(demo_test))
+
+
       floatingDiv.id = uniqueId;
       floatingDiv.className = "floatingControls";
-
-      let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
-
       floatingDiv.style.width = `${width}px`;
       floatingDiv.setAttribute("start", this.startLetterIndex)
       floatingDiv.setAttribute("end", this.endLetterIndex)
       floatingDiv.setAttribute("rawId", rawUniqueId)
 
+      floatingDivContent.className = "floatingContent";
+      floatingDivContent.id = uniqueId;
+      floatingDivContent.style.width = `${contentCommentWidth}px`;
+      floatingDivContent.setAttribute("start", this.startLetterIndex)
+      floatingDivContent.setAttribute("end", this.endLetterIndex)
+      floatingDivContent.setAttribute("rawId", rawUniqueId)
+
       this.floatingDivsMap.set(rawUniqueId, floatingDiv);
+      this.floatingDivsMapTwo.set(rawUniqueId, floatingDivContent);
+
       document.body.appendChild(floatingDiv);
+      document.body.appendChild(floatingDivContent);
     }
     // Add the div element relative to the span
     this.#positionFloatingComment(this.floatingDivsMap.get(rawUniqueId));
+    this.#positionFloatingCommentContent(this.floatingDivsMapTwo.get(rawUniqueId));
+
     // Initially position the div
     this.#repositionItems()
   }
 
   #positionFloatingCommentContent(element) {
     const startId = element.getAttribute("start")
-    const endId = element.getAttribute("end")
-    let yColIndex = this.findStartIndexFromIndex(startId);
-    let xCol = this.getWidthFromRange(
-      yColIndex,
-      endId
-    );
+    let yColStartIndex = this.getPaddingForIndex(startId);
+
+    console.log(` ${yColStartIndex} `)
+
     let top = this.findYValueFromIndex(startId);
 
     element.style.top = `${top + 25}px`;
-    element.style.left = `${xCol + this.getLeftPadding() + 2}px`;
+    element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
   }
 
   printOutWordStats() {
@@ -395,11 +463,9 @@ export class TextHighlighter {
   }
 
   #repositionItems() {
-    this.floatingDivsMapTwo.forEach((div, key) => {
-      let hoverItem = document.getElementById(`${key} `);
-      if (hoverItem) {
-        this.#positionFloatingCommentContent(hoverItem);
-      }
+    // TODO Just use the divs
+    this.floatingDivsMapTwo.forEach((div) => {
+      this.#positionFloatingCommentContent(div);
     });
 
     this.floatingDivsMap.forEach((div) => {
@@ -593,6 +659,52 @@ export class TextHighlighter {
   #calcCols(startIndex, endIndex) {
     // there is always one col
     return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
+  }
+
+  // TODO this helper methods in this depend on the classes content, cant use this 'cleanly'
+  createTextHighlight(startIndex, endIndex, textContent) {
+    if (startIndex > endIndex) {
+      [startIndex, endIndex] = [endIndex, startIndex];
+      startIndex++
+    }
+
+    if (this.contentTextCleaned[startIndex] === " ") startIndex++;
+    if (this.contentTextCleaned[endIndex] === " ") endIndex--;
+    // add example spans below
+    const uniqueId = `floating-highlighted-${startIndex}-${endIndex}`;
+    const rawUniqueId = `${startIndex}-${endIndex}`;
+    const selectedText = textContent.slice(startIndex, endIndex + 1);
+
+    if (!this.floatingDivsMap.has(rawUniqueId)) {
+      const floatingDiv = document.createElement("div");
+      const floatingDivContent = document.createElement("div");
+      floatingDiv.id = uniqueId;
+      floatingDivContent.id = uniqueId;
+      floatingDiv.className = "floatingControls";
+      floatingDivContent.className = "floatingContent";
+
+      let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
+
+      floatingDiv.style.width = `${width}px`;
+      floatingDiv.setAttribute("start", startIndex)
+      floatingDiv.setAttribute("end", endIndex)
+      floatingDiv.setAttribute("rawId", rawUniqueId)
+      floatingDivContent.style.width = `${width}px`;
+
+      floatingDivContent.setAttribute("start", startIndex)
+      floatingDivContent.setAttribute("end", endIndex)
+      floatingDivContent.setAttribute("rawId", rawUniqueId)
+
+      this.floatingDivsMap.set(rawUniqueId, floatingDiv);
+      this.floatingDivsMapTwo.set(rawUniqueId, floatingDivContent);
+      document.body.appendChild(floatingDiv);
+      document.body.appendChild(floatingDivContent);
+    }
+    // Add the div element relative to the span
+    this.#positionFloatingComment(this.floatingDivsMap.get(rawUniqueId));
+    this.#positionFloatingCommentContent(this.floatingDivsMapTwo.get(rawUniqueId));
+    // Initially position the div
+    this.#repositionItems()
   }
 
 }

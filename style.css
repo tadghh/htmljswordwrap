@@ -1,6 +1,7 @@
 body {
 	background-color: darkgray;
 }
+
 #highlightedDiv {
 	z-index: 5;
 	position: relative;
@@ -33,7 +34,14 @@ body {
 .floatingControls:hover {
 	opacity: 1;
 }
-
+.floatingContent {
+	position: absolute;
+	font-size: 16px;
+	color: white;
+	background: green;
+	z-index: 10;
+	padding: 5px;
+}
 .split {
 	position: absolute;
 	border: none; /* Remove all borders */
