@@ -466,6 +466,7 @@ export class TextHighlighter {
     element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
   }
 
+  // #region Utility
   printOutWordStats() {
     let printString = ""
     for (let i = 0; i < this.wordStats.length - 1; i++) {
@@ -594,6 +595,7 @@ export class TextHighlighter {
 
     return widthCache;
   }
+
   getTextYSections() {
 
     return this.divRect.height / (this.wordStats.length);
@@ -613,7 +615,6 @@ export class TextHighlighter {
     }
     return this.widthCache[char];
   }
-
 
   getWordWidth(word) {
     return [...word].reduce((total, char) => total + this.getCharacterWidth(char), 0);
@@ -694,6 +695,5 @@ export class TextHighlighter {
     // there is always one col
     return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
   }
-
-
+  // #endregion
 }
