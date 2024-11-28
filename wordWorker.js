@@ -40,7 +40,9 @@ export class TextHighlighter {
 
     this.charHoverPadding = this.getCharacterWidth("m")
     this.charHoverPaddingMouse = this.getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
+
     this.#addEventListeners();
+    this.createTextHighlight(737, 750, this.contentTextCleaned, "Woah this is going somewhere woo hoo")
   }
 
   addAttributes(start, end, element) {
@@ -250,7 +252,11 @@ export class TextHighlighter {
 
         if (isInside) {
           //
+          div.style.display = "block"
           console.log("inside")
+        } else {
+          div.style.display = "none";  // Use "none" instead of "hidden"
+          console.log("sss");
         }
       }
     });
@@ -350,6 +356,52 @@ export class TextHighlighter {
       this.#createHighlight();
     }
   };
+  // TODO this helper methods in this depend on the classes content, cant use this 'cleanly'
+  createTextHighlight(startIndex, endIndex, textContent, comment) {
+    if (startIndex > endIndex) {
+      [startIndex, endIndex] = [endIndex, startIndex];
+      startIndex++
+    }
+
+    if (textContent[startIndex] === " ") startIndex++;
+    if (textContent[endIndex] === " ") endIndex--;
+    // add example spans below
+    const uniqueId = `floating-highlighted-${startIndex}-${endIndex}`;
+    const rawUniqueId = `${startIndex}-${endIndex}`;
+    const selectedText = textContent.slice(startIndex, endIndex + 1);
+
+    if (!this.floatingDivsMap.has(rawUniqueId)) {
+      const floatingDiv = document.createElement("div");
+      const floatingDivContent = document.createElement("div");
+
+      let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
+
+      floatingDiv.id = uniqueId;
+      floatingDiv.className = "floatingControls";
+      floatingDiv.style.width = `${width}px`;
+      floatingDiv.setAttribute("start", startIndex)
+      floatingDiv.setAttribute("end", endIndex)
+      floatingDiv.setAttribute("rawId", rawUniqueId)
+
+      floatingDivContent.id = `floating-${startIndex}-${endIndex}`;
+      floatingDivContent.className = "floatingContent";
+      floatingDivContent.textContent = comment
+      floatingDivContent.style.width = `${this.getWordWidth(comment)}px`;
+      floatingDivContent.setAttribute("start", startIndex)
+      floatingDivContent.setAttribute("end", endIndex)
+      floatingDivContent.setAttribute("rawId", rawUniqueId)
+
+      this.floatingDivsMap.set(rawUniqueId, floatingDiv);
+      this.floatingDivsMapTwo.set(rawUniqueId, floatingDivContent);
+      document.body.appendChild(floatingDiv);
+      document.body.appendChild(floatingDivContent);
+    }
+    // Add the div element relative to the span
+    this.#positionFloatingComment(this.floatingDivsMap.get(rawUniqueId));
+    this.#positionFloatingCommentContent(this.floatingDivsMapTwo.get(rawUniqueId));
+    // Initially position the div
+    this.#repositionItems()
+  }
 
   #createHighlight() {
     if (this.startLetterIndex > this.endLetterIndex) {
@@ -363,17 +415,15 @@ export class TextHighlighter {
     const uniqueId = `floating-highlighted-${this.startLetterIndex}-${this.endLetterIndex}`;
     const rawUniqueId = `${this.startLetterIndex}-${this.endLetterIndex}`;
     const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
-    console.log(selectedText)
+
 
     if (!this.floatingDivsMap.has(rawUniqueId)) {
       const floatingDiv = document.createElement("div");
       const floatingDivContent = document.createElement("div");
 
-      let demo_test = "groups"
-      floatingDivContent.textContent = demo_test
-      let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
-      let contentCommentWidth = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(demo_test))
+      let demo_test = "Here is some long content to test this"
 
+      let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
       floatingDiv.id = uniqueId;
       floatingDiv.className = "floatingControls";
@@ -384,6 +434,7 @@ export class TextHighlighter {
 
       floatingDivContent.className = "floatingContent";
       floatingDivContent.id = `floating-${this.startLetterIndex}-${this.endLetterIndex}`;
+      floatingDivContent.textContent = demo_test
       floatingDivContent.style.width = `${this.getWordWidth(demo_test)}px`;
       floatingDivContent.setAttribute("start", this.startLetterIndex)
       floatingDivContent.setAttribute("end", this.endLetterIndex)
