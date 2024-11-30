@@ -51,21 +51,23 @@ body {
 	height: 100px;
 	border-radius: 5px;
 	border: solid;
+	z-index: 15;
 	border-color: black;
+	padding: 5px;
 	/* background: green; */
 	/* z-index: 10; */
 	/* display: hidden; */
 }
 .floatingForm > form > textarea {
 	background-color: black;
-	border-color: white;
+	color: white;
 }
 .floatingForm > form {
 	/* position: absolute; */
 	display: flex;
 	flex-direction: column;
-	background-color: black;
-	z-index: 0;
+	/* background-color: darkgreen; */
+
 	/* background: green; */
 	/* z-index: 10; */
 	/* display: hidden; */

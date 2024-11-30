@@ -3,7 +3,7 @@
 // On click off remove selection and form
 // After form submission swap it out with comment
 
-
+// Form at edge of screen, don't let it go over bounds
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
   // Cache cumulative widths
@@ -197,134 +197,15 @@ export class TextHighlighter {
     }
   }
   #positionFloatingForm(element) {
-    if (!element) {
-      console.warn('Element is undefined or null in positionFloatingComment');
-      return;
-    }
+    const startId = element.getAttribute("start")
+    let yColStartIndex = this.getPaddingForIndex(startId);
 
-    const startId = element.getAttribute("start");
-    const endId = element.getAttribute("end");
+    console.log(` ${yColStartIndex} `)
 
-    if (!startId || !endId) {
-      console.warn('Missing required attributes (start or end) on element');
-      return;
-    }
+    let top = this.findYValueFromIndex(startId);
 
-    try {
-      let linePadding = this.getPaddingForIndex(startId);
-      let top = this.findYValueFromIndex(startId);
-      let yCol1 = this.findColFromIndex(startId);
-      let yCol2 = this.findColFromIndex(endId);
-
-      if (element.id && element.id.includes("floating-highlighted")) {
-        const spanningColCount = this.#calcCols(startId, endId);
-        const elementsRawUniqueId = element.getAttribute("rawId");
-
-        if (spanningColCount > 1) {
-          element.style.display = "none";
-          let lowerCol = yCol1;
-          let upperCol = yCol1 + spanningColCount;
-          const oldSpanCount = this.floatingSelectionCols.get(elementsRawUniqueId) || 0;
-
-          if (oldSpanCount != spanningColCount) {
-            if (spanningColCount >= 2) {
-              const splits = document.querySelectorAll(`[rawId="${elementsRawUniqueId}"].split`);
-              if (splits.length > 0) {
-                let lowestColSplit = null;
-                let lowestCol = Infinity;
-
-                splits.forEach(split => {
-                  const colVal = parseInt(split.getAttribute("col"));
-                  if (colVal < lowestCol) {
-                    lowestCol = colVal;
-                    lowestColSplit = split;
-                  }
-                });
-
-                if (lowestColSplit) {
-                  const splitId = lowestColSplit.id;
-                  this.floatingDivsSplit.delete(splitId);
-                  lowestColSplit.remove();
-                }
-              }
-            }
-
-          }
-          // Update or set the column count in the map
-          this.floatingSelectionCols.set(elementsRawUniqueId, spanningColCount);
-
-          for (let c = lowerCol; c < upperCol; c++) {
-            const splitId = `split-${elementsRawUniqueId}-col-${c}`;
-            let floatingDiv = this.floatingDivsSplit.get(splitId);
-            let isNewDiv = false;
-
-            if (!floatingDiv) {
-              floatingDiv = document.createElement("div");
-              floatingDiv.id = splitId;
-              floatingDiv.className = "floating-highlighted split";
-              isNewDiv = true;
-            }
-            floatingDiv.setAttribute("col", c);
-            floatingDiv.setAttribute("rawId", elementsRawUniqueId);
-
-            // TODO flat line end
-
-            if (c === lowerCol) {
-              // First column
-              let firstColStartIndex = startId;
-              let firstColEndIndex = this.wordStats[yCol1 + 1][1];
-
-              this.addAttributes(firstColStartIndex, firstColEndIndex, floatingDiv)
-            } else if (c === upperCol - 1) {
-              // Last column
-              let lastColStartIndex = this.wordStats[c][1];
-              this.addAttributes(lastColStartIndex, endId, floatingDiv)
-            } else {
-              // Middle columns
-              let colStartIndex = this.wordStats[c][1];
-              let colEndIndex = this.wordStats[c + 1][1];
-
-              this.addAttributes(colStartIndex, colEndIndex, floatingDiv)
-            }
-
-            // Only add to map and DOM if it's a new div
-            if (isNewDiv) {
-              this.floatingDivsSplit.set(splitId, floatingDiv);
-              document.body.appendChild(floatingDiv);
-            }
-          }
-
-          this.floatingSelectionWrapped.set(elementsRawUniqueId, spanningColCount);
-        } else if (element.style.display === "none" && (yCol1 === yCol2)) {
-          element.style.display = "inline";
-          const rowId = element.getAttribute("rawId");
-
-          if (rowId) {
-            let splits = document.querySelectorAll(`[rawId="${rowId}"][id*="split"]`);
-            splits.forEach(splitElement => {
-              if (splitElement) {
-                const splitId = splitElement.id;
-                this.floatingDivsSplit.delete(splitId);
-                splitElement.remove();
-              }
-            });
-          }
-        }
-      }
-
-      this.updateDivValues()
-      // Apply styles safely
-      if (typeof top === 'number' && !isNaN(top)) {
-        element.style.top = `${top - 5 + this.mouseTopOffset}px`;
-      }
-
-      if (typeof linePadding === 'number' && !isNaN(linePadding) &&
-        typeof this.getLeftPadding() === 'number' && !isNaN(this.getLeftPadding())) {
-        element.style.left = `${linePadding + this.getLeftPadding() + 2}px`;
-      }
-    } catch (error) {
-      console.error('Error in positionFloatingComment:', error);
-    }
+    element.style.top = `${top + 25}px`;
+    element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
   }
 
   #handleMouseMove = (event) => {
@@ -499,19 +380,29 @@ export class TextHighlighter {
     }
 
   };
+  removeForm(id) {
+    let form = document.getElementById(id)
+    if (form) {
+      form.remove()
+    }
+  }
   createForm(startIndex, endIndex) {
-    const elementString = `<div class="floatingForm">
-			<form action="">
-				<label for="comment">Content</label>
-				<textarea id="text" name="comment"> </textarea>
-				<button>Comment</button>
-			</form>
-		</div>`
+    const id = `form-${startIndex}-${endIndex}`;
+    const elementString = `
+    <div class="floatingForm">
+      <form action="">
+        <label for="text">Content</label>
+        <textarea id="text" name="comment"></textarea>
+        <button type="submit">Comment</button>
+      </form>
+      <button type="button" onclick="this.parentElement.remove()">X</button>
+    </div>
+  `;
     const parser = new DOMParser();
     const doc = parser.parseFromString(elementString, 'text/html');
     const floatingDivForm = doc.body.firstElementChild;
 
-    floatingDivForm.id = `form-${startIndex}-${endIndex}`;
+    floatingDivForm.id = id;
     floatingDivForm.className = "floatingForm";
 
     floatingDivForm.setAttribute("start", startIndex)
