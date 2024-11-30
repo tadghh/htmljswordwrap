@@ -396,8 +396,25 @@ export class TextHighlighter {
       this.formIsActive = false;
       let x = form.getAttribute("start")
       let y = form.getAttribute("end")
-      this.removeHighlights(`${x}-${y}`)
+      // this.removeHighlights(`${x}-${y}`)
     }
+  }
+
+  formCommentSubmission(submission) {
+    const form = submission.target;
+    const startIndex = parseInt(form.closest('.floatingForm').getAttribute('start'));
+    const endIndex = parseInt(form.closest('.floatingForm').getAttribute('end'));
+    const comment = form.comment.value;
+
+    // Prevent default form submission
+    submission.preventDefault();
+
+    // Create the highlight with the comment
+    this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment);
+
+    // Remove the form after submission
+    const formId = `form-${startIndex}-${endIndex}`;
+    this.removeForm(formId);
   }
   createForm(startIndex, endIndex) {
     const id = `form-${startIndex}-${endIndex}`;
@@ -425,6 +442,8 @@ export class TextHighlighter {
     // Add event listener to close button
     const closeButton = floatingDivForm.querySelector('.close-btn');
     closeButton.addEventListener('click', () => this.removeForm(id));
+    const form = floatingDivForm.querySelector('form');
+    form.addEventListener('submit', (event) => this.formCommentSubmission(event));
 
     return floatingDivForm;
   }
@@ -488,15 +507,19 @@ export class TextHighlighter {
   }
 
   #positionFloatingCommentContent(element) {
-    const startId = element.getAttribute("start")
-    let yColStartIndex = this.getPaddingForIndex(startId);
+    if (element) {
+      const startId = element.getAttribute("start")
+      let yColStartIndex = this.getPaddingForIndex(startId);
 
-    console.log(` ${yColStartIndex} `)
+      console.log(` ${yColStartIndex} `)
 
-    let top = this.findYValueFromIndex(startId);
+      let top = this.findYValueFromIndex(startId);
 
-    element.style.top = `${top + 25}px`;
-    element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
+      element.style.top = `${top + 25}px`;
+      element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
+    }
+    console.log(element)
+
   }
 
   // #region Utility
@@ -742,17 +765,29 @@ export class TextHighlighter {
       [startIndex, endIndex] = [endIndex, startIndex];
       startIndex++
     }
-
+    console.log(startIndex)
+    console.log(endIndex)
     if (textContent[startIndex] === " ") startIndex++;
     if (textContent[endIndex] === " ") endIndex--;
     // add example spans below
     const uniqueId = `floating-highlighted-${startIndex}-${endIndex}`;
     const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedText = textContent.slice(startIndex, endIndex + 1);
-    if (!this.floatingDivsMap.has(rawUniqueId)) {
-      const floatingDiv = document.createElement("div");
+    if (!this.floatingDivsMapTwo.has(rawUniqueId)) {
       const floatingDivContent = document.createElement("div");
 
+      floatingDivContent.id = `floating-${startIndex}-${endIndex}`;
+      floatingDivContent.className = "floatingContent";
+      floatingDivContent.textContent = comment
+      floatingDivContent.style.width = `${this.getWordWidth(comment)}px`;
+      floatingDivContent.setAttribute("start", startIndex)
+      floatingDivContent.setAttribute("end", endIndex)
+      floatingDivContent.setAttribute("rawId", rawUniqueId)
+      this.floatingDivsMapTwo.set(rawUniqueId, floatingDivContent);
+      document.body.appendChild(floatingDivContent);
+    }
+    if (!this.floatingDivsMap.has(rawUniqueId)) {
+      const floatingDiv = document.createElement("div");
 
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
@@ -763,25 +798,9 @@ export class TextHighlighter {
       floatingDiv.setAttribute("end", endIndex)
       floatingDiv.setAttribute("rawId", rawUniqueId)
 
-      floatingDivContent.id = `floating-${startIndex}-${endIndex}`;
-      floatingDivContent.className = "floatingContent";
-      floatingDivContent.textContent = comment
-      floatingDivContent.style.width = `${this.getWordWidth(comment)}px`;
-      floatingDivContent.setAttribute("start", startIndex)
-      floatingDivContent.setAttribute("end", endIndex)
-      floatingDivContent.setAttribute("rawId", rawUniqueId)
-
       this.floatingDivsMap.set(rawUniqueId, floatingDiv);
-      this.floatingDivsMapTwo.set(rawUniqueId, floatingDivContent);
-      document.body.appendChild(floatingDiv);
-      document.body.appendChild(floatingDivContent);
-      // if (this.formIsActive) {
-      //   console.log("aa")
-      //   const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
-      //   document.body.appendChild(getStuff);
-      //   this.#positionFloatingForm(getStuff);
 
-      // }
+      document.body.appendChild(floatingDiv);
     }
     // Add the div element relative to the span
     this.#positionFloatingComment(this.floatingDivsMap.get(rawUniqueId));
