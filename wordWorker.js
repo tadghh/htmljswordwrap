@@ -380,37 +380,54 @@ export class TextHighlighter {
     }
 
   };
+  removeHighlights(id) {
+    console.log(id)
+    let highlighted = document.querySelectorAll(`[rawid='${id}']`);
+    highlighted.forEach((div) => {
+      div.remove()
+    });
+  }
   removeForm(id) {
     let form = document.getElementById(id)
     if (form) {
+
+      window.getSelection().removeAllRanges();
       form.remove()
+      this.formIsActive = false;
+      let x = form.getAttribute("start")
+      let y = form.getAttribute("end")
+      this.removeHighlights(`${x}-${y}`)
     }
   }
   createForm(startIndex, endIndex) {
     const id = `form-${startIndex}-${endIndex}`;
     const elementString = `
-    <div class="floatingForm">
-      <form action="">
-        <label for="text">Content</label>
-        <textarea id="text" name="comment"></textarea>
-        <button type="submit">Comment</button>
-      </form>
-      <button type="button" onclick="this.parentElement.remove()">X</button>
-    </div>
-  `;
+      <div class="floatingForm">
+        <form action="">
+          <label for="text">Content</label>
+          <textarea id="text" name="comment"></textarea>
+          <button type="submit">Comment</button>
+        </form>
+        <button type="button" class="close-btn">X</button>
+      </div>
+    `;
+
     const parser = new DOMParser();
     const doc = parser.parseFromString(elementString, 'text/html');
     const floatingDivForm = doc.body.firstElementChild;
 
     floatingDivForm.id = id;
     floatingDivForm.className = "floatingForm";
+    floatingDivForm.setAttribute("start", startIndex);
+    floatingDivForm.setAttribute("end", endIndex);
+    floatingDivForm.setAttribute("rawId", `${startIndex}-${endIndex}`);
 
-    floatingDivForm.setAttribute("start", startIndex)
-    floatingDivForm.setAttribute("end", endIndex)
-    floatingDivForm.setAttribute("rawId", `${startIndex}-${endIndex}`)
-    return floatingDivForm
+    // Add event listener to close button
+    const closeButton = floatingDivForm.querySelector('.close-btn');
+    closeButton.addEventListener('click', () => this.removeForm(id));
+
+    return floatingDivForm;
   }
-
 
   #createHighlight() {
     if (this.startLetterIndex > this.endLetterIndex) {
