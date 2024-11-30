@@ -486,7 +486,13 @@ export class TextHighlighter {
     let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX, true);
     this.endLetterIndex = letterIndex;
 
-    if (this.startLetterIndex !== -1 && this.endLetterIndex !== -1) {
+    if (this.startLetterIndex > this.endLetterIndex) {
+      [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
+      this.startLetterIndex++
+    }
+    let totalLength = this.endLetterIndex - this.startLetterIndex;
+    if (totalLength > 1) {
+
       this.formIsActive = true;
 
       this.#createHighlight();

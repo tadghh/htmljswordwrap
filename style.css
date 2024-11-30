@@ -58,13 +58,14 @@ body {
 }
 .floatingForm > form > textarea {
 	background-color: black;
+	border-color: white;
 }
 .floatingForm > form {
 	/* position: absolute; */
 	display: flex;
 	flex-direction: column;
 	background-color: black;
-
+	z-index: 0;
 	/* background: green; */
 	/* z-index: 10; */
 	/* display: hidden; */
