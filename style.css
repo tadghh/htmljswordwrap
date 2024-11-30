@@ -42,6 +42,36 @@ body {
 	z-index: 10;
 	display: hidden;
 }
+.floatingForm {
+	position: absolute;
+	font-size: 16px;
+	background-color: black;
+	color: white;
+	width: 350px;
+	height: 100px;
+	border-radius: 5px;
+	border: solid;
+	border-color: black;
+	/* background: green; */
+	/* z-index: 10; */
+	/* display: hidden; */
+}
+.floatingForm > form > textarea {
+	background-color: black;
+}
+.floatingForm > form {
+	/* position: absolute; */
+	display: flex;
+	flex-direction: column;
+	background-color: black;
+
+	/* background: green; */
+	/* z-index: 10; */
+	/* display: hidden; */
+}
+.floatingForm > form > button {
+	align-self: flex-end;
+}
 .floatingContent:hover {
 	display: block;
 }
