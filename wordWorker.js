@@ -24,8 +24,8 @@ export class TextHighlighter {
     this.floatingComments = new Map();
     this.floatingDivsSplit = new Map();
 
-    this.mouseTopOffset = 0;
-    this.mouseLeftOffset = 0;
+    this.mouseTopOffset = window.scrollY;
+    this.mouseLeftOffset = window.scrollX;
     this.canvas = document.createElement("canvas");
     this.context = this.canvas.getContext("2d");
 
@@ -66,7 +66,7 @@ export class TextHighlighter {
     const colTop = this.findYValueFromIndex(realNum);
     element.style.top = `${colTop - 5 + this.mouseTopOffset}px`;
     const colPadding = this.getPaddingForIndex(realNum);
-    element.style.left = `${colPadding + this.getLeftPadding() + 2 + this.mouseLeftOffset}px`;
+    element.style.left = `${colPadding + this.getLeftPadding() + 2}px`;
   }
 
   #positionCommentHighlight(element) {
