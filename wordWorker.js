@@ -421,8 +421,9 @@ export class TextHighlighter {
     }
 
   };
+
   removeHighlights(id) {
-    console.log(id)
+
     let highlighted = document.querySelectorAll(`[rawid='${id}']`);
     highlighted.forEach((div) => {
       div.remove()
@@ -584,7 +585,7 @@ export class TextHighlighter {
 
       if (endCol - startCol >= 1) {
         top = this.findYValueFromIndex(endId);
-        yColStartIndex = bottomLineWidth - wordWidth + this.getLeftPadding()
+        yColStartIndex = bottomLineWidth - wordWidth
       } else {
         top = this.findYValueFromIndex(startId);
       }
@@ -592,7 +593,6 @@ export class TextHighlighter {
       element.style.top = `${top + Number.parseFloat(this.fontSize) + 6 + this.mouseTopOffset}px`;
       element.style.left = `${yColStartIndex + this.getLeftPadding() + 2 + this.mouseLeftOffset}px`;
     }
-    console.log(element);
   }
 
   // #region Utility
@@ -628,7 +628,6 @@ export class TextHighlighter {
   }
 
   #repositionItems() {
-
     // TODO Just use the divs
     this.floatingComments.forEach((div) => {
       this.#positionCommentContent(div);
