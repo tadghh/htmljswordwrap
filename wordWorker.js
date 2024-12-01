@@ -571,7 +571,7 @@ export class TextHighlighter {
       console.log(` ${yColStartIndex} `);
 
 
-      element.style.top = `${top + 25}px`;
+      element.style.top = `${top + 25 + this.mouseTopOffset}px`;
       element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
     }
     console.log(element);
