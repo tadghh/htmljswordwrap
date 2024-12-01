@@ -252,8 +252,7 @@ export class TextHighlighter {
         let endCol = this.findColFromIndex(endId)
         const isMultiLine = startCol != endCol
         const mouseTopOffset = this.mouseTopOffset
-        // TODO Offsets
-        const mouseLeftOffset = this.mouseLeftOffset
+
         const fontSizeRaw = Number.parseFloat(this.fontSize)
         const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
 
@@ -521,32 +520,18 @@ export class TextHighlighter {
 
     if (!this.commentHighlights.has(rawUniqueId)) {
       const floatingDiv = document.createElement("div");
-      // const floatingDivContent = document.createElement("div");
-
-      // let demo_test = "Here is some long content to test this"
-
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
       floatingDiv.id = uniqueId;
-      floatingDiv.className = "floatingControls";
+      floatingDiv.className = "highlightComment";
       floatingDiv.style.width = `${width}px`;
       floatingDiv.setAttribute("start", this.startLetterIndex)
       floatingDiv.setAttribute("end", this.endLetterIndex)
       floatingDiv.setAttribute("rawId", rawUniqueId)
 
-      // floatingDivContent.className = "floatingContent";
-      // floatingDivContent.id = `floating-${this.startLetterIndex}-${this.endLetterIndex}`;
-      // floatingDivContent.textContent = demo_test
-      // floatingDivContent.style.width = `${this.getWordWidth(demo_test)}px`;
-      // floatingDivContent.setAttribute("start", this.startLetterIndex)
-      // floatingDivContent.setAttribute("end", this.endLetterIndex)
-      // floatingDivContent.setAttribute("rawId", rawUniqueId)
-
       this.commentHighlights.set(rawUniqueId, floatingDiv);
-      // this.floatingDivsMapTwo.set(rawUniqueId, floatingDivContent);
 
       document.body.appendChild(floatingDiv);
-      // document.body.appendChild(floatingDivContent);
       if (this.formIsActive) {
         console.log("aa")
         const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
@@ -556,7 +541,6 @@ export class TextHighlighter {
     }
     // Add the div element relative to the span
     this.#positionCommentHighlight(this.commentHighlights.get(rawUniqueId));
-    // this.#positionFloatingCommentContent(this.floatingDivsMapTwo.get(rawUniqueId));
 
     // Initially position the div
     this.#repositionItems()
@@ -849,7 +833,7 @@ export class TextHighlighter {
       const floatingComment = document.createElement("div");
 
       floatingComment.id = `floating-${startIndex}-${endIndex}`;
-      floatingComment.className = "floatingContent";
+      floatingComment.className = "highlightComment";
       floatingComment.textContent = comment
       floatingComment.style.width = `${this.getWordWidth(comment)}px`;
       floatingComment.setAttribute("start", startIndex)
@@ -864,7 +848,7 @@ export class TextHighlighter {
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
       commentHighlight.id = uniqueId;
-      commentHighlight.className = "floatingControls";
+      commentHighlight.className = "highlightedText";
       commentHighlight.style.width = `${width}px`;
       commentHighlight.setAttribute("start", startIndex)
       commentHighlight.setAttribute("end", endIndex)
