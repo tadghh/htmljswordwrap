@@ -3,7 +3,9 @@
 // On click off remove selection and form
 // After form submission swap it out with comment
 
-// Form at edge of screen, don't let it go over bounds
+
+// TODO Form at edge of screen, don't let it go over bounds
+// TODO Comment at end of screen
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
   // Cache cumulative widths
@@ -229,6 +231,10 @@ export class TextHighlighter {
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
       const char = this.contentTextCleaned[letterIndex];
       const charWidth = this.getCharacterWidth(char);
+      let formHoveringIndicator = document.getElementById("formHoverIndicator")
+      if (formHoveringIndicator) {
+        formHoveringIndicator.textContent = `Last Hovered: (${letterIndex},${this.mouseColSafe}) - ${char}`
+      }
       // Create the output string only if needed
       this.outputHover.textContent =
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
@@ -377,6 +383,14 @@ export class TextHighlighter {
       this.formIsActive = true;
 
       this.#createHighlight();
+      let startIndexForm = document.getElementById("startIndexForm")
+      let endIndexForm = document.getElementById("endIndexForm")
+      if (startIndexForm && endIndexForm) {
+        startIndexForm.textContent = `Start: ${this.contentTextCleaned[this.startLetterIndex]}`
+        endIndexForm.textContent = `End: ${this.contentTextCleaned[this.endLetterIndex]}`
+        // (0,0) - D
+      }
+      // startIndexForm
     }
 
   };
@@ -419,14 +433,22 @@ export class TextHighlighter {
   createForm(startIndex, endIndex) {
     const id = `form-${startIndex}-${endIndex}`;
     const elementString = `
-      <div class="floatingForm">
-        <form action="">
-          <label for="text">Content</label>
-          <textarea id="text" name="comment"></textarea>
-          <button type="submit">Comment</button>
-        </form>
-        <button type="button" class="close-btn">X</button>
-      </div>
+     <div class="floatingForm">
+			<form action="">
+				<div id="commentFormHeader">
+					<label for="text">Content</label>
+					<div id="selectionRange">
+						<div id="startIndexForm"></div>
+						<div id="endIndexForm"></div>
+						<small id="formHoverIndicator"></small>
+					</div>
+				</div>
+
+				<textarea id="text" name="comment"></textarea>
+				<button type="submit">Comment</button>
+			</form>
+			<button type="button" class="close-btn">X</button>
+		</div>
     `;
 
     const parser = new DOMParser();

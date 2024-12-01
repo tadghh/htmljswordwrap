@@ -48,7 +48,7 @@ body {
 	background-color: black;
 	color: white;
 	width: 350px;
-	height: 100px;
+	height: min-content;
 	border-radius: 5px;
 	border: solid;
 	z-index: 15;
@@ -61,6 +61,18 @@ body {
 .floatingForm > form > textarea {
 	background-color: black;
 	color: white;
+}
+
+#commentFormHeader {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
+#selectionRange {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	align-self: flex-end;
 }
 .floatingForm > form {
 	/* position: absolute; */
