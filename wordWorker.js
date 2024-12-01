@@ -537,18 +537,44 @@ export class TextHighlighter {
 
   #positionCommentContent(element) {
     if (element) {
-      const startId = element.getAttribute("start")
+      const startId = element.getAttribute("start");
+      const endId = element.getAttribute("end");
+
+      const wordWidth = this.getWordWidth(element.textContent);
+      const maxWidth = this.getMaxWidth();
+
       let yColStartIndex = this.getPaddingForIndex(startId);
 
-      console.log(` ${yColStartIndex} `)
+      let startCol = this.findColFromIndex(startId)
+      let endCol = this.findColFromIndex(endId)
+      let top = this.findYValueFromIndex(endId);
+      let lastColIndex = this.findStartIndexFromIndex(endId);
+      let bottomLineWidth = this.getWidthFromRange(lastColIndex, endId)
 
-      let top = this.findYValueFromIndex(startId);
+      if (yColStartIndex + wordWidth > maxWidth) {
+        yColStartIndex = this.getPaddingForIndex(endId);
+        yColStartIndex -= (wordWidth);
+      }
+
+      if (endCol - startCol >= 1) {
+        top = this.findYValueFromIndex(endId);
+        yColStartIndex = bottomLineWidth - wordWidth + this.getLeftPadding()
+      } else {
+
+        top = this.findYValueFromIndex(startId);
+
+
+
+
+      }
+
+      console.log(` ${yColStartIndex} `);
+
 
       element.style.top = `${top + 25}px`;
       element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
     }
-    console.log(element)
-
+    console.log(element);
   }
 
   // #region Utility
@@ -794,8 +820,7 @@ export class TextHighlighter {
       [startIndex, endIndex] = [endIndex, startIndex];
       startIndex++
     }
-    console.log(startIndex)
-    console.log(endIndex)
+
     if (textContent[startIndex] === " ") startIndex++;
     if (textContent[endIndex] === " ") endIndex--;
     // add example spans below
