@@ -56,17 +56,15 @@ export class TextHighlighter {
 
   addAttributes(start, end, element) {
     let hold = Number.parseFloat(end) + 1
-
     const selectedText = this.contentTextCleaned.substring(start, hold);
 
     element.style.width = `${this.getWordWidth(selectedText)}px`;
     element.setAttribute("start", start);
     element.setAttribute("end", end);
     let realNum = Number.parseFloat(start)
-    const colTop = this.findYValueFromIndex(realNum);
-    element.style.top = `${colTop - 5 + this.mouseTopOffset}px`;
-    const colPadding = this.getPaddingForIndex(realNum);
-    element.style.left = `${colPadding + this.getLeftPadding() + 2}px`;
+
+    element.style.top = `${this.findYValueFromIndex(realNum) - 5 + this.mouseTopOffset}px`;
+    element.style.left = `${this.getPaddingForIndex(realNum) + this.getLeftPadding() + 2}px`;
   }
 
   #positionCommentHighlight(element) {
@@ -134,13 +132,14 @@ export class TextHighlighter {
             if (!floatingDiv) {
               floatingDiv = document.createElement("div");
               floatingDiv.id = splitId;
+              //TODO issue?
               floatingDiv.className = "floating-highlighted split";
               isNewDiv = true;
             }
             floatingDiv.setAttribute("col", c);
             floatingDiv.setAttribute("rawId", elementsRawUniqueId);
 
-            // TODO flat line end
+            // TODO test flat line end
 
             if (c === lowerCol) {
               // First column
@@ -306,8 +305,6 @@ export class TextHighlighter {
           div.setAttribute('active', true)
           div.style.display = "block"
           div.style.background = "pink"
-
-          console.log("inside")
         }
       }
     });
@@ -422,7 +419,6 @@ export class TextHighlighter {
   };
 
   removeHighlights(id) {
-
     let highlighted = document.querySelectorAll(`[rawid='${id}']`);
     highlighted.forEach((div) => {
       div.remove()
@@ -456,7 +452,9 @@ export class TextHighlighter {
 
     // Prevent default form submission
     submission.preventDefault();
-
+    // TODO Api call
+    // TODO highlight color function
+    // TODO swap out client side
     // Create the highlight with the comment
     this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment);
 
@@ -464,6 +462,7 @@ export class TextHighlighter {
     const formId = `form-${startIndex}-${endIndex}`;
     this.removeForm(formId);
   }
+
   createForm(startIndex, endIndex) {
     const id = `form-${startIndex}-${endIndex}`;
     const elementString = `
@@ -517,7 +516,6 @@ export class TextHighlighter {
     const rawUniqueId = `${this.startLetterIndex}-${this.endLetterIndex}`;
     const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
 
-
     if (!this.commentHighlights.has(rawUniqueId)) {
       const floatingDiv = document.createElement("div");
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
@@ -533,7 +531,6 @@ export class TextHighlighter {
 
       document.body.appendChild(floatingDiv);
       if (this.formIsActive) {
-        console.log("aa")
         const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
         document.body.appendChild(getStuff);
         this.#positionCommentHighlight(getStuff);
@@ -619,8 +616,7 @@ export class TextHighlighter {
 
     this.commentHighlights.forEach((div) => {
       this.#positionCommentHighlight(div)
-      let key = div.id;
-      console.log(key)
+
       let hoverItem = document.getElementById(`form-${div.getAttribute("start")}-${div.getAttribute("end")}`);
       if (hoverItem) {
         this.#positionFloatingForm(hoverItem)
@@ -673,15 +669,14 @@ export class TextHighlighter {
 
   calcWordPositions() {
     const widthCache = [[0, 0]];
+    const maxWidth = this.getMaxWidth();
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
 
-    const maxWidth = this.getMaxWidth();  // Cache this value
     this.wordArray.forEach((word, iter) => {
       const currentWordWidth = this.getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
-
 
       // First test: does word fit on current line with space?
       if (testWidth <= maxWidth) {
@@ -694,20 +689,16 @@ export class TextHighlighter {
           : this.spaceSize;
         const endTest = Math.ceil(testWidth - spaceToRemove - 2);
 
-
-
         if (endTest < maxWidth) {
           // Word fits without its trailing space
           currentWidth = endTest;
         } else if (endTest > maxWidth) {
           // Word doesn't fit, wrap to new line
-
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
           currentWidth = currentWordWidth;
         } else if (endTest == maxWidth) {
           // Word doesn't fit, wrap to new line
-
           currentWidth = endTest;
         }
       }
@@ -718,7 +709,6 @@ export class TextHighlighter {
   }
 
   getTextYSections() {
-
     return this.divRect.height / (this.wordStats.length);
   }
 
@@ -816,7 +806,7 @@ export class TextHighlighter {
     // there is always one col
     return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
   }
-  // TODO undo comments for testing premade content
+
   createTextHighlight(startIndex, endIndex, textContent, comment) {
     if (startIndex > endIndex) {
       [startIndex, endIndex] = [endIndex, startIndex];
@@ -829,6 +819,7 @@ export class TextHighlighter {
     const uniqueId = `floating-highlighted-${startIndex}-${endIndex}`;
     const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedText = textContent.slice(startIndex, endIndex + 1);
+
     if (!this.floatingComments.has(rawUniqueId)) {
       const floatingComment = document.createElement("div");
 
@@ -842,9 +833,9 @@ export class TextHighlighter {
       this.floatingComments.set(rawUniqueId, floatingComment);
       document.body.appendChild(floatingComment);
     }
+
     if (!this.commentHighlights.has(rawUniqueId)) {
       const commentHighlight = document.createElement("div");
-
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
       commentHighlight.id = uniqueId;
@@ -855,13 +846,11 @@ export class TextHighlighter {
       commentHighlight.setAttribute("rawId", rawUniqueId)
 
       this.commentHighlights.set(rawUniqueId, commentHighlight);
-
       document.body.appendChild(commentHighlight);
     }
-    // Add the div element relative to the span
     this.#positionCommentHighlight(this.commentHighlights.get(rawUniqueId));
     this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
-    // Initially position the div
+
     this.#repositionItems()
   }
   // #endregion
