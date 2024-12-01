@@ -249,65 +249,55 @@ export class TextHighlighter {
       let hoverItem = document.getElementById(`floating-${key}`);
 
       if (hoverItem) {
-        // console.log("gover2")
         const startId = hoverItem.getAttribute("start");
         const endId = hoverItem.getAttribute("end");
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
-        let isMultiLine = startCol != endCol
-        const xIndex = parseInt(startId)
-        const yIndex = parseInt(endId)
-        const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(xIndex))
+        const isMultiLine = startCol != endCol
 
+        const fontSizeRaw = Number.parseFloat(this.fontSize)
+        const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
+
+        const newRelY = event.clientY
+        const top = this.findYValueFromIndex(startId);
         let minXBorder = xCol;
         let maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(endId))
 
-
-        const top = this.findYValueFromIndex(yIndex);
         let topBorder = top + this.mouseTopOffset;
-        let bottomBorder = top + 20 + this.mouseTopOffset;
-        if (isMultiLine) {
-
-          topBorder = this.findYValueFromIndex(startId) + this.mouseTopOffset
-          // its multi line so it must wrap around from the start of the last col
-          //this should be min of middle col
-          let middleStart = this.wordStats[endCol - 1][1];
-          bottomBorder = this.findYValueFromIndex(endId) + this.mouseTopOffset
-          minXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
-          maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(middleStart - 1))
-          // console.log(minXBorder)
-
-          // console.log(`${event.clientX} ${topBorder}`)
-        }
-
-
-
-
-        const newRelY = event.clientY
+        let bottomBorder = top + fontSizeRaw + this.mouseTopOffset;
 
         let isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
         let isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
         let isInside = isInsideX && isInsideY;
 
+        // TODO clean this up spaghetti mess
+        // Were checking if the mouse is in the middle rows of the text or the top or bottom row
         if (isMultiLine) {
-          let middleStartIndex = 8;
+          let middleStart = this.wordStats[endCol - 1][1];
+          let bottomTop = this.findYValueFromIndex(endId)
+          bottomBorder = bottomTop + this.mouseTopOffset
+
+          maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(middleStart - 1))
+          let middleStartIndex = this.getLeftPadding();
           let middleStartYIndex = this.findYValueFromIndex(this.wordStats[startCol + 1][1]);
-          let middleEndColIndex = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(this.wordStats[endCol - 1][1] - 1));
+          let middleEndColIndex = maxXBorder;
           let middleEndColYIndex = this.findYValueFromIndex(this.wordStats[endCol][1])
+
           let isMiddleX = relativeX >= middleStartIndex && relativeX <= middleEndColIndex;
           let isMiddleY = newRelY >= middleStartYIndex && newRelY <= middleEndColYIndex
 
-          let firstTop = this.findYValueFromIndex(startId) + this.mouseTopOffset;
-          let LastBottom = this.findYValueFromIndex(endId) + this.mouseTopOffset;
-          let isInsideFirstY = newRelY >= firstTop && newRelY <= firstTop + 20;
-          let isInsideLastY = newRelY >= LastBottom && newRelY <= LastBottom + 20;
-          let minXBorderFirst = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(xIndex))
+          let firstTop = top + this.mouseTopOffset;
+          let LastBottom = bottomTop + this.mouseTopOffset;
+
+          let isInsideFirstY = newRelY >= firstTop && newRelY <= firstTop + fontSizeRaw;
+          let isInsideLastY = newRelY >= LastBottom && newRelY <= LastBottom + fontSizeRaw;
+
+          let minXBorderFirst = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
           let maxXBorderLast = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(endId))
-          let minXBorderLast = 8
+          let minXBorderLast = this.getLeftPadding()
 
           let isInsideXFirstLine = relativeX >= minXBorderFirst && relativeX <= maxXBorder;
           let isInsideXLastLine = relativeX >= minXBorderLast && relativeX <= maxXBorderLast;
-          // let isInsideYLastLine =  newRelY >= topBorder && newRelY <= bottomBorder;
 
           isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
         }
@@ -331,14 +321,10 @@ export class TextHighlighter {
     let low = start;
     let high = end;
     let cumulativeWidth = 0;
-    if (testing) {
-      console.log(`low ${low} high ${high}`)
 
-    }
     // First check if we're beyond the total width
     const totalWidth = this.#getCumulativeWidth(start, end);
     if (targetWidth >= totalWidth) {
-
       return end - 1;
     }
 
