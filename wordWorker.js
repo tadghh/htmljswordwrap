@@ -198,16 +198,12 @@ export class TextHighlighter {
       console.error('Error in positionFloatingComment:', error);
     }
   }
+
   #positionFloatingForm(element) {
-    const startId = element.getAttribute("start")
-    let yColStartIndex = this.getPaddingForIndex(startId);
+    const endId = element.getAttribute("end")
 
-    console.log(` ${yColStartIndex} `)
-
-    let top = this.findYValueFromIndex(startId);
-
-    element.style.top = `${top + 25}px`;
-    element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
+    element.style.top = `${this.findYValueFromIndex(endId) + Number.parseFloat(this.fontSize)}px`;
+    element.style.left = `${this.getPaddingForIndex(endId) + this.getLeftPadding()}px`;
   }
 
   #handleMouseMove = (event) => {
@@ -241,10 +237,10 @@ export class TextHighlighter {
         `cumWidth: ${this.#getCumulativeWidth(startIndex, letterIndex).toFixed(2)}px, ` +
         `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
     }
-    this.hoveringComment(this.relativeX)
-    // this.endLetterIndex = letterIndex;
+    this.hoveringComment()
   };
-  hoveringComment(relativeX) {
+
+  hoveringComment() {
     this.floatingComments.forEach((div, key) => {
       let hoverItem = document.getElementById(`floating-${key}`);
 
@@ -254,17 +250,19 @@ export class TextHighlighter {
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
         const isMultiLine = startCol != endCol
-
+        const mouseTopOffset = this.mouseTopOffset
         const fontSizeRaw = Number.parseFloat(this.fontSize)
         const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
 
-        const newRelY = event.clientY
-        const top = this.findYValueFromIndex(startId);
+        const newRelY = this.relativeY + this.getTopWordPadding() + mouseTopOffset;
+
+        const relativeX = this.relativeX
+        const top = this.findYValueFromIndex(startId) + mouseTopOffset;
         let minXBorder = xCol;
         let maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(endId))
 
-        let topBorder = top + this.mouseTopOffset;
-        let bottomBorder = top + fontSizeRaw + this.mouseTopOffset;
+        let topBorder = top;
+        let bottomBorder = top + fontSizeRaw;
 
         let isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
         let isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
@@ -274,20 +272,20 @@ export class TextHighlighter {
         // Were checking if the mouse is in the middle rows of the text or the top or bottom row
         if (isMultiLine) {
           let middleStart = this.wordStats[endCol - 1][1];
-          let bottomTop = this.findYValueFromIndex(endId)
-          bottomBorder = bottomTop + this.mouseTopOffset
+          let bottomTop = this.findYValueFromIndex(endId) + mouseTopOffset
+          bottomBorder = bottomTop
 
           maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(middleStart - 1))
           let middleStartIndex = this.getLeftPadding();
-          let middleStartYIndex = this.findYValueFromIndex(this.wordStats[startCol + 1][1]);
+          let middleStartYIndex = this.findYValueFromIndex(this.wordStats[startCol + 1][1]) + mouseTopOffset;
           let middleEndColIndex = maxXBorder;
-          let middleEndColYIndex = this.findYValueFromIndex(this.wordStats[endCol][1])
+          let middleEndColYIndex = this.findYValueFromIndex(this.wordStats[endCol][1]) + mouseTopOffset
 
           let isMiddleX = relativeX >= middleStartIndex && relativeX <= middleEndColIndex;
           let isMiddleY = newRelY >= middleStartYIndex && newRelY <= middleEndColYIndex
 
-          let firstTop = top + this.mouseTopOffset;
-          let LastBottom = bottomTop + this.mouseTopOffset;
+          let firstTop = top;
+          let LastBottom = bottomTop;
 
           let isInsideFirstY = newRelY >= firstTop && newRelY <= firstTop + fontSizeRaw;
           let isInsideLastY = newRelY >= LastBottom && newRelY <= LastBottom + fontSizeRaw;
@@ -308,10 +306,6 @@ export class TextHighlighter {
           div.style.background = "pink"
 
           console.log("inside")
-        } else if (!div.getAttribute('active')) {
-          // div.style.display = "none";  // Use "none" instead of "hidden"
-          // // console.log("sss");
-
         }
       }
     });
@@ -554,7 +548,6 @@ export class TextHighlighter {
         const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
         document.body.appendChild(getStuff);
         this.#positionCommentHighlight(getStuff);
-
       }
     }
     // Add the div element relative to the span
@@ -593,7 +586,7 @@ export class TextHighlighter {
         top = this.findYValueFromIndex(startId);
       }
 
-      element.style.top = `${top + 25 + this.mouseTopOffset}px`;
+      element.style.top = `${top + Number.parseFloat(this.fontSize) + 6 + this.mouseTopOffset}px`;
       element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
     }
     console.log(element);
