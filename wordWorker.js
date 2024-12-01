@@ -250,21 +250,30 @@ export class TextHighlighter {
 
       if (hoverItem) {
         // console.log("gover2")
-        const ids = hoverItem.id
-          .replace("floating-", "")
-          .split("-");
-        const xIndex = parseInt(ids[0])
-        const yIndex = parseInt(ids[1])
-
+        const startId = hoverItem.getAttribute("start");
+        const endId = hoverItem.getAttribute("end");
+        let startCol = this.findColFromIndex(startId)
+        let endCol = this.findColFromIndex(endId)
+        const xIndex = parseInt(startId)
+        const yIndex = parseInt(endId)
         const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(xIndex))
 
+        let minXBorder = xCol;
+        let maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(endId))
+
+
         const top = this.findYValueFromIndex(yIndex);
-        const topBorder = top;
-        const bottomBorder = top + 20;
+        let topBorder = top + this.mouseTopOffset;
+        if (startCol != endCol) {
+          console.log("multi")
+          topBorder = this.findYValueFromIndex(startId) + this.mouseTopOffset
+          // its multi line so it must wrap around from the start of the last col
+          minXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(xIndex))
+        }
+        const bottomBorder = top + 20 + this.mouseTopOffset;
 
 
-        const minXBorder = xCol;
-        const maxXBorder = xCol + this.getWordWidth(div.textContent)
+
         const newRelY = event.clientY
 
         const isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
@@ -560,16 +569,8 @@ export class TextHighlighter {
         top = this.findYValueFromIndex(endId);
         yColStartIndex = bottomLineWidth - wordWidth + this.getLeftPadding()
       } else {
-
         top = this.findYValueFromIndex(startId);
-
-
-
-
       }
-
-      console.log(` ${yColStartIndex} `);
-
 
       element.style.top = `${top + 25 + this.mouseTopOffset}px`;
       element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
