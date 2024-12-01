@@ -25,6 +25,7 @@ export class TextHighlighter {
     this.floatingDivsSplit = new Map();
 
     this.mouseTopOffset = 0;
+    this.mouseLeftOffset = 0;
     this.canvas = document.createElement("canvas");
     this.context = this.canvas.getContext("2d");
 
@@ -65,7 +66,7 @@ export class TextHighlighter {
     const colTop = this.findYValueFromIndex(realNum);
     element.style.top = `${colTop - 5 + this.mouseTopOffset}px`;
     const colPadding = this.getPaddingForIndex(realNum);
-    element.style.left = `${colPadding + this.getLeftPadding() + 2}px`;
+    element.style.left = `${colPadding + this.getLeftPadding() + 2 + this.mouseLeftOffset}px`;
   }
 
   #positionCommentHighlight(element) {
@@ -192,7 +193,7 @@ export class TextHighlighter {
 
       if (typeof linePadding === 'number' && !isNaN(linePadding) &&
         typeof this.getLeftPadding() === 'number' && !isNaN(this.getLeftPadding())) {
-        element.style.left = `${linePadding + this.getLeftPadding() + 2}px`;
+        element.style.left = `${linePadding + this.getLeftPadding() + 2 + this.mouseLeftOffset}px`;
       }
     } catch (error) {
       console.error('Error in positionFloatingComment:', error);
@@ -251,6 +252,8 @@ export class TextHighlighter {
         let endCol = this.findColFromIndex(endId)
         const isMultiLine = startCol != endCol
         const mouseTopOffset = this.mouseTopOffset
+        // TODO Offsets
+        const mouseLeftOffset = this.mouseLeftOffset
         const fontSizeRaw = Number.parseFloat(this.fontSize)
         const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
 
@@ -587,7 +590,7 @@ export class TextHighlighter {
       }
 
       element.style.top = `${top + Number.parseFloat(this.fontSize) + 6 + this.mouseTopOffset}px`;
-      element.style.left = `${yColStartIndex + this.getLeftPadding() + 2}px`;
+      element.style.left = `${yColStartIndex + this.getLeftPadding() + 2 + this.mouseLeftOffset}px`;
     }
     console.log(element);
   }
@@ -610,6 +613,7 @@ export class TextHighlighter {
     window.addEventListener("resize", this.#handleResizeOrScroll);
     window.addEventListener("scroll", () => {
       this.mouseTopOffset = window.scrollY;
+      this.mouseLeftOffset = window.scrollX;
       this.#handleResizeOrScroll();
     });
 

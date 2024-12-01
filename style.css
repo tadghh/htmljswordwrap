@@ -11,7 +11,10 @@ body {
 	overflow-wrap: break-word;
 	white-space: normal;
 	font-size: 16px;
-	display: inline;
+	display: block;
+	overflow-x: scroll;
+
+	min-width: 1000px;
 }
 .floatingControls {
 	position: absolute;
