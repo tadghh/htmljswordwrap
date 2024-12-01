@@ -226,7 +226,7 @@ export class TextHighlighter {
       : this.wordStats[this.mouseColSafe + 1][1];
 
     // Use binary search to find letter index
-    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, this.relativeX, false);
+    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, this.relativeX);
 
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
       const char = this.contentTextCleaned[letterIndex];
@@ -317,7 +317,7 @@ export class TextHighlighter {
     });
   }
   // Binary search for letter index based on width
-  #findLetterIndexByWidth(start, end, targetWidth, testing) {
+  #findLetterIndexByWidth(start, end, targetWidth) {
     let low = start;
     let high = end;
     let cumulativeWidth = 0;
@@ -376,7 +376,7 @@ export class TextHighlighter {
       : this.wordStats[this.mouseColSafe + 1][1];
 
     // Use binary search to find letter index
-    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX, false);
+    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);
     this.startLetterIndex = letterIndex;
 
   };
@@ -400,7 +400,7 @@ export class TextHighlighter {
       : this.wordStats[this.mouseColSafe + 1][1];
 
     // Use binary search to find letter index
-    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX, true);
+    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);
     this.endLetterIndex = letterIndex;
 
     if (this.startLetterIndex > this.endLetterIndex) {
