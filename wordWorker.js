@@ -466,41 +466,99 @@ export class TextHighlighter {
   createForm(startIndex, endIndex) {
     const id = `form-${startIndex}-${endIndex}`;
     const elementString = `
-     <div class="floatingForm">
-			<form action="">
-				<div id="commentFormHeader">
-					<label for="text">Content</label>
-					<div id="selectionRange">
-						<div id="startIndexForm"></div>
-						<div id="endIndexForm"></div>
-						<small id="formHoverIndicator"></small>
-					</div>
-				</div>
+    <div class="floatingForm">
+        <form action="">
+            <div id="commentFormHeader">
+                <label for="text">Content</label>
+                <div id="selectionRange">
+                    <div id="startIndexForm"></div>
+                    <div id="endIndexForm"></div>
+                    <small id="formHoverIndicator"></small>
+                </div>
+            </div>
 
-				<textarea id="text" name="comment"></textarea>
-				<button type="submit">Comment</button>
-			</form>
-			<button type="button" class="close-btn">X</button>
-		</div>
-    `;
+            <textarea id="text" name="comment"></textarea>
+
+            <div id="commentType">
+                <label>Type:</label>
+                <div>
+                    <input type="radio" id="misc" name="commentType" value="1">
+                    <label for="misc">Misc Comments</label>
+                </div>
+                <div>
+                    <input type="radio" id="incorrect" name="commentType" value="2">
+                    <label for="incorrect">Incorrect Info</label>
+                </div>
+                <div>
+                    <input type="radio" id="sources" name="commentType" value="3">
+                    <label for="sources">Sources?</label>
+                </div>
+                <div>
+                    <input type="radio" id="question" name="commentType" value="4">
+                    <label for="question">Question</label>
+                </div>
+            </div>
+
+            <button type="submit">Comment</button>
+        </form>
+        <button type="button" class="close-btn">X</button>
+    </div>
+`;
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(elementString, 'text/html');
     const floatingDivForm = doc.body.firstElementChild;
-
+    const rawId = `${startIndex}-${endIndex}`;
     floatingDivForm.id = id;
     floatingDivForm.className = "floatingForm";
     floatingDivForm.setAttribute("start", startIndex);
     floatingDivForm.setAttribute("end", endIndex);
-    floatingDivForm.setAttribute("rawId", `${startIndex}-${endIndex}`);
+    floatingDivForm.setAttribute("rawId", rawId);
+
+    // Add event listener for radio button selection
+    const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
+    radioButtons.forEach(radio => {
+      radio.addEventListener('change', (event) => {
+        const selectedId = parseInt(event.target.value, 10);
+        const color = this.getColor(selectedId);
+        // floatingDivForm.style.backgroundColor = color;
+
+        // Update the highlight in commentHighlights if applicable
+        if (this.commentHighlights && this.commentHighlights.get(rawId)) {
+          const highlight = this.commentHighlights.get(rawId);
+          highlight.color = color;
+
+          const hoverItems = document.querySelectorAll(`.floating-highlighted.split[rawid="${rawId}"]`);
+          hoverItems.forEach(item => {
+            item.style.backgroundColor = color;
+          });
+        }
+      });
+    });
 
     // Add event listener to close button
     const closeButton = floatingDivForm.querySelector('.close-btn');
     closeButton.addEventListener('click', () => this.closeForm(id));
+
+    // Add event listener for form submission
     const form = floatingDivForm.querySelector('form');
     form.addEventListener('submit', (event) => this.formCommentSubmission(event));
 
     return floatingDivForm;
+  }
+  getColor(id) {
+    switch (id) {
+      case 1:
+        return 'white'; // Misc comments
+      case 2:
+        return 'pink'; // Incorrect info
+      case 3:
+        return 'light blue'; // Sources?
+      case 4:
+        return 'light orange'; // Question
+      default:
+        return 'transparent'; // Default color for unknown IDs
+    }
   }
 
   #createHighlight() {
@@ -575,6 +633,7 @@ export class TextHighlighter {
       element.style.left = `${yColStartIndex + this.getLeftPadding() + 2 + this.mouseLeftOffset}px`;
     }
   }
+
 
   // #region Utility
   printOutWordStats() {
