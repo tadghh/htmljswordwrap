@@ -254,6 +254,7 @@ export class TextHighlighter {
         const endId = hoverItem.getAttribute("end");
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
+        let isMultiLine = startCol != endCol
         const xIndex = parseInt(startId)
         const yIndex = parseInt(endId)
         const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(xIndex))
@@ -264,29 +265,63 @@ export class TextHighlighter {
 
         const top = this.findYValueFromIndex(yIndex);
         let topBorder = top + this.mouseTopOffset;
-        if (startCol != endCol) {
-          console.log("multi")
+        let bottomBorder = top + 20 + this.mouseTopOffset;
+        if (isMultiLine) {
+
           topBorder = this.findYValueFromIndex(startId) + this.mouseTopOffset
           // its multi line so it must wrap around from the start of the last col
-          minXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(xIndex))
+          //this should be min of middle col
+          let middleStart = this.wordStats[endCol - 1][1];
+          bottomBorder = this.findYValueFromIndex(endId) + this.mouseTopOffset
+          minXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
+          maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(middleStart - 1))
+          // console.log(minXBorder)
+
+          // console.log(`${event.clientX} ${topBorder}`)
         }
-        const bottomBorder = top + 20 + this.mouseTopOffset;
+
 
 
 
         const newRelY = event.clientY
 
-        const isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
-        const isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
-        const isInside = isInsideX && isInsideY;
+        let isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
+        let isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
+        let isInside = isInsideX && isInsideY;
 
+        if (isMultiLine) {
+          let middleStartIndex = 8;
+          let middleStartYIndex = this.findYValueFromIndex(this.wordStats[startCol + 1][1]);
+          let middleEndColIndex = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(this.wordStats[endCol - 1][1] - 1));
+          let middleEndColYIndex = this.findYValueFromIndex(this.wordStats[endCol][1])
+          let isMiddleX = relativeX >= middleStartIndex && relativeX <= middleEndColIndex;
+          let isMiddleY = newRelY >= middleStartYIndex && newRelY <= middleEndColYIndex
+
+          let firstTop = this.findYValueFromIndex(startId) + this.mouseTopOffset;
+          let LastBottom = this.findYValueFromIndex(endId) + this.mouseTopOffset;
+          let isInsideFirstY = newRelY >= firstTop && newRelY <= firstTop + 20;
+          let isInsideLastY = newRelY >= LastBottom && newRelY <= LastBottom + 20;
+          let minXBorderFirst = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(xIndex))
+          let maxXBorderLast = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(endId))
+          let minXBorderLast = 8
+
+          let isInsideXFirstLine = relativeX >= minXBorderFirst && relativeX <= maxXBorder;
+          let isInsideXLastLine = relativeX >= minXBorderLast && relativeX <= maxXBorderLast;
+          // let isInsideYLastLine =  newRelY >= topBorder && newRelY <= bottomBorder;
+
+          isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
+        }
+        div.style.background = "green"
         if (isInside) {
           div.setAttribute('active', true)
           div.style.display = "block"
+          div.style.background = "pink"
+
           console.log("inside")
         } else if (!div.getAttribute('active')) {
-          div.style.display = "none";  // Use "none" instead of "hidden"
-          console.log("sss");
+          // div.style.display = "none";  // Use "none" instead of "hidden"
+          // // console.log("sss");
+
         }
       }
     });
