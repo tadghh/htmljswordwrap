@@ -553,9 +553,9 @@ export class TextHighlighter {
       case 2:
         return 'pink'; // Incorrect info
       case 3:
-        return 'light blue'; // Sources?
+        return 'lightblue'; // Sources?
       case 4:
-        return 'light orange'; // Question
+        return 'skyblue'; // Question
       default:
         return 'transparent'; // Default color for unknown IDs
     }
