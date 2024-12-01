@@ -18,10 +18,10 @@ export class TextHighlighter {
     this.mouseColSafe = 0;
     this.relativeY = 0;
     this.relativeX = 0;
-    this.floatingDivsMap = new Map();
+    this.commentHighlights = new Map();
     this.floatingSelectionCols = new Map();
     this.floatingSelectionWrapped = new Map();
-    this.floatingDivsMapTwo = new Map();
+    this.floatingComments = new Map();
     this.floatingDivsSplit = new Map();
 
     this.mouseTopOffset = 0;
@@ -68,7 +68,7 @@ export class TextHighlighter {
     element.style.left = `${colPadding + this.getLeftPadding() + 2}px`;
   }
 
-  #positionFloatingComment(element) {
+  #positionCommentHighlight(element) {
     if (!element) {
       console.warn('Element is undefined or null in positionFloatingComment');
       return;
@@ -245,7 +245,7 @@ export class TextHighlighter {
     // this.endLetterIndex = letterIndex;
   };
   hoveringComment(relativeX) {
-    this.floatingDivsMapTwo.forEach((div, key) => {
+    this.floatingComments.forEach((div, key) => {
       let hoverItem = document.getElementById(`floating-${key}`);
 
       if (hoverItem) {
@@ -401,16 +401,23 @@ export class TextHighlighter {
       div.remove()
     });
   }
+
   removeForm(id) {
     let form = document.getElementById(id)
     if (form) {
-
       window.getSelection().removeAllRanges();
       form.remove()
       this.formIsActive = false;
+    }
+  }
+
+  closeForm(id) {
+    let form = document.getElementById(id)
+    if (form) {
+      this.removeForm(id)
       let x = form.getAttribute("start")
       let y = form.getAttribute("end")
-      // this.removeHighlights(`${x}-${y}`)
+      this.removeHighlights(`${x}-${y}`)
     }
   }
 
@@ -463,7 +470,7 @@ export class TextHighlighter {
 
     // Add event listener to close button
     const closeButton = floatingDivForm.querySelector('.close-btn');
-    closeButton.addEventListener('click', () => this.removeForm(id));
+    closeButton.addEventListener('click', () => this.closeForm(id));
     const form = floatingDivForm.querySelector('form');
     form.addEventListener('submit', (event) => this.formCommentSubmission(event));
 
@@ -484,7 +491,7 @@ export class TextHighlighter {
     const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
 
 
-    if (!this.floatingDivsMap.has(rawUniqueId)) {
+    if (!this.commentHighlights.has(rawUniqueId)) {
       const floatingDiv = document.createElement("div");
       // const floatingDivContent = document.createElement("div");
 
@@ -507,7 +514,7 @@ export class TextHighlighter {
       // floatingDivContent.setAttribute("end", this.endLetterIndex)
       // floatingDivContent.setAttribute("rawId", rawUniqueId)
 
-      this.floatingDivsMap.set(rawUniqueId, floatingDiv);
+      this.commentHighlights.set(rawUniqueId, floatingDiv);
       // this.floatingDivsMapTwo.set(rawUniqueId, floatingDivContent);
 
       document.body.appendChild(floatingDiv);
@@ -516,19 +523,19 @@ export class TextHighlighter {
         console.log("aa")
         const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
         document.body.appendChild(getStuff);
-        this.#positionFloatingComment(getStuff);
+        this.#positionCommentHighlight(getStuff);
 
       }
     }
     // Add the div element relative to the span
-    this.#positionFloatingComment(this.floatingDivsMap.get(rawUniqueId));
+    this.#positionCommentHighlight(this.commentHighlights.get(rawUniqueId));
     // this.#positionFloatingCommentContent(this.floatingDivsMapTwo.get(rawUniqueId));
 
     // Initially position the div
     this.#repositionItems()
   }
 
-  #positionFloatingCommentContent(element) {
+  #positionCommentContent(element) {
     if (element) {
       const startId = element.getAttribute("start")
       let yColStartIndex = this.getPaddingForIndex(startId);
@@ -578,12 +585,12 @@ export class TextHighlighter {
   #repositionItems() {
 
     // TODO Just use the divs
-    this.floatingDivsMapTwo.forEach((div) => {
-      this.#positionFloatingCommentContent(div);
+    this.floatingComments.forEach((div) => {
+      this.#positionCommentContent(div);
     });
 
-    this.floatingDivsMap.forEach((div) => {
-      this.#positionFloatingComment(div)
+    this.commentHighlights.forEach((div) => {
+      this.#positionCommentHighlight(div)
       let key = div.id;
       console.log(key)
       let hoverItem = document.getElementById(`form-${div.getAttribute("start")}-${div.getAttribute("end")}`);
@@ -594,7 +601,7 @@ export class TextHighlighter {
     this.floatingDivsSplit.forEach((div, key) => {
       let hoverItem = document.getElementById(key);
       if (hoverItem) {
-        this.#positionFloatingComment(hoverItem)
+        this.#positionCommentHighlight(hoverItem)
       }
     });
 
@@ -795,38 +802,38 @@ export class TextHighlighter {
     const uniqueId = `floating-highlighted-${startIndex}-${endIndex}`;
     const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedText = textContent.slice(startIndex, endIndex + 1);
-    if (!this.floatingDivsMapTwo.has(rawUniqueId)) {
-      const floatingDivContent = document.createElement("div");
+    if (!this.floatingComments.has(rawUniqueId)) {
+      const floatingComment = document.createElement("div");
 
-      floatingDivContent.id = `floating-${startIndex}-${endIndex}`;
-      floatingDivContent.className = "floatingContent";
-      floatingDivContent.textContent = comment
-      floatingDivContent.style.width = `${this.getWordWidth(comment)}px`;
-      floatingDivContent.setAttribute("start", startIndex)
-      floatingDivContent.setAttribute("end", endIndex)
-      floatingDivContent.setAttribute("rawId", rawUniqueId)
-      this.floatingDivsMapTwo.set(rawUniqueId, floatingDivContent);
-      document.body.appendChild(floatingDivContent);
+      floatingComment.id = `floating-${startIndex}-${endIndex}`;
+      floatingComment.className = "floatingContent";
+      floatingComment.textContent = comment
+      floatingComment.style.width = `${this.getWordWidth(comment)}px`;
+      floatingComment.setAttribute("start", startIndex)
+      floatingComment.setAttribute("end", endIndex)
+      floatingComment.setAttribute("rawId", rawUniqueId)
+      this.floatingComments.set(rawUniqueId, floatingComment);
+      document.body.appendChild(floatingComment);
     }
-    if (!this.floatingDivsMap.has(rawUniqueId)) {
-      const floatingDiv = document.createElement("div");
+    if (!this.commentHighlights.has(rawUniqueId)) {
+      const commentHighlight = document.createElement("div");
 
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
-      floatingDiv.id = uniqueId;
-      floatingDiv.className = "floatingControls";
-      floatingDiv.style.width = `${width}px`;
-      floatingDiv.setAttribute("start", startIndex)
-      floatingDiv.setAttribute("end", endIndex)
-      floatingDiv.setAttribute("rawId", rawUniqueId)
+      commentHighlight.id = uniqueId;
+      commentHighlight.className = "floatingControls";
+      commentHighlight.style.width = `${width}px`;
+      commentHighlight.setAttribute("start", startIndex)
+      commentHighlight.setAttribute("end", endIndex)
+      commentHighlight.setAttribute("rawId", rawUniqueId)
 
-      this.floatingDivsMap.set(rawUniqueId, floatingDiv);
+      this.commentHighlights.set(rawUniqueId, commentHighlight);
 
-      document.body.appendChild(floatingDiv);
+      document.body.appendChild(commentHighlight);
     }
     // Add the div element relative to the span
-    this.#positionFloatingComment(this.floatingDivsMap.get(rawUniqueId));
-    this.#positionFloatingCommentContent(this.floatingDivsMapTwo.get(rawUniqueId));
+    this.#positionCommentHighlight(this.commentHighlights.get(rawUniqueId));
+    this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
     // Initially position the div
     this.#repositionItems()
   }
