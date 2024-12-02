@@ -1,11 +1,6 @@
-// TODO form submission
-// TODO after user selection create form
-// On click off remove selection and form
-// After form submission swap it out with comment
-
 
 // TODO Form at edge of screen, don't let it go over bounds
-// TODO Comment at end of screen
+
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
   // Cache cumulative widths
@@ -51,7 +46,7 @@ export class TextHighlighter {
     this.charHoverPaddingMouse = this.getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
     this.formIsActive = false
     this.#addEventListeners();
-    this.createTextHighlight(737, 750, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
+    // this.createTextHighlight(737, 750, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
   }
 
   addAttributes(start, end, element) {
@@ -92,7 +87,7 @@ export class TextHighlighter {
         const elementsRawUniqueId = element.getAttribute("rawId");
 
         if (spanningColCount > 1) {
-          // TODO fix
+
           element.style.display = "none";
           let colorInt = element.getAttribute("commentType")
           let backgroundColor = this.getColor(Number.parseInt(colorInt))
@@ -137,15 +132,12 @@ export class TextHighlighter {
               floatingDiv.id = splitId;
               floatingDiv.style.backgroundColor = backgroundColor
               floatingDiv.setAttribute('commentType', colorInt)
-              //TODO issue?
               floatingDiv.className = "highlightedText split";
               isNewDiv = true;
             }
+
             floatingDiv.setAttribute("col", c);
             floatingDiv.setAttribute("rawId", elementsRawUniqueId);
-
-            // TODO test flat line end
-
             if (c === lowerCol) {
               // First column
               let firstColStartIndex = startId;
@@ -246,14 +238,13 @@ export class TextHighlighter {
   };
 
   hoveringComment() {
-    this.floatingComments.forEach((div, key) => {
-      let hoverItem = document.getElementById(`floating-${key}`);
+    this.floatingComments.forEach((div) => {
+      let hoverItem = div;
 
       if (hoverItem) {
         const startId = hoverItem.getAttribute("start");
         const endId = hoverItem.getAttribute("end");
         const highlight = this.floatingComments.get(`${startId}-${endId}`);
-        console.log(highlight)
         let backgroundColor = this.getColor(Number.parseInt(highlight.getAttribute("commentType")))
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
@@ -312,7 +303,7 @@ export class TextHighlighter {
 
         if (isInside) {
           div.setAttribute('active', true)
-          div.style.display = "block"
+
           div.style.background = "black"
         }
       }
@@ -386,7 +377,7 @@ export class TextHighlighter {
   #handleMouseUp = (event) => {
     // need the mouse to be over the whole char so consider it selected
     let relativeX = event.clientX - this.getLeftPadding();
-    const wordStatsLengthReal = this.wordStats.length;
+    const wordStatsLengthReal = this.wordStats.length - 1;
 
     if (relativeX % this.charHoverPadding != 0) {
       relativeX -= this.charHoverPaddingMouse
@@ -468,9 +459,7 @@ export class TextHighlighter {
       console.error('No comment type selected');
       return;
     }
-    console.log(selectedRadio)
     const commentTypeId = parseInt(selectedRadio.value);
-    console.log(commentTypeId)
     // Prevent default form submission
     submission.preventDefault();
     // TODO Api call
@@ -716,11 +705,8 @@ export class TextHighlighter {
       }
     });
 
-    this.floatingDivsSplit.forEach((div, key) => {
-      let hoverItem = document.getElementById(key);
-      if (hoverItem) {
-        this.#positionCommentHighlight(hoverItem)
-      }
+    this.floatingDivsSplit.forEach((div) => {
+      this.#positionCommentHighlight(div)
     });
   }
 
