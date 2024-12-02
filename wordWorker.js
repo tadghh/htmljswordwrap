@@ -402,22 +402,26 @@ export class TextHighlighter {
       [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
       this.startLetterIndex++
     }
-    let totalLength = this.endLetterIndex - this.startLetterIndex;
-    if (totalLength > 1) {
 
+    let totalLength = this.endLetterIndex - this.startLetterIndex;
+    this.#createHighlight();
+    if (totalLength > 1) {
       this.formIsActive = true;
 
       this.#createHighlight();
       let startIndexForm = document.getElementById("startIndexForm")
       let endIndexForm = document.getElementById("endIndexForm")
+      if (this.formIsActive) {
+        const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
+        document.body.appendChild(getStuff);
+        this.#positionCommentHighlight(getStuff);
+      }
       if (startIndexForm && endIndexForm) {
         startIndexForm.textContent = `Start: ${this.contentTextCleaned[this.startLetterIndex]}`
         endIndexForm.textContent = `End: ${this.contentTextCleaned[this.endLetterIndex]}`
-        // (0,0) - D
-      }
-      // startIndexForm
-    }
 
+      }
+    }
   };
 
   removeHighlights(id) {
@@ -465,11 +469,10 @@ export class TextHighlighter {
     // Create the highlight with the comment
     this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment);
     const commentColor = this.getColor(commentTypeId);
-    console.log(form)
+
     let commentElement = document.getElementById(`floating-${startIndex}-${endIndex}`)
     if (commentElement) {
       commentElement.style.backgroundColor = commentColor
-
     }
     // Remove the form after submission
     const formId = `form-${startIndex}-${endIndex}`;
@@ -585,29 +588,40 @@ export class TextHighlighter {
     const uniqueId = `floating-highlighted-${this.startLetterIndex}-${this.endLetterIndex}`;
     const rawUniqueId = `${this.startLetterIndex}-${this.endLetterIndex}`;
     const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
+    const startIndex = this.startLetterIndex
+    const endIndex = this.endLetterIndex
+
+    // if (!this.floatingComments.has(rawUniqueId)) {
+    //   const floatingComment = document.createElement("div");
+
+    //   floatingComment.id = `floating-${startIndex}-${endIndex}`;
+    //   floatingComment.className = "highlightComment";
+    //   floatingComment.textContent = selectedText
+    //   floatingComment.style.width = `${this.getWordWidth(selectedText)}px`;
+    //   floatingComment.setAttribute("start", startIndex)
+    //   floatingComment.setAttribute("end", endIndex)
+    //   floatingComment.setAttribute("rawId", rawUniqueId)
+    //   this.floatingComments.set(rawUniqueId, floatingComment);
+    //   document.body.appendChild(floatingComment);
+    // }
 
     if (!this.commentHighlights.has(rawUniqueId)) {
-      const floatingDiv = document.createElement("div");
+      const commentHighlight = document.createElement("div");
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
-      floatingDiv.id = uniqueId;
-      floatingDiv.className = "highlightComment";
-      floatingDiv.style.width = `${width}px`;
-      floatingDiv.setAttribute("start", this.startLetterIndex)
-      floatingDiv.setAttribute("end", this.endLetterIndex)
-      floatingDiv.setAttribute("rawId", rawUniqueId)
+      commentHighlight.id = uniqueId;
+      commentHighlight.className = "highlightedText";
+      commentHighlight.style.width = `${width}px`;
+      commentHighlight.setAttribute("start", startIndex)
+      commentHighlight.setAttribute("end", endIndex)
+      commentHighlight.setAttribute("rawId", rawUniqueId)
 
-      this.commentHighlights.set(rawUniqueId, floatingDiv);
-
-      document.body.appendChild(floatingDiv);
-      if (this.formIsActive) {
-        const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
-        document.body.appendChild(getStuff);
-        this.#positionCommentHighlight(getStuff);
-      }
+      this.commentHighlights.set(rawUniqueId, commentHighlight);
+      document.body.appendChild(commentHighlight);
     }
     // Add the div element relative to the span
     this.#positionCommentHighlight(this.commentHighlights.get(rawUniqueId));
+    this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
 
     // Initially position the div
     this.#repositionItems()
