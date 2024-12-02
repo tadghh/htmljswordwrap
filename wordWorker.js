@@ -247,8 +247,10 @@ export class TextHighlighter {
 
         const startId = hoverItem.getAttribute("start");
         const endId = hoverItem.getAttribute("end");
-        const highlight = this.commentHighlights.get(`${startId}-${endId}`);
+        const highlight = this.floatingComments.get(`${startId}-${endId}`);
+        console.log(highlight)
         let backgroundColor = this.getColor(Number.parseInt(highlight.getAttribute("commentType")))
+        console.log(Number.parseInt(highlight.getAttribute("commentType")))
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
         const isMultiLine = startCol != endCol
@@ -303,10 +305,11 @@ export class TextHighlighter {
           isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
         }
         div.style.background = backgroundColor
+        console.log(backgroundColor)
         if (isInside) {
           div.setAttribute('active', true)
           div.style.display = "block"
-          div.style.background = "pink"
+          div.style.background = "black"
         }
       }
     });
@@ -415,6 +418,7 @@ export class TextHighlighter {
         const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
         document.body.appendChild(getStuff);
         this.#positionCommentHighlight(getStuff);
+        this.#repositionItems()
       }
       if (startIndexForm && endIndexForm) {
         startIndexForm.textContent = `Start: ${this.contentTextCleaned[this.startLetterIndex]}`
@@ -530,7 +534,7 @@ export class TextHighlighter {
     floatingDivForm.setAttribute("start", startIndex);
     floatingDivForm.setAttribute("end", endIndex);
     floatingDivForm.setAttribute("rawId", rawId);
-
+    floatingDivForm.style.top = `${top + Number.parseFloat(this.fontSize) + 6 + this.mouseTopOffset}px`;
     // Add event listener for radio button selection
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
@@ -626,7 +630,7 @@ export class TextHighlighter {
     // Initially position the div
     this.#repositionItems()
   }
-
+  // TODO from here use positioning logic on form
   #positionCommentContent(element) {
     if (element) {
       const startId = element.getAttribute("start");
@@ -906,14 +910,17 @@ export class TextHighlighter {
 
     if (!this.floatingComments.has(rawUniqueId)) {
       const floatingComment = document.createElement("div");
-
+      const selectedId = parseInt(2);
+      const color = this.getColor(selectedId);
       floatingComment.id = `floating-${startIndex}-${endIndex}`;
       floatingComment.className = "highlightComment";
       floatingComment.textContent = comment
       floatingComment.style.width = `${this.getWordWidth(comment)}px`;
       floatingComment.setAttribute("start", startIndex)
       floatingComment.setAttribute("end", endIndex)
+      floatingComment.setAttribute("commentType", selectedId)
       floatingComment.setAttribute("rawId", rawUniqueId)
+      floatingComment.style.backgroundColor = color;
       this.floatingComments.set(rawUniqueId, floatingComment);
       document.body.appendChild(floatingComment);
     }
