@@ -243,10 +243,12 @@ export class TextHighlighter {
   hoveringComment() {
     this.floatingComments.forEach((div, key) => {
       let hoverItem = document.getElementById(`floating-${key}`);
-
       if (hoverItem) {
+
         const startId = hoverItem.getAttribute("start");
         const endId = hoverItem.getAttribute("end");
+        const highlight = this.commentHighlights.get(`${startId}-${endId}`);
+        let backgroundColor = this.getColor(Number.parseInt(highlight.getAttribute("commentType")))
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
         const isMultiLine = startCol != endCol
@@ -300,7 +302,7 @@ export class TextHighlighter {
 
           isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
         }
-        div.style.background = "green"
+        div.style.background = backgroundColor
         if (isInside) {
           div.setAttribute('active', true)
           div.style.display = "block"
@@ -449,15 +451,26 @@ export class TextHighlighter {
     const startIndex = parseInt(form.closest('.floatingForm').getAttribute('start'));
     const endIndex = parseInt(form.closest('.floatingForm').getAttribute('end'));
     const comment = form.comment.value;
-
+    const selectedRadio = form.querySelector('input[name="commentType"]:checked');
+    if (!selectedRadio) {
+      console.error('No comment type selected');
+      return;
+    }
+    const commentTypeId = parseInt(selectedRadio.value, 10);
     // Prevent default form submission
     submission.preventDefault();
     // TODO Api call
-    // TODO highlight color function
+
     // TODO swap out client side
     // Create the highlight with the comment
     this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment);
+    const commentColor = this.getColor(commentTypeId);
+    console.log(form)
+    let commentElement = document.getElementById(`floating-${startIndex}-${endIndex}`)
+    if (commentElement) {
+      commentElement.style.backgroundColor = commentColor
 
+    }
     // Remove the form after submission
     const formId = `form-${startIndex}-${endIndex}`;
     this.removeForm(formId);
@@ -521,13 +534,12 @@ export class TextHighlighter {
       radio.addEventListener('change', (event) => {
         const selectedId = parseInt(event.target.value, 10);
         const color = this.getColor(selectedId);
-        // floatingDivForm.style.backgroundColor = color;
 
         // Update the highlight in commentHighlights if applicable
         if (this.commentHighlights && this.commentHighlights.get(rawId)) {
           const highlight = this.commentHighlights.get(rawId);
           highlight.color = color;
-
+          highlight.setAttribute("commentType", selectedId)
           const hoverItems = document.querySelectorAll(`.floating-highlighted.split[rawid="${rawId}"]`);
           hoverItems.forEach(item => {
             item.style.backgroundColor = color;
@@ -634,7 +646,6 @@ export class TextHighlighter {
     }
   }
 
-
   // #region Utility
   printOutWordStats() {
     let printString = ""
@@ -681,13 +692,13 @@ export class TextHighlighter {
         this.#positionFloatingForm(hoverItem)
       }
     });
+
     this.floatingDivsSplit.forEach((div, key) => {
       let hoverItem = document.getElementById(key);
       if (hoverItem) {
         this.#positionCommentHighlight(hoverItem)
       }
     });
-
   }
 
   getNextLowestDivisibleByNinePointSix(num) {
