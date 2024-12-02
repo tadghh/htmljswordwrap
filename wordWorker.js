@@ -3,6 +3,7 @@
 
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
+
   // Cache cumulative widths
   #widthSums = new Map();
   constructor(highlightedDiv, outputId, outputHoverId) {
@@ -19,6 +20,8 @@ export class TextHighlighter {
     this.floatingComments = new Map();
     this.floatingDivsSplit = new Map();
 
+
+    this.unfocusedOpacity = 0.21;
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
     this.canvas = document.createElement("canvas");
@@ -46,7 +49,7 @@ export class TextHighlighter {
     this.charHoverPaddingMouse = this.getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
     this.formIsActive = false
     this.#addEventListeners();
-    // this.createTextHighlight(737, 750, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
+    this.createTextHighlight(737, 750, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
   }
 
   addAttributes(start, end, element) {
@@ -198,10 +201,11 @@ export class TextHighlighter {
   }
 
   #positionFloatingForm(element) {
+    const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
 
-    element.style.top = `${this.findYValueFromIndex(endId) + Number.parseFloat(this.fontSize)}px`;
-    element.style.left = `${this.getPaddingForIndex(endId) + this.getLeftPadding()}px`;
+    element.style.top = `${this.findYValueFromIndex(endId) + Number.parseFloat(this.fontSize) + 5}px`;
+    element.style.left = `${this.getPaddingForIndex(startId) + this.getLeftPadding()}px`;
   }
 
   #handleMouseMove = (event) => {
@@ -300,12 +304,23 @@ export class TextHighlighter {
 
           isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
         }
-        div.style.background = backgroundColor
+        // div.style.background = backgroundColor
 
         if (isInside) {
           div.setAttribute('active', true)
-
-          div.style.background = "black"
+          const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"]`);
+          splits.forEach(item => {
+            item.style.opacity = 1;
+            // item.setAttribute('commentType', selectedId);
+          });
+          // div.style.background = "black"
+        } else {
+          div.style.background = backgroundColor
+          div.style.opacity = this.unfocusedOpacity
+          const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
+          splits.forEach(item => {
+            item.style.opacity = this.unfocusedOpacity;
+          });
         }
       }
     });

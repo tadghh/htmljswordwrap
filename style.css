@@ -9,7 +9,7 @@ body {
 	/* font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; */
 	cursor: pointer;
 	overflow-wrap: break-word;
-	white-space: normal;
+
 	font-size: 16px;
 	display: inline;
 	line-height: 25px;
@@ -18,10 +18,10 @@ body {
 .highlightedText {
 	position: absolute;
 	border: none; /* Remove all borders */
-	margin-top: 1px;
+
 	/* border-bottom: 3px solid pink; Add only the top border */
 	background: #ffffff4d;
-	opacity: 1;
+	opacity: 0.21;
 	height: 25px;
 	transition: opacity 0.3s;
 	padding: 0px;
@@ -30,12 +30,31 @@ body {
 	color: white;
 	opacity: 1;
 }
+.split {
+	position: absolute;
+	border: none; /* Remove all borders */
+
+	/* border-bottom: 3px solid pink; Add only the top border */
+	background: #ffffff4d;
+	opacity: 0.81;
+	height: 25px;
+	transition: opacity 0.3s;
+	padding: 0px;
+	border-radius: 2px;
+	font-size: 20px;
+	color: white;
+}
+
+.split:hover {
+	opacity: 1;
+}
 
 .highlightComment {
 	position: absolute;
 	font-size: 16px;
 	color: white;
-	transition: background 0.3s;
+	opacity: 0.21;
+	transition: opacity 0.3s;
 	background: green;
 	z-index: 10;
 	display: hidden;
@@ -79,26 +98,6 @@ body {
 
 .floatingForm > form > button {
 	align-self: flex-end;
-}
-
-.split {
-	position: absolute;
-	border: none; /* Remove all borders */
-	margin-top: 1px;
-	/* border-bottom: 3px solid pink; Add only the top border */
-	background: #ffffff4d;
-	opacity: 1;
-	height: 25px;
-	transition: opacity 0.3s;
-	padding: 0px;
-	border-radius: 4px;
-	font-size: 20px;
-	color: white;
-	opacity: 1;
-}
-
-.split:hover {
-	opacity: 1;
 }
 
 ::selection {
