@@ -19,7 +19,7 @@ body {
 	position: absolute;
 	border: none; /* Remove all borders */
 	margin-top: 1px;
-	border-bottom: 3px solid pink; /* Add only the top border */
+	/* border-bottom: 3px solid pink; Add only the top border */
 	background: #ffffff4d;
 	opacity: 1;
 	height: 25px;
@@ -85,7 +85,7 @@ body {
 	position: absolute;
 	border: none; /* Remove all borders */
 	margin-top: 1px;
-	border-bottom: 3px solid pink; /* Add only the top border */
+	/* border-bottom: 3px solid pink; Add only the top border */
 	background: #ffffff4d;
 	opacity: 1;
 	height: 25px;

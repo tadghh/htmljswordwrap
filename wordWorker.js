@@ -147,6 +147,7 @@ export class TextHighlighter {
             } else if (c === upperCol - 1) {
               // Last column
               let lastColStartIndex = this.wordStats[c][1];
+              floatingDiv.style.borderBottom = "2px solid blue";
               this.addAttributes(lastColStartIndex, endId, floatingDiv)
             } else {
               // Middle columns
@@ -544,6 +545,7 @@ export class TextHighlighter {
           const splits = document.querySelectorAll(`[rawId="${startIndex}-${endIndex}"]`);
           splits.forEach(item => {
             item.style.backgroundColor = color;
+            item.setAttribute('commentType', selectedId);
           });
         }
       });
@@ -606,12 +608,16 @@ export class TextHighlighter {
     if (!this.commentHighlights.has(rawUniqueId)) {
       const commentHighlight = document.createElement("div");
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
-
+      const selectedId = parseInt(1);
+      const color = this.getColor(selectedId);
       commentHighlight.id = uniqueId;
       commentHighlight.className = "highlightedText";
       commentHighlight.style.width = `${width}px`;
       commentHighlight.setAttribute("start", startIndex)
       commentHighlight.setAttribute("end", endIndex)
+      commentHighlight.setAttribute("commentType", selectedId)
+      commentHighlight.style.backgroundColor = color;
+
       commentHighlight.setAttribute("rawId", rawUniqueId)
 
       this.commentHighlights.set(rawUniqueId, commentHighlight);
@@ -902,6 +908,7 @@ export class TextHighlighter {
     if (!this.floatingComments.has(rawUniqueId)) {
       const floatingComment = document.createElement("div");
       const selectedId = parseInt(colorId);
+      console.log(selectedId)
       const color = this.getColor(selectedId);
       floatingComment.id = `floating-${startIndex}-${endIndex}`;
       floatingComment.className = "highlightComment";
