@@ -51,7 +51,7 @@ export class TextHighlighter {
     this.charHoverPaddingMouse = this.getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
     this.formIsActive = false
     this.#addEventListeners();
-    this.createTextHighlight(737, 750, this.contentTextCleaned, "Woah this is going somewhere woo hoo")
+    this.createTextHighlight(737, 750, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
   }
 
   addAttributes(start, end, element) {
@@ -93,6 +93,8 @@ export class TextHighlighter {
 
         if (spanningColCount > 1) {
           element.style.display = "none";
+          let colorInt = element.getAttribute("commentType")
+          let backgroundColor = this.getColor(Number.parseInt(colorInt))
           let lowerCol = yCol1;
           let upperCol = yCol1 + spanningColCount;
           const oldSpanCount = this.floatingSelectionCols.get(elementsRawUniqueId) || 0;
@@ -132,6 +134,8 @@ export class TextHighlighter {
             if (!floatingDiv) {
               floatingDiv = document.createElement("div");
               floatingDiv.id = splitId;
+              floatingDiv.style.backgroundColor = backgroundColor
+              floatingDiv.setAttribute('commentType', colorInt)
               //TODO issue?
               floatingDiv.className = "floating-highlighted split";
               isNewDiv = true;
@@ -243,14 +247,13 @@ export class TextHighlighter {
   hoveringComment() {
     this.floatingComments.forEach((div, key) => {
       let hoverItem = document.getElementById(`floating-${key}`);
-      if (hoverItem) {
 
+      if (hoverItem) {
         const startId = hoverItem.getAttribute("start");
         const endId = hoverItem.getAttribute("end");
         const highlight = this.floatingComments.get(`${startId}-${endId}`);
         console.log(highlight)
         let backgroundColor = this.getColor(Number.parseInt(highlight.getAttribute("commentType")))
-        console.log(Number.parseInt(highlight.getAttribute("commentType")))
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
         const isMultiLine = startCol != endCol
@@ -305,7 +308,7 @@ export class TextHighlighter {
           isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
         }
         div.style.background = backgroundColor
-        console.log(backgroundColor)
+
         if (isInside) {
           div.setAttribute('active', true)
           div.style.display = "block"
@@ -464,14 +467,16 @@ export class TextHighlighter {
       console.error('No comment type selected');
       return;
     }
-    const commentTypeId = parseInt(selectedRadio.value, 10);
+    console.log(selectedRadio)
+    const commentTypeId = parseInt(selectedRadio.value);
+    console.log(commentTypeId)
     // Prevent default form submission
     submission.preventDefault();
     // TODO Api call
 
     // TODO swap out client side
     // Create the highlight with the comment
-    this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment);
+    this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment, commentTypeId);
     const commentColor = this.getColor(commentTypeId);
 
     let commentElement = document.getElementById(`floating-${startIndex}-${endIndex}`)
@@ -895,7 +900,7 @@ export class TextHighlighter {
     return (this.findColFromIndex(endIndex) - this.findColFromIndex(startIndex)) + 1
   }
 
-  createTextHighlight(startIndex, endIndex, textContent, comment) {
+  createTextHighlight(startIndex, endIndex, textContent, comment, colorId) {
     if (startIndex > endIndex) {
       [startIndex, endIndex] = [endIndex, startIndex];
       startIndex++
@@ -910,7 +915,7 @@ export class TextHighlighter {
 
     if (!this.floatingComments.has(rawUniqueId)) {
       const floatingComment = document.createElement("div");
-      const selectedId = parseInt(2);
+      const selectedId = parseInt(colorId);
       const color = this.getColor(selectedId);
       floatingComment.id = `floating-${startIndex}-${endIndex}`;
       floatingComment.className = "highlightComment";
