@@ -92,6 +92,7 @@ export class TextHighlighter {
         const elementsRawUniqueId = element.getAttribute("rawId");
 
         if (spanningColCount > 1) {
+          // TODO fix
           element.style.display = "none";
           let colorInt = element.getAttribute("commentType")
           let backgroundColor = this.getColor(Number.parseInt(colorInt))
@@ -137,7 +138,7 @@ export class TextHighlighter {
               floatingDiv.style.backgroundColor = backgroundColor
               floatingDiv.setAttribute('commentType', colorInt)
               //TODO issue?
-              floatingDiv.className = "floating-highlighted split";
+              floatingDiv.className = "highlightedText split";
               isNewDiv = true;
             }
             floatingDiv.setAttribute("col", c);
@@ -538,7 +539,7 @@ export class TextHighlighter {
     floatingDivForm.className = "floatingForm";
     floatingDivForm.setAttribute("start", startIndex);
     floatingDivForm.setAttribute("end", endIndex);
-    floatingDivForm.setAttribute("rawId", rawId);
+    // floatingDivForm.setAttribute("rawId", rawId);
     floatingDivForm.style.top = `${top + Number.parseFloat(this.fontSize) + 6 + this.mouseTopOffset}px`;
     // Add event listener for radio button selection
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
@@ -552,8 +553,10 @@ export class TextHighlighter {
           const highlight = this.commentHighlights.get(rawId);
           highlight.color = color;
           highlight.setAttribute("commentType", selectedId)
-          const hoverItems = document.querySelectorAll(`.floating-highlighted.split[rawid="${rawId}"]`);
-          hoverItems.forEach(item => {
+          // const hoverItems = document.querySelectorAll(`#floating-highlighted-${startIndex}-${endIndex}`);
+          const splits = document.querySelectorAll(`[rawId="${startIndex}-${endIndex}"]`);
+          // const hoverItems = document.querySelectorAll(`#floating-highlighted[rawid="${rawId}"]`);
+          splits.forEach(item => {
             item.style.backgroundColor = color;
           });
         }
