@@ -610,7 +610,7 @@ export class TextHighlighter {
 
       if (yColStartIndex + wordWidth > maxWidth) {
         yColStartIndex = this.getPaddingForIndex(endId);
-        yColStartIndex -= (wordWidth);
+        yColStartIndex -= (wordWidth) - this.charHoverPadding;
       }
 
       if (endCol - startCol >= 1) {
