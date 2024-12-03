@@ -1,11 +1,12 @@
 body {
 	background-color: darkgray;
+	margin: 0px;
 }
 #highlightedDiv,
 .highlightedText,
 .split,
 .highlightComment {
-	font-size: 16px;
+	font-size: 20px;
 }
 #highlightedDiv {
 	z-index: 5;
@@ -83,11 +84,16 @@ body {
 	color: white;
 	width: 350px;
 	height: min-content;
+	border-top-left-radius: 0px !important;
+	border-top-right-radius: 0px !important;
 	border-radius: 5px;
 	border: solid;
 	z-index: 15;
-	border-color: black;
-	padding: 5px;
+	padding-top: 6px;
+	padding-inline: 6px;
+	padding-bottom: 4px;
+	border-top-width: 0px;
+	border-color: white;
 }
 
 .floatingForm > form {
