@@ -65,7 +65,7 @@ export class TextHighlighter {
     element.style.left = `${this.getPaddingForIndex(realNum) + this.getLeftPadding() + 2}px`;
   }
 
-  #positionCommentHighlight(element) {
+  #positionHighlight(element) {
     if (!element) {
       console.warn('Element is undefined or null in positionFloatingComment');
       return;
@@ -210,7 +210,7 @@ export class TextHighlighter {
     }
   }
 
-  #positionFloatingForm(element) {
+  #positionCommentForm(element) {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
 
@@ -336,59 +336,13 @@ export class TextHighlighter {
       }
     });
   }
-  // Binary search for letter index based on width
-  #findLetterIndexByWidth(start, end, targetWidth) {
-    let low = start;
-    let high = end;
-    let cumulativeWidth = 0;
 
-    // First check if we're beyond the total width
-    const totalWidth = this.#getCumulativeWidth(start, end);
-    if (targetWidth >= totalWidth) {
-      return end - 1;
-    }
-
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      cumulativeWidth = this.#getCumulativeWidth(start, mid + 1);
-
-      if (cumulativeWidth === targetWidth) {
-        return mid;
-      }
-
-      if (cumulativeWidth < targetWidth) {
-        if (mid + 1 <= high &&
-          this.#getCumulativeWidth(start, mid + 2) > targetWidth) {
-          return mid + 1;
-        }
-        low = mid + 1;
-      } else {
-        if (mid - 1 >= low &&
-          this.#getCumulativeWidth(start, mid) < targetWidth) {
-          return mid;
-        }
-        high = mid - 1;
-      }
-    }
-
-    return low;
-  }
-
-  #getCumulativeWidth(start, end) {
-    const key = `${start}-${end}`;
-    if (!this.#widthSums.has(key)) {
-      let sum = 0;
-      for (let i = start; i < end; i++) {
-        sum += this.getCharacterWidth(this.contentTextCleaned[i]);
-      }
-      this.#widthSums.set(key, sum);
-    }
-    return this.#widthSums.get(key);
-  }
 
   #handleMouseDown = (event) => {
     let relativeX = event.clientX - this.getLeftPadding() + 2;
     const wordStatsLengthReal = this.wordStats.length - 1;
+    this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
+    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, wordStatsLengthReal));
 
     const startIndex = this.wordStats[this.mouseColSafe][1];
     const endIndex = this.mouseColSafe === wordStatsLengthReal
@@ -410,9 +364,6 @@ export class TextHighlighter {
       relativeX -= this.charHoverPaddingMouse
     }
 
-    this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
-    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, wordStatsLengthReal));
-
     // Determine start and end indices once
     const startIndex = this.wordStats[this.mouseColSafe][1];
     const endIndex = this.mouseColSafe === wordStatsLengthReal
@@ -420,8 +371,7 @@ export class TextHighlighter {
       : this.wordStats[this.mouseColSafe + 1][1];
 
     // Use binary search to find letter index
-    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);
-    this.endLetterIndex = letterIndex;
+    this.endLetterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);;
 
     if (this.startLetterIndex > this.endLetterIndex) {
       [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
@@ -429,17 +379,18 @@ export class TextHighlighter {
     }
 
     let totalLength = this.endLetterIndex - this.startLetterIndex;
-    this.#createHighlight();
+
     if (totalLength > 1) {
+      this.#createHighlight();
       this.formIsActive = true;
 
-      this.#createHighlight();
+      // this.#createHighlight();
       let startIndexForm = document.getElementById("startIndexForm")
       let endIndexForm = document.getElementById("endIndexForm")
       if (this.formIsActive) {
-        const getStuff = this.createForm(this.startLetterIndex, this.endLetterIndex)
-        document.body.appendChild(getStuff);
-        this.#positionCommentHighlight(getStuff);
+
+        document.body.appendChild(this.createForm(this.startLetterIndex, this.endLetterIndex));
+        // this.#positionHighlight(getStuff);
         this.#repositionItems()
       }
       if (startIndexForm && endIndexForm) {
@@ -587,20 +538,7 @@ export class TextHighlighter {
 
     return floatingDivForm;
   }
-  getColor(id) {
-    switch (id) {
-      case 1:
-        return 'white'; // Misc comments
-      case 2:
-        return 'pink'; // Incorrect info
-      case 3:
-        return 'lightblue'; // Sources?
-      case 4:
-        return 'skyblue'; // Question
-      default:
-        return 'transparent'; // Default color for unknown IDs
-    }
-  }
+
 
   #createHighlight() {
     if (this.startLetterIndex > this.endLetterIndex) {
@@ -650,7 +588,7 @@ export class TextHighlighter {
       document.body.appendChild(commentHighlight);
     }
     // Add the div element relative to the span
-    this.#positionCommentHighlight(this.commentHighlights.get(rawUniqueId));
+    this.#positionHighlight(this.commentHighlights.get(rawUniqueId));
     this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
 
     // Initially position the div
@@ -691,18 +629,7 @@ export class TextHighlighter {
   }
 
   // #region Utility
-  printOutWordStats() {
-    let printString = ""
-    for (let i = 0; i < this.wordStats.length - 1; i++) {
-      const start = this.wordStats[i][1];
-      const end = this.wordStats[i + 1][1];
-      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.getWidthFromRange(start, end)}\n`;
-    }
-    // Print last line
-    const lastIndex = this.wordStats[this.wordStats.length - 1];
-    printString += `${this.wordStats.length - 1} ${this.contentTextCleaned.slice(lastIndex[1])}`;
-    console.log(printString)
-  }
+
 
   #addEventListeners() {
     window.addEventListener("resize", this.#handleResizeOrScroll);
@@ -729,54 +656,19 @@ export class TextHighlighter {
     });
 
     this.commentHighlights.forEach((div) => {
-      this.#positionCommentHighlight(div)
+      this.#positionHighlight(div)
 
       let hoverItem = document.getElementById(`form-${div.getAttribute("start")}-${div.getAttribute("end")}`);
       if (hoverItem) {
-        this.#positionFloatingForm(hoverItem)
+        this.#positionCommentForm(hoverItem)
       }
     });
 
     this.floatingDivsSplit.forEach((div) => {
-      this.#positionCommentHighlight(div)
+      this.#positionHighlight(div)
     });
   }
 
-  getNextLowestDivisibleByNinePointSix(num) {
-    return num % this.charHoverPadding === 0 ? num : num - (num % this.charHoverPadding);
-  }
-
-  getWidthFromRange(startIndex, yColIndex) {
-    if (startIndex < 0 || yColIndex < 0) return null
-    // if (yColIndex < startIndex) return null
-    let cumulativeWidth = 0;
-    for (let i = startIndex; i < this.contentTextCleaned.length; i++) {
-      if (i == yColIndex) {
-        return cumulativeWidth;
-      }
-      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
-    }
-  }
-
-  getPaddingForIndex(startIndex) {
-    if (startIndex < 0) return null
-
-    let colStartIndex = this.findStartIndexFromIndex(startIndex);
-
-    if (colStartIndex < 0) return null
-
-    let cumulativeWidth = 0;
-    for (let i = colStartIndex; i < this.contentTextCleaned.length; i++) {
-      if (i == startIndex) {
-        return cumulativeWidth;
-      }
-      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
-    }
-  }
-
-  getMaxWidth() {
-    return this.divRect.width
-  }
 
   calcWordPositions() {
     const widthCache = [[0, 0]];
@@ -823,6 +715,44 @@ export class TextHighlighter {
 
     return widthCache;
   }
+
+  getNextLowestDivisibleByNinePointSix(num) {
+    return num % this.charHoverPadding === 0 ? num : num - (num % this.charHoverPadding);
+  }
+
+  getWidthFromRange(startIndex, yColIndex) {
+    if (startIndex < 0 || yColIndex < 0) return null
+    // if (yColIndex < startIndex) return null
+    let cumulativeWidth = 0;
+    for (let i = startIndex; i < this.contentTextCleaned.length; i++) {
+      if (i == yColIndex) {
+        return cumulativeWidth;
+      }
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+    }
+  }
+
+  getPaddingForIndex(startIndex) {
+    if (startIndex < 0) return null
+
+    let colStartIndex = this.findStartIndexFromIndex(startIndex);
+
+    if (colStartIndex < 0) return null
+
+    let cumulativeWidth = 0;
+    for (let i = colStartIndex; i < this.contentTextCleaned.length; i++) {
+      if (i == startIndex) {
+        return cumulativeWidth;
+      }
+      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+    }
+  }
+
+  getMaxWidth() {
+    return this.divRect.width
+  }
+
+
 
   getTextYSections() {
     return this.divRect.height / (this.wordStats.length);
@@ -968,10 +898,89 @@ export class TextHighlighter {
       this.commentHighlights.set(rawUniqueId, commentHighlight);
       document.body.appendChild(commentHighlight);
     }
-    this.#positionCommentHighlight(this.commentHighlights.get(rawUniqueId));
+    this.#positionHighlight(this.commentHighlights.get(rawUniqueId));
     this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
 
     this.#repositionItems()
   }
+
+  printOutWordStats() {
+    let printString = ""
+    for (let i = 0; i < this.wordStats.length - 1; i++) {
+      const start = this.wordStats[i][1];
+      const end = this.wordStats[i + 1][1];
+      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.getWidthFromRange(start, end)}\n`;
+    }
+    // Print last line
+    const lastIndex = this.wordStats[this.wordStats.length - 1];
+    printString += `${this.wordStats.length - 1} ${this.contentTextCleaned.slice(lastIndex[1])}`;
+    console.log(printString)
+  }
+
+  getColor(id) {
+    switch (id) {
+      case 1:
+        return 'white'; // Misc comments
+      case 2:
+        return 'pink'; // Incorrect info
+      case 3:
+        return 'lightblue'; // Sources?
+      case 4:
+        return 'skyblue'; // Question
+      default:
+        return 'transparent'; // Default color for unknown IDs
+    }
+  }
+  // Binary search for letter index based on width
+  #findLetterIndexByWidth(start, end, targetWidth) {
+    let low = start;
+    let high = end;
+    let cumulativeWidth = 0;
+
+    // First check if we're beyond the total width
+    const totalWidth = this.#getCumulativeWidth(start, end);
+    if (targetWidth >= totalWidth) {
+      return end - 1;
+    }
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      cumulativeWidth = this.#getCumulativeWidth(start, mid + 1);
+
+      if (cumulativeWidth === targetWidth) {
+        return mid;
+      }
+
+      if (cumulativeWidth < targetWidth) {
+        if (mid + 1 <= high &&
+          this.#getCumulativeWidth(start, mid + 2) > targetWidth) {
+          return mid + 1;
+        }
+        low = mid + 1;
+      } else {
+        if (mid - 1 >= low &&
+          this.#getCumulativeWidth(start, mid) < targetWidth) {
+          return mid;
+        }
+        high = mid - 1;
+      }
+    }
+
+    return low;
+  }
+
+  #getCumulativeWidth(start, end) {
+    const key = `${start}-${end}`;
+    if (!this.#widthSums.has(key)) {
+      let sum = 0;
+      for (let i = start; i < end; i++) {
+        sum += this.getCharacterWidth(this.contentTextCleaned[i]);
+      }
+      this.#widthSums.set(key, sum);
+    }
+    return this.#widthSums.get(key);
+  }
+
+
   // #endregion
 }
