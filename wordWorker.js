@@ -352,7 +352,6 @@ export class TextHighlighter {
     // Use binary search to find letter index
     let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);
     this.startLetterIndex = letterIndex;
-
   };
 
   #handleMouseUp = (event) => {
@@ -384,19 +383,16 @@ export class TextHighlighter {
       this.#createHighlight();
       this.formIsActive = true;
 
-      // this.#createHighlight();
       let startIndexForm = document.getElementById("startIndexForm")
       let endIndexForm = document.getElementById("endIndexForm")
+
       if (this.formIsActive) {
-
         document.body.appendChild(this.createForm(this.startLetterIndex, this.endLetterIndex));
-        // this.#positionHighlight(getStuff);
         this.#repositionItems()
-      }
-      if (startIndexForm && endIndexForm) {
-        startIndexForm.textContent = `Start: ${this.contentTextCleaned[this.startLetterIndex]}`
-        endIndexForm.textContent = `End: ${this.contentTextCleaned[this.endLetterIndex]}`
-
+        if (startIndexForm && endIndexForm) {
+          startIndexForm.textContent = `Start: ${this.contentTextCleaned[this.startLetterIndex]}`
+          endIndexForm.textContent = `End: ${this.contentTextCleaned[this.endLetterIndex]}`
+        }
       }
     }
   };
@@ -679,7 +675,8 @@ export class TextHighlighter {
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
-
+    console.log("maxWidth")
+    console.log(maxWidth)
     this.wordArray.forEach((word, iter) => {
       const currentWordWidth = this.getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
@@ -694,11 +691,17 @@ export class TextHighlighter {
           ? 0
           : this.spaceSize;
         const endTest = Math.ceil(testWidth - spaceToRemove);
-        if (endTest < maxWidth && endTest != maxWidth - 1 || testWidth == maxWidth + 2) {
+        if ((endTest < maxWidth && endTest != maxWidth - 1 || testWidth == maxWidth + 2) && endTest + 2 != maxWidth) {
           // Word fits without its trailing space
+          console.log(endTest)
+          console.log(testWidth)
+          console.log(word)
           currentWidth = endTest;
+          console.log(currentWidth)
         } else if (endTest >= maxWidth) {
           // Word doesn't fit, wrap to new line
+
+
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
           currentWidth = currentWordWidth;
