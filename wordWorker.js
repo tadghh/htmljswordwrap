@@ -20,8 +20,8 @@ export class TextHighlighter {
     this.floatingComments = new Map();
     this.floatingDivsSplit = new Map();
 
-
-    this.unfocusedOpacity = 0.21;
+    // TODO revert
+    this.unfocusedOpacity = 1;
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
     this.canvas = document.createElement("canvas");
@@ -697,18 +697,15 @@ export class TextHighlighter {
           console.log(endTest)
           console.log(testWidth)
         }
-        if (((endTest < maxWidth && endTest != maxWidth - 1) || testWidth == maxWidth + 2 || endTest == maxWidth - 1)) {
+        // Positioning edge cases
+        if (endTest < maxWidth
+          || testWidth == maxWidth + 2
+          || endTest == maxWidth - 1) {
           // && endTest + 2 != maxWidth
 
           currentWidth = endTest;
         } else if (endTest >= maxWidth) {
           // Word doesn't fit, wrap to new lin
-
-          widthCache.push([wordColumnIndex, currentStringIndex]);
-          wordColumnIndex++;
-          currentWidth = currentWordWidth;
-        } else {
-
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
           currentWidth = currentWordWidth;

@@ -5,7 +5,7 @@ body {
 .highlightedText,
 .split,
 .highlightComment {
-	font-size: 20px;
+	font-size: 16px;
 }
 #highlightedDiv {
 	z-index: 5;
