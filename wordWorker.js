@@ -546,11 +546,12 @@ export class TextHighlighter {
     if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
     if (this.contentTextCleaned[this.endLetterIndex] === " ") this.endLetterIndex--;
     // add example spans below
-    const uniqueId = `floating-highlighted-${this.startLetterIndex}-${this.endLetterIndex}`;
-    const rawUniqueId = `${this.startLetterIndex}-${this.endLetterIndex}`;
-    const selectedText = this.contentTextCleaned.slice(this.startLetterIndex, this.endLetterIndex + 1);
     const startIndex = this.startLetterIndex
     const endIndex = this.endLetterIndex
+    const uniqueId = `floating-highlighted-${startIndex}-${endIndex}`;
+    const rawUniqueId = `${startIndex}-${endIndex}`;
+    const selectedText = this.contentTextCleaned.slice(startIndex, endIndex + 1);
+
 
     // if (!this.floatingComments.has(rawUniqueId)) {
     //   const floatingComment = document.createElement("div");
