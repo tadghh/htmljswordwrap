@@ -9,7 +9,7 @@ body {
 	/* font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; */
 	cursor: pointer;
 	overflow-wrap: break-word;
-
+	white-space: normal;
 	font-size: 16px;
 	display: inline;
 	line-height: 25px;
@@ -33,7 +33,6 @@ body {
 .split {
 	position: absolute;
 	border: none; /* Remove all borders */
-
 	/* border-bottom: 3px solid pink; Add only the top border */
 	background: #ffffff4d;
 	opacity: 0.81;

@@ -54,9 +54,9 @@ export class TextHighlighter {
 
   addAttributes(start, end, element) {
     let hold = Number.parseFloat(end) + 1
-    const selectedText = this.contentTextCleaned.substring(start, hold);
+    const selectedText = this.contentTextCleaned.substring(start, hold).trim();
 
-    element.style.width = `${this.getWordWidth(selectedText)}px`;
+    element.style.width = `${this.getWordWidth(selectedText.trim())}px`;
     element.setAttribute("start", start);
     element.setAttribute("end", end);
     let realNum = Number.parseFloat(start)
@@ -88,7 +88,6 @@ export class TextHighlighter {
       if (element.id && element.id.includes("floating-highlighted")) {
         const spanningColCount = this.#calcCols(startId, endId);
         const elementsRawUniqueId = element.getAttribute("rawId");
-
         if (spanningColCount > 1) {
 
           element.style.display = "none";
@@ -120,8 +119,19 @@ export class TextHighlighter {
                 }
               }
             }
+            const splits = document.querySelectorAll(`[rawId="${elementsRawUniqueId}"].split`);
 
+            splits.forEach(split => {
+              const colVal = parseInt(split.getAttribute("col"));
+              split.style.opacity = 0.21
+              if (colVal >= spanningColCount) {
+                const splitId = split.id;
+                this.floatingDivsSplit.delete(splitId);
+                split.remove();
+              }
+            });
           }
+
           // Update or set the column count in the map
           this.floatingSelectionCols.set(elementsRawUniqueId, spanningColCount);
 
@@ -249,8 +259,7 @@ export class TextHighlighter {
       if (hoverItem) {
         const startId = hoverItem.getAttribute("start");
         const endId = hoverItem.getAttribute("end");
-        const highlight = this.floatingComments.get(`${startId}-${endId}`);
-        let backgroundColor = this.getColor(Number.parseInt(highlight.getAttribute("commentType")))
+
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
         const isMultiLine = startCol != endCol
@@ -315,7 +324,9 @@ export class TextHighlighter {
           });
           // div.style.background = "black"
         } else {
-          div.style.background = backgroundColor
+          // const highlight = this.floatingComments.get(`${startId}-${endId}`);
+          // let backgroundColor = this.getColor(Number.parseInt(highlight.getAttribute("commentType")))
+          // div.style.background = backgroundColor
           div.style.opacity = this.unfocusedOpacity
           const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
           splits.forEach(item => {
@@ -513,7 +524,7 @@ export class TextHighlighter {
             <div id="commentType">
                 <label>Type:</label>
                 <div>
-                    <input type="radio" id="misc" name="commentType" value="1">
+                    <input type="radio" id="misc" name="commentType" value="1" checked>
                     <label for="misc">Misc Comments</label>
                 </div>
                 <div>
@@ -769,7 +780,10 @@ export class TextHighlighter {
 
   calcWordPositions() {
     const widthCache = [[0, 0]];
-    const maxWidth = this.getMaxWidth();
+    let maxWidth = Math.ceil(this.getMaxWidth());
+    if (maxWidth % 2 != 0) {
+      maxWidth--
+    }
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
@@ -787,19 +801,21 @@ export class TextHighlighter {
         const spaceToRemove = (iter === this.wordArray.length - 1 || !word.endsWith(' '))
           ? 0
           : this.spaceSize;
-        const endTest = Math.ceil(testWidth - spaceToRemove - 2);
-
-        if (endTest < maxWidth) {
+        const endTest = Math.ceil(testWidth - spaceToRemove);
+        if (endTest < maxWidth && endTest != maxWidth - 1 || testWidth == maxWidth + 2) {
           // Word fits without its trailing space
           currentWidth = endTest;
-        } else if (endTest > maxWidth) {
+        } else if (endTest >= maxWidth) {
           // Word doesn't fit, wrap to new line
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
           currentWidth = currentWordWidth;
-        } else if (endTest == maxWidth) {
-          // Word doesn't fit, wrap to new line
-          currentWidth = endTest;
+        } else {
+          console.log(endTest)
+          console.log(word)
+          widthCache.push([wordColumnIndex, currentStringIndex]);
+          wordColumnIndex++;
+          currentWidth = currentWordWidth;
         }
       }
       currentStringIndex += word.length;
