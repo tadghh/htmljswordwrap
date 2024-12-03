@@ -1,7 +1,12 @@
 body {
 	background-color: darkgray;
 }
-
+#highlightedDiv,
+.highlightedText,
+.split,
+.highlightComment {
+	font-size: 20px;
+}
 #highlightedDiv {
 	z-index: 5;
 	position: relative;
@@ -10,37 +15,40 @@ body {
 	cursor: pointer;
 	overflow-wrap: break-word;
 	white-space: normal;
-	font-size: 16px;
 	display: inline;
-	line-height: 25px;
+	/* line-height: 2.5; */
+}
+
+.highlightedText,
+.highlightComment {
+	opacity: 0.21;
+}
+
+.split,
+.highlightComment,
+.highlightedText {
+	transition: opacity 0.3s;
 }
 
 .highlightedText {
 	position: absolute;
 	border: none; /* Remove all borders */
-
-	/* border-bottom: 3px solid pink; Add only the top border */
 	background: #ffffff4d;
-	opacity: 0.21;
-	height: 25px;
-	transition: opacity 0.3s;
-	padding: 0px;
+	height: 24px;
+	margin-top: 4px;
+
 	border-radius: 4px;
-	font-size: 20px;
 	color: white;
 	opacity: 1;
 }
 .split {
 	position: absolute;
-	border: none; /* Remove all borders */
-	/* border-bottom: 3px solid pink; Add only the top border */
 	background: #ffffff4d;
-	opacity: 0.81;
-	height: 25px;
-	transition: opacity 0.3s;
+	opacity: 0.8;
+	/* padding-top: 2px; */
+
 	padding: 0px;
 	border-radius: 2px;
-	font-size: 20px;
 	color: white;
 }
 
@@ -50,13 +58,9 @@ body {
 
 .highlightComment {
 	position: absolute;
-	font-size: 16px;
 	color: white;
-	opacity: 0.21;
-	transition: opacity 0.3s;
 	background: green;
 	z-index: 10;
-	display: hidden;
 }
 
 #commentFormHeader {
@@ -64,6 +68,7 @@ body {
 	flex-direction: row;
 	justify-content: space-between;
 }
+
 #selectionRange {
 	display: flex;
 	flex-direction: column;

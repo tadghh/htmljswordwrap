@@ -34,6 +34,7 @@ export class TextHighlighter {
     const computedStyle = getComputedStyle(this.highlightedDiv);
     this.fontSize = computedStyle.fontSize;
     this.fontFamily = computedStyle.fontFamily;
+    this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
 
     this.divRect = this.highlightedDiv.getBoundingClientRect();
 
@@ -573,13 +574,12 @@ export class TextHighlighter {
       commentHighlight.id = uniqueId;
       commentHighlight.className = "highlightedText";
       commentHighlight.style.width = `${width}px`;
+
       commentHighlight.setAttribute("start", startIndex)
       commentHighlight.setAttribute("end", endIndex)
       commentHighlight.setAttribute("commentType", selectedId)
       commentHighlight.style.backgroundColor = color;
-
       commentHighlight.setAttribute("rawId", rawUniqueId)
-
       this.commentHighlights.set(rawUniqueId, commentHighlight);
       document.body.appendChild(commentHighlight);
     }
@@ -675,8 +675,7 @@ export class TextHighlighter {
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
-    console.log("maxWidth")
-    console.log(maxWidth)
+
     this.wordArray.forEach((word, iter) => {
       const currentWordWidth = this.getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
@@ -692,22 +691,16 @@ export class TextHighlighter {
           : this.spaceSize;
         const endTest = Math.ceil(testWidth - spaceToRemove);
         if ((endTest < maxWidth && endTest != maxWidth - 1 || testWidth == maxWidth + 2) && endTest + 2 != maxWidth) {
-          // Word fits without its trailing space
-          console.log(endTest)
-          console.log(testWidth)
-          console.log(word)
-          currentWidth = endTest;
-          console.log(currentWidth)
-        } else if (endTest >= maxWidth) {
-          // Word doesn't fit, wrap to new line
 
+          currentWidth = endTest;
+        } else if (endTest >= maxWidth) {
+          // Word doesn't fit, wrap to new lin
 
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
           currentWidth = currentWordWidth;
         } else {
-          console.log(endTest)
-          console.log(word)
+
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
           currentWidth = currentWordWidth;
@@ -875,7 +868,7 @@ export class TextHighlighter {
       console.log(selectedId)
       const color = this.getColor(selectedId);
       floatingComment.id = `floating-${startIndex}-${endIndex}`;
-      floatingComment.className = "highlightComment";
+      floatingComment.className = "highlightComment ";
       floatingComment.textContent = comment
       floatingComment.style.width = `${this.getWordWidth(comment)}px`;
       floatingComment.setAttribute("start", startIndex)
@@ -892,12 +885,11 @@ export class TextHighlighter {
       let width = this.getNextLowestDivisibleByNinePointSix(this.getWordWidth(selectedText))
 
       commentHighlight.id = uniqueId;
-      commentHighlight.className = "highlightedText";
+      commentHighlight.className = "highlightedText split";
       commentHighlight.style.width = `${width}px`;
       commentHighlight.setAttribute("start", startIndex)
       commentHighlight.setAttribute("end", endIndex)
       commentHighlight.setAttribute("rawId", rawUniqueId)
-
       this.commentHighlights.set(rawUniqueId, commentHighlight);
       document.body.appendChild(commentHighlight);
     }
