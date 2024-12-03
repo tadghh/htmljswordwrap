@@ -621,7 +621,7 @@ export class TextHighlighter {
       }
 
       element.style.top = `${top + Number.parseFloat(this.fontSize) + 6 + this.mouseTopOffset}px`;
-      element.style.left = `${yColStartIndex + this.getLeftPadding() + 2 + this.mouseLeftOffset}px`;
+      element.style.left = `${yColStartIndex + this.getLeftPadding() + this.mouseLeftOffset}px`;
     }
   }
 
@@ -691,7 +691,14 @@ export class TextHighlighter {
           ? 0
           : this.spaceSize;
         const endTest = Math.ceil(testWidth - spaceToRemove);
-        if ((endTest < maxWidth && endTest != maxWidth - 1 || testWidth == maxWidth + 2) && endTest + 2 != maxWidth) {
+        if (word == "the ") {
+          console.log(word)
+          console.log(maxWidth)
+          console.log(endTest)
+          console.log(testWidth)
+        }
+        if (((endTest < maxWidth && endTest != maxWidth - 1) || testWidth == maxWidth + 2 || endTest == maxWidth - 1)) {
+          // && endTest + 2 != maxWidth
 
           currentWidth = endTest;
         } else if (endTest >= maxWidth) {
