@@ -20,7 +20,8 @@ export class TextHighlighter {
     this.floatingComments = new Map();
     this.floatingDivsSplit = new Map();
 
-
+    // 300ms in the css
+    this.hoverTransitionDuration = 333;
     this.unfocusedOpacity = 0.2;
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
@@ -314,32 +315,28 @@ export class TextHighlighter {
 
           isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
         }
+        const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
 
         if (isInside) {
           div.setAttribute('active', true)
 
           div.style.opacity = 1
           div.style.zIndex = 50
-          const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"]`);
 
           splits.forEach(item => {
             item.style.opacity = 1;
           });
-
         } else {
           if (div.style.opacity == 1) {
             div.style.opacity = 0
             setTimeout(() => {
               div.style.zIndex = 5;
-            }, 333); // Delay of 3000ms (3 seconds)
+            }, this.hoverTransitionDuration);
           }
 
-
-          const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
           splits.forEach(item => {
             item.style.opacity = this.unfocusedOpacity;
           });
-
         }
       }
     });
