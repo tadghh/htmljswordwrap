@@ -201,11 +201,8 @@ export class TextHighlighter {
         }
       }
 
-      // Apply styles safely
-      if (typeof top === 'number' && !isNaN(top)) {
-        element.style.top = `${top - this.charHoverPaddingMouse + this.mouseTopOffset}px`;
-      }
-      console.log(Math.floor(this.charHoverPaddingMouse))
+      element.style.top = `${top - this.charHoverPaddingMouse + this.mouseTopOffset}px`;
+
       element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset}px`;
 
     } catch (error) {
@@ -217,7 +214,7 @@ export class TextHighlighter {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
     // TODO magic num
-    element.style.top = `${this.findYValueFromIndex(endId) + Number.parseFloat(this.fontSize) + 3}px`;
+    element.style.top = `${this.findYValueFromIndex(endId) + Number.parseFloat(this.fontSize) + Math.floor(this.charHoverPaddingMouse) - (Number.parseFloat(this.fontSize) / 10)}px`;
     element.style.left = `${this.getPaddingForIndex(startId) + this.getLeftPadding()}px`;
   }
 
