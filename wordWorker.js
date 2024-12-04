@@ -203,7 +203,7 @@ export class TextHighlighter {
 
       element.style.top = `${top - this.charHoverPaddingMouse + this.mouseTopOffset}px`;
 
-      element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset}px`;
+      element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
 
     } catch (error) {
       console.error('Error in positionFloatingComment:', error);
@@ -581,6 +581,7 @@ export class TextHighlighter {
       const maxWidth = this.getMaxWidth();
 
       let yColStartIndex = this.getPaddingForIndex(startId);
+      let linePadding = this.getPaddingForIndex(startId);
 
       let startCol = this.findColFromIndex(startId)
       let endCol = this.findColFromIndex(endId)
@@ -599,9 +600,9 @@ export class TextHighlighter {
       } else {
         top = this.findYValueFromIndex(startId);
       }
-
-      element.style.top = `${top + Number.parseFloat(this.fontSize) + this.charHoverPaddingMouse + this.mouseTopOffset}px`;
-      element.style.left = `${yColStartIndex + this.charHoverPaddingMouse + this.getLeftPadding() + this.mouseLeftOffset}px`;
+      element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
+      element.style.top = `${top + Number.parseFloat(this.fontSize) + this.mouseTopOffset}px`;
+      // element.style.left = `${yColStartIndex + this.charHoverPaddingMouse + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
     }
   }
 
@@ -845,11 +846,11 @@ export class TextHighlighter {
     const uniqueId = `floating-highlighted-${startIndex}-${endIndex}`;
     const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedText = textContent.slice(startIndex, endIndex + 1);
-
+    const selectedId = parseInt(colorId);
+    const color = this.getColor(selectedId);
     if (!this.floatingComments.has(rawUniqueId)) {
       const floatingComment = document.createElement("div");
-      const selectedId = parseInt(colorId);
-      const color = this.getColor(selectedId);
+
       floatingComment.id = `floating-${startIndex}-${endIndex}`;
       floatingComment.className = "highlightComment ";
       floatingComment.textContent = comment
@@ -867,6 +868,7 @@ export class TextHighlighter {
       const commentHighlight = document.createElement("div");
       commentHighlight.id = uniqueId;
       commentHighlight.className = "highlightedText split";
+      commentHighlight.style.backgroundColor = color;
       commentHighlight.style.width = `${this.getWordWidth(selectedText)}px`;
       commentHighlight.setAttribute("start", startIndex)
       commentHighlight.setAttribute("end", endIndex)
