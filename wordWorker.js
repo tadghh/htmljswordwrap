@@ -55,12 +55,13 @@ export class TextHighlighter {
 
   addAttributes(start, end, element) {
     let hold = Number.parseFloat(end) + 1
-    const selectedText = this.contentTextCleaned.substring(start, hold).trim();
+    let realNum = Number.parseFloat(start)
+    const selectedText = this.contentTextCleaned.substring(realNum, hold).trim();
 
     element.style.width = `${this.getWordWidth(selectedText)}px`;
-    element.setAttribute("start", start);
+    element.setAttribute("start", realNum);
     element.setAttribute("end", end);
-    let realNum = Number.parseFloat(start)
+
 
     element.style.top = `${this.findYValueFromIndex(realNum) + this.mouseTopOffset}px`;
     element.style.left = `${this.getPaddingForIndex(realNum) + this.getLeftPadding()}px`;
@@ -202,7 +203,7 @@ export class TextHighlighter {
 
       // Apply styles safely
       if (typeof top === 'number' && !isNaN(top)) {
-        element.style.top = `${top - Math.floor(this.charHoverPaddingMouse) + this.mouseTopOffset}px`;
+        element.style.top = `${top - this.charHoverPaddingMouse + this.mouseTopOffset}px`;
       }
       console.log(Math.floor(this.charHoverPaddingMouse))
       element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset}px`;
@@ -215,7 +216,7 @@ export class TextHighlighter {
   #positionCommentForm(element) {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
-
+    // TODO magic num
     element.style.top = `${this.findYValueFromIndex(endId) + Number.parseFloat(this.fontSize) + 3}px`;
     element.style.left = `${this.getPaddingForIndex(startId) + this.getLeftPadding()}px`;
   }

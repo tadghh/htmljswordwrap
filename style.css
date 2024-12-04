@@ -33,23 +33,16 @@ body {
 
 .highlightedText {
 	position: absolute;
-	border: none; /* Remove all borders */
-	background: #ffffff4d;
-	height: 24px;
-	margin-top: 4px;
 
-	border-radius: 4px;
+	/* TODO this needs to be font size + 1 */
+	height: 21px;
+	margin-top: 6px;
+	border-radius: 2px;
 	color: white;
-	opacity: 1;
+	opacity: 0.8;
 }
 .split {
 	position: absolute;
-	background: #ffffff4d;
-	opacity: 0.8;
-	/* padding-top: 2px; */
-
-	padding: 0px;
-	border-radius: 2px;
 	color: white;
 }
 
@@ -90,6 +83,7 @@ body {
 	border: solid;
 	z-index: 15;
 	padding-top: 6px;
+
 	padding-inline: 6px;
 	padding-bottom: 4px;
 	border-top-width: 0px;
@@ -104,6 +98,7 @@ body {
 .floatingForm > form > textarea {
 	background-color: black;
 	color: white;
+	outline: transparent !important;
 }
 
 .floatingForm > form > button {
