@@ -215,9 +215,13 @@ export class TextHighlighter {
   #positionCommentForm(element) {
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
-    // TODO magic num
-    element.style.top = `${this.findYValueFromIndex(endId) + Number.parseFloat(this.fontSize) + Math.floor(this.charHoverPaddingMouse) - (Number.parseFloat(this.fontSize) / 10)}px`;
-    element.style.left = `${this.getPaddingForIndex(startId) + this.getLeftPadding()}px`;
+    let paddingOffset = Number.parseFloat(window.getComputedStyle(element, null).getPropertyValue('border-left-width'))
+
+    element.style.top = `${this.findYValueFromIndex(endId) + Number.parseFloat(this.fontSize) + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (Number.parseFloat(this.fontSize) / 10)}px`;
+
+    let linePadding = this.getPaddingForIndex(startId);
+
+    element.style.left = `${Math.ceil(linePadding) + this.getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset}px`;
   }
 
   #handleMouseMove = (event) => {
@@ -341,22 +345,7 @@ export class TextHighlighter {
       }
     });
   }
-  fadeOutAndSetZIndex(element) {
-    // Set initial styles
-    element.style.zIndex = '16'; // Adjust duration as needed
-    element.style.transition = 'opacity 1.3s cubic-bezier(0.62, 0.16, 0.13, 1.01)'; // Adjust duration as needed
 
-    // Trigger the fade-out
-    requestAnimationFrame(() => {
-      element.style.opacity = '0';
-    });
-
-    // Wait for the transition to complete
-    element.addEventListener('transitionend', function onTransitionEnd() {
-      element.style.zIndex = '5'; // Set z-index after the transition
-      element.removeEventListener('transitionend', onTransitionEnd); // Clean up
-    });
-  }
 
   #handleMouseDown = (event) => {
     let relativeX = event.clientX - this.getLeftPadding() + 2;
@@ -425,25 +414,6 @@ export class TextHighlighter {
     highlighted.forEach((div) => {
       div.remove()
     });
-  }
-
-  removeForm(id) {
-    let form = document.getElementById(id)
-    if (form) {
-      window.getSelection().removeAllRanges();
-      form.remove()
-      this.formIsActive = false;
-    }
-  }
-
-  closeForm(id) {
-    let form = document.getElementById(id)
-    if (form) {
-      this.removeForm(id)
-      let x = form.getAttribute("start")
-      let y = form.getAttribute("end")
-      this.removeHighlights(`${x}-${y}`)
-    }
   }
 
   formCommentSubmission(submission) {
@@ -525,8 +495,12 @@ export class TextHighlighter {
     floatingDivForm.className = "floatingForm";
     floatingDivForm.setAttribute("start", startIndex);
     floatingDivForm.setAttribute("end", endIndex);
-
+    const splits = document.querySelectorAll(`[rawId="${startIndex}-${endIndex}"]`);
+    splits.forEach(item => {
+      item.style.opacity = 1;
+    });
     floatingDivForm.style.top = `${this.charHoverPaddingMouse + this.mouseTopOffset}px`;
+
     // Add event listener for radio button selection
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
@@ -539,7 +513,7 @@ export class TextHighlighter {
           const highlight = this.commentHighlights.get(rawId);
           highlight.color = color;
           highlight.setAttribute("commentType", selectedId)
-          const splits = document.querySelectorAll(`[rawId="${startIndex}-${endIndex}"]`);
+
           splits.forEach(item => {
             item.style.backgroundColor = color;
             item.setAttribute('commentType', selectedId);
@@ -582,7 +556,7 @@ export class TextHighlighter {
       const width = this.getWordWidth(selectedText)
 
       commentHighlight.id = uniqueId;
-      commentHighlight.className = "highlightedText";
+      commentHighlight.className = "highlightedText split";
       commentHighlight.style.width = `${width}px`;
 
       commentHighlight.setAttribute("start", startIndex)
@@ -608,7 +582,7 @@ export class TextHighlighter {
 
       const wordWidth = this.getWordWidth(element.textContent);
       const maxWidth = this.getMaxWidth();
-
+      element.style.paddingLeft = `${(Number.parseInt(this.fontSize) / 10)}px`
       let yColStartIndex = this.getPaddingForIndex(startId);
       let linePadding = this.getPaddingForIndex(startId);
 
@@ -624,14 +598,18 @@ export class TextHighlighter {
       }
 
       if (endCol - startCol >= 1) {
+        console.log("yo")
         top = this.findYValueFromIndex(endId);
         yColStartIndex = bottomLineWidth - wordWidth
+        linePadding = this.getPaddingForIndex(endId);
+        console.log(`${linePadding} ${this.charHoverPadding} ${this.getLeftPadding()} ${this.mouseLeftOffset} ${wordWidth} `)
+        element.style.left = `${Math.ceil(linePadding) + Math.round(this.charHoverPadding) + this.getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth)}px`;
       } else {
         top = this.findYValueFromIndex(startId);
+        element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
       }
-      element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
+
       element.style.top = `${top + Number.parseFloat(this.fontSize) + this.mouseTopOffset}px`;
-      // element.style.left = `${yColStartIndex + this.charHoverPaddingMouse + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
     }
   }
 
@@ -988,6 +966,25 @@ export class TextHighlighter {
     return this.#widthSums.get(key);
   }
 
+
+  removeForm(id) {
+    let form = document.getElementById(id)
+    if (form) {
+      window.getSelection().removeAllRanges();
+      form.remove()
+      this.formIsActive = false;
+    }
+  }
+
+  closeForm(id) {
+    let form = document.getElementById(id)
+    if (form) {
+      this.removeForm(id)
+      let x = form.getAttribute("start")
+      let y = form.getAttribute("end")
+      this.removeHighlights(`${x}-${y}`)
+    }
+  }
 
   // #endregion
 }
