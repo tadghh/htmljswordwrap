@@ -598,11 +598,10 @@ export class TextHighlighter {
       }
 
       if (endCol - startCol >= 1) {
-        console.log("yo")
+
         top = this.findYValueFromIndex(endId);
         yColStartIndex = bottomLineWidth - wordWidth
         linePadding = this.getPaddingForIndex(endId);
-        console.log(`${linePadding} ${this.charHoverPadding} ${this.getLeftPadding()} ${this.mouseLeftOffset} ${wordWidth} `)
         element.style.left = `${Math.ceil(linePadding) + Math.round(this.charHoverPadding) + this.getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth)}px`;
       } else {
         top = this.findYValueFromIndex(startId);
