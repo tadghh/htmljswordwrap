@@ -9,7 +9,7 @@ body {
 	font-size: 20px;
 }
 #highlightedDiv {
-	z-index: 5;
+	z-index: 15;
 	position: relative;
 	/* font-family: Nunito; */
 	/* font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; */
@@ -23,24 +23,24 @@ body {
 
 .highlightedText,
 .highlightComment {
-	opacity: 0.21;
+	opacity: 0.2;
 }
 
 .split,
 .highlightComment,
 .highlightedText {
-	transition: opacity 0.3s;
+	transition: opacity 0.3s cubic-bezier(0.62, 0.16, 0.13, 1.01);
 }
 
 .highlightedText {
 	position: absolute;
-
+	z-index: 10;
 	/* TODO this needs to be font size + 1 */
 	height: 21px;
 	margin-top: 6px;
 	border-radius: 2px;
 	color: white;
-	opacity: 0.8;
+	opacity: 0.2;
 }
 .split {
 	position: absolute;
@@ -55,7 +55,8 @@ body {
 	position: absolute;
 	color: white;
 	background: green;
-	z-index: 10;
+	z-index: 1;
+	opacity: 0%;
 	border-radius: 2px;
 	padding-left: 2px;
 }

@@ -21,7 +21,7 @@ export class TextHighlighter {
     this.floatingDivsSplit = new Map();
 
 
-    this.unfocusedOpacity = 0.21;
+    this.unfocusedOpacity = 0.2;
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
     this.canvas = document.createElement("canvas");
@@ -34,6 +34,7 @@ export class TextHighlighter {
     const computedStyle = getComputedStyle(this.highlightedDiv);
     this.fontSize = computedStyle.fontSize;
     this.fontFamily = computedStyle.fontFamily;
+    // 1.2 is 'default' line height
     this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
 
     this.divRect = this.highlightedDiv.getBoundingClientRect();
@@ -273,7 +274,7 @@ export class TextHighlighter {
         const relativeX = this.relativeX
         const top = this.findYValueFromIndex(startId) + mouseTopOffset;
         let minXBorder = xCol;
-        let maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(endId))
+        let maxXBorder = this.getPaddingForIndex(endId)
 
         let topBorder = top;
         let bottomBorder = top + fontSizeRaw;
@@ -316,21 +317,49 @@ export class TextHighlighter {
 
         if (isInside) {
           div.setAttribute('active', true)
+
+          div.style.opacity = 1
+          div.style.zIndex = 50
           const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"]`);
+
           splits.forEach(item => {
             item.style.opacity = 1;
           });
+
         } else {
-          div.style.opacity = this.unfocusedOpacity
+          if (div.style.opacity == 1) {
+            div.style.opacity = 0
+            setTimeout(() => {
+              div.style.zIndex = 5;
+            }, 333); // Delay of 3000ms (3 seconds)
+          }
+
+
           const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
           splits.forEach(item => {
             item.style.opacity = this.unfocusedOpacity;
           });
+
         }
       }
     });
   }
+  fadeOutAndSetZIndex(element) {
+    // Set initial styles
+    element.style.zIndex = '16'; // Adjust duration as needed
+    element.style.transition = 'opacity 1.3s cubic-bezier(0.62, 0.16, 0.13, 1.01)'; // Adjust duration as needed
 
+    // Trigger the fade-out
+    requestAnimationFrame(() => {
+      element.style.opacity = '0';
+    });
+
+    // Wait for the transition to complete
+    element.addEventListener('transitionend', function onTransitionEnd() {
+      element.style.zIndex = '5'; // Set z-index after the transition
+      element.removeEventListener('transitionend', onTransitionEnd); // Clean up
+    });
+  }
 
   #handleMouseDown = (event) => {
     let relativeX = event.clientX - this.getLeftPadding() + 2;
@@ -447,7 +476,6 @@ export class TextHighlighter {
     // Remove the form after submission
     const formId = `form-${startIndex}-${endIndex}`;
     this.removeForm(formId);
-    this.formIsActive = false;
   }
 
   createForm(startIndex, endIndex) {
