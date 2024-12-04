@@ -337,15 +337,16 @@ export class TextHighlighter {
     const wordStatsLengthReal = this.wordStats.length - 1;
     this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, wordStatsLengthReal));
+    if (!this.formIsActive) {
+      const startIndex = this.wordStats[this.mouseColSafe][1];
+      const endIndex = this.mouseColSafe === wordStatsLengthReal
+        ? this.contentTextCleaned.length
+        : this.wordStats[this.mouseColSafe + 1][1];
 
-    const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === wordStatsLengthReal
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1];
-
-    // Use binary search to find letter index
-    let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);
-    this.startLetterIndex = letterIndex;
+      // Use binary search to find letter index
+      let letterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);
+      this.startLetterIndex = letterIndex;
+    }
   };
 
   #handleMouseUp = (event) => {
@@ -364,28 +365,30 @@ export class TextHighlighter {
       : this.wordStats[this.mouseColSafe + 1][1];
 
     // Use binary search to find letter index
-    this.endLetterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);;
+    if (!this.formIsActive) {
+      this.endLetterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);;
 
-    if (this.startLetterIndex > this.endLetterIndex) {
-      [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
-      this.startLetterIndex++
-    }
+      if (this.startLetterIndex > this.endLetterIndex) {
+        [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
+        this.startLetterIndex++
+      }
 
-    let totalLength = this.endLetterIndex - this.startLetterIndex;
+      let totalLength = this.endLetterIndex - this.startLetterIndex;
 
-    if (totalLength > 1) {
-      this.#createHighlight();
-      this.formIsActive = true;
+      if (totalLength > 1) {
+        this.#createHighlight();
+        this.formIsActive = true;
 
-      if (this.formIsActive) {
-        let startIndexForm = document.getElementById("startIndexForm")
-        let endIndexForm = document.getElementById("endIndexForm")
+        if (this.formIsActive) {
+          let startIndexForm = document.getElementById("startIndexForm")
+          let endIndexForm = document.getElementById("endIndexForm")
 
-        document.body.appendChild(this.createForm(this.startLetterIndex, this.endLetterIndex));
-        this.#repositionItems()
-        if (startIndexForm && endIndexForm) {
-          startIndexForm.textContent = `Start: ${this.contentTextCleaned[this.startLetterIndex]}`
-          endIndexForm.textContent = `End: ${this.contentTextCleaned[this.endLetterIndex]}`
+          document.body.appendChild(this.createForm(this.startLetterIndex, this.endLetterIndex));
+          this.#repositionItems()
+          if (startIndexForm && endIndexForm) {
+            startIndexForm.textContent = `Start: ${this.contentTextCleaned[this.startLetterIndex]}`
+            endIndexForm.textContent = `End: ${this.contentTextCleaned[this.endLetterIndex]}`
+          }
         }
       }
     }
@@ -444,6 +447,7 @@ export class TextHighlighter {
     // Remove the form after submission
     const formId = `form-${startIndex}-${endIndex}`;
     this.removeForm(formId);
+    this.formIsActive = false;
   }
 
   createForm(startIndex, endIndex) {
