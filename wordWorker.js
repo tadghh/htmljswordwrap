@@ -78,10 +78,7 @@ export class TextHighlighter {
     const startId = element.getAttribute("start");
     const endId = element.getAttribute("end");
 
-    if (!startId || !endId) {
-      console.warn('Missing required attributes (start or end) on element');
-      return;
-    }
+
 
     try {
       this.updateDivValues()
@@ -90,122 +87,266 @@ export class TextHighlighter {
       let yCol1 = this.findColFromIndex(startId);
       let yCol2 = this.findColFromIndex(endId);
 
-      if (element.id && element.id.includes("floating-highlighted")) {
-        const spanningColCount = this.#calcCols(startId, endId);
+      const spanningColCount = this.#calcCols(startId, endId);
+      if (spanningColCount > 1 && element.getAttribute("rawId")) {
         const elementsRawUniqueId = element.getAttribute("rawId");
-        if (spanningColCount > 1) {
+        element.style.display = "none";
+        let colorInt = element.getAttribute("commentType")
+        let backgroundColor = this.getColor(Number.parseInt(colorInt))
+        let lowerCol = yCol1;
+        let upperCol = yCol1 + spanningColCount;
+        const oldSpanCount = this.floatingSelectionCols.get(elementsRawUniqueId) || 0;
 
-          element.style.display = "none";
-          let colorInt = element.getAttribute("commentType")
-          let backgroundColor = this.getColor(Number.parseInt(colorInt))
-          let lowerCol = yCol1;
-          let upperCol = yCol1 + spanningColCount;
-          const oldSpanCount = this.floatingSelectionCols.get(elementsRawUniqueId) || 0;
-
-          if (oldSpanCount != spanningColCount) {
-            if (spanningColCount >= 2) {
-              const splits = document.querySelectorAll(`[rawId="${elementsRawUniqueId}"].split`);
-              if (splits.length > 0) {
-                let lowestColSplit = null;
-                let lowestCol = Infinity;
-
-                splits.forEach(split => {
-                  const colVal = parseInt(split.getAttribute("col"));
-                  if (colVal < lowestCol) {
-                    lowestCol = colVal;
-                    lowestColSplit = split;
-                  }
-                });
-
-                if (lowestColSplit) {
-                  const splitId = lowestColSplit.id;
-                  this.floatingDivsSplit.delete(splitId);
-                  lowestColSplit.remove();
-                }
-              }
-            }
-            const splits = document.querySelectorAll(`[rawId="${elementsRawUniqueId}"].split`);
-
-            splits.forEach(split => {
-              const colVal = parseInt(split.getAttribute("col"));
-              split.style.opacity = 0.21
-              if (colVal >= spanningColCount) {
-                const splitId = split.id;
-                this.floatingDivsSplit.delete(splitId);
-                split.remove();
-              }
-            });
-          }
-
-          // Update or set the column count in the map
-          this.floatingSelectionCols.set(elementsRawUniqueId, spanningColCount);
-
-          for (let c = lowerCol; c < upperCol; c++) {
-            const splitId = `split-${elementsRawUniqueId}-col-${c}`;
-            let floatingDiv = this.floatingDivsSplit.get(splitId);
-            let isNewDiv = false;
-
-            if (!floatingDiv) {
-              floatingDiv = document.createElement("div");
-              floatingDiv.id = splitId;
-              floatingDiv.style.backgroundColor = backgroundColor
-              floatingDiv.setAttribute('commentType', colorInt)
-              floatingDiv.className = "highlightedText split";
-              isNewDiv = true;
-            }
-
-            floatingDiv.setAttribute("col", c);
-            floatingDiv.setAttribute("rawId", elementsRawUniqueId);
-            floatingDiv.style.borderBottom = "2px solid transparent";
-            if (c === lowerCol) {
-              // First column
-              let firstColStartIndex = startId;
-              let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
-
-              this.addAttributes(firstColStartIndex, firstColEndIndex, floatingDiv)
-
-            } else if (c === upperCol - 1) {
-              // Last column
-              let lastColStartIndex = this.wordStats[c][1];
-              floatingDiv.style.borderBottom = "2px solid blue";
-              this.addAttributes(lastColStartIndex, endId, floatingDiv)
-            } else {
-              // Middle columns
-              let colStartIndex = this.wordStats[c][1];
-              let colEndIndex = this.wordStats[c + 1][1] - 1;
-
-              this.addAttributes(colStartIndex, colEndIndex, floatingDiv)
-            }
-
-            // Only add to map and DOM if it's a new div
-            if (isNewDiv) {
-              this.floatingDivsSplit.set(splitId, floatingDiv);
-              document.body.appendChild(floatingDiv);
-            }
-            this.#repositionItems
-          }
-
-          this.floatingSelectionWrapped.set(elementsRawUniqueId, spanningColCount);
-        } else if (element.style.display === "none" && (yCol1 === yCol2)) {
-          element.style.display = "inline";
-          const rowId = element.getAttribute("rawId");
-
-          if (rowId) {
-            let splits = document.querySelectorAll(`[rawId="${rowId}"][id*="split"]`);
-            splits.forEach(splitElement => {
-              if (splitElement) {
-                const splitId = splitElement.id;
-                this.floatingDivsSplit.delete(splitId);
-                splitElement.remove();
-              }
-            });
+        if (oldSpanCount != spanningColCount && this.floatingDivsSplit.get(elementsRawUniqueId)) {
+          const divArray = this.floatingDivsSplit.get(elementsRawUniqueId);
+          if (divArray) {
+            const filteredArrayBad = divArray.filter(obj => obj.col > spanningColCount);
+            filteredArrayBad.forEach(split => {
+              let mother = split["elem"]
+              mother.remove()
+            })
+            const filteredArray = divArray.filter(obj => obj.col <= spanningColCount);
+            this.floatingDivsSplit.set(elementsRawUniqueId, filteredArray);
           }
         }
+
+        // Update or set the column count in the map
+        this.floatingSelectionCols.set(elementsRawUniqueId, spanningColCount);
+
+        for (let c = lowerCol; c < upperCol; c++) {
+          let floatingDivSplit = this.floatingDivsSplit.get(elementsRawUniqueId);
+          let floatingDiv = null
+          if (floatingDivSplit) {
+            let gay = floatingDivSplit.find(entry => entry.col === c)
+
+            if (gay && gay["elem"]) {
+              floatingDiv = gay["elem"];
+            }
+          }
+          let isNewDiv = false;
+
+          if (!floatingDiv) {
+            floatingDiv = document.createElement("div");
+            // floatingDiv.id = splitId;
+            floatingDiv.style.backgroundColor = backgroundColor
+            floatingDiv.className = "highlightedText split";
+            isNewDiv = true;
+          }
+
+          floatingDiv.style.borderBottom = "2px solid transparent";
+          let firstColStartIndex = Number.parseInt(startId);
+          let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
+          if (c === lowerCol) {
+            // First column
+            firstColStartIndex = startId;
+            firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
+
+            // this.addAttributes(firstColStartIndex, firstColEndIndex, floatingDiv)
+
+          } else if (c === upperCol - 1) {
+            // Last column
+            firstColStartIndex = this.wordStats[c][1];
+            firstColEndIndex = Number.parseInt(endId)
+            floatingDiv.style.borderBottom = "2px solid blue";
+            // this.addAttributes(lastColStartIndex, endId, floatingDiv)
+          } else {
+            // Middle columns
+            firstColStartIndex = this.wordStats[c][1];
+            firstColEndIndex = this.wordStats[c + 1][1] - 1;
+
+            // this.addAttributes(colStartIndex, colEndIndex, floatingDiv)
+          }
+
+          // Only add to map and DOM if it's a new div
+          if (isNewDiv) {
+            let floatingDivSplit = this.floatingDivsSplit.get(elementsRawUniqueId);
+            if (!floatingDivSplit) {
+              // Initialize with an array containing the first object
+              this.floatingDivsSplit.set(elementsRawUniqueId, [{
+                col: c,
+                elem: floatingDiv,
+                start: firstColStartIndex,
+                end: firstColEndIndex
+              }]);
+            } else {
+              // Push new object to existing array
+              this.floatingDivsSplit.get(elementsRawUniqueId).push({
+                col: c,
+                elem: floatingDiv,
+                start: firstColStartIndex,
+                end: firstColEndIndex
+              });
+            }
+            document.body.appendChild(floatingDiv);
+          }
+
+          this.#repositionItems
+        }
+
+        this.floatingSelectionWrapped.set(elementsRawUniqueId, spanningColCount);
+      } else if (element.style.display === "none" && (yCol1 === yCol2)) {
+        element.style.display = "inline";
+        const rowId = element.getAttribute("rawId");
+        this.floatingDivsSplit.set(rowId, {})
       }
 
-      element.style.top = `${top - this.charHoverPaddingMouse + this.mouseTopOffset}px`;
+      // element.style.top = `${top - this.charHoverPaddingMouse + this.mouseTopOffset}px`;
 
-      element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
+
+      // let yOffset = top - this.charHoverPaddingMouse + this.mouseTopOffset
+
+      // let xOffset = linePadding + Math.ceil(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)
+
+      // element.style.transform = `translate(${Math.floor(xOffset)}px, ${yOffset}px)`;
+    } catch (error) {
+      console.error('Error in positionFloatingComment:', error);
+    }
+  }
+
+  #positionHighlightTwo(element2, key) {
+    if (!element2) {
+      console.warn('Element is undefined or null in positionFloatingComment');
+      return;
+    }
+
+    const startId = Number.parseInt(element2["start"]);
+    const endId = element2["end"];
+
+    let element = element2[
+      "elem"
+    ]
+
+    try {
+      this.updateDivValues()
+      let linePadding = this.getPaddingForIndex(startId);
+      let top = this.findYValueFromIndex(startId);
+      let yCol1 = this.findColFromIndex(startId);
+      let yCol2 = this.findColFromIndex(endId);
+
+      const spanningColCount = this.#calcCols(startId, endId);
+      if (spanningColCount > 1) {
+        const elementsRawUniqueId = key;
+
+        element.style.display = "none";
+        let colorInt = element.getAttribute("commentType")
+        let backgroundColor = this.getColor(Number.parseInt(colorInt))
+        let lowerCol = yCol1;
+        let upperCol = yCol1 + spanningColCount;
+        const oldSpanCount = this.floatingSelectionCols.get(elementsRawUniqueId) || 0;
+
+        if (oldSpanCount != spanningColCount && this.floatingDivsSplit.get(elementsRawUniqueId)) {
+          const divArray = this.floatingDivsSplit.get(elementsRawUniqueId);
+          if (divArray) {
+            const filteredArrayBad = divArray.filter(obj => obj.col > spanningColCount);
+            filteredArrayBad.forEach(split => {
+              let mother = split["elem"]
+              mother.remove()
+            })
+            const filteredArray = divArray.filter(obj => obj.col <= spanningColCount);
+            this.floatingDivsSplit.set(elementsRawUniqueId, filteredArray);
+          }
+        }
+
+        // Update or set the column count in the map
+        this.floatingSelectionCols.set(elementsRawUniqueId, spanningColCount);
+
+        for (let c = lowerCol; c < upperCol; c++) {
+          let floatingDivSplit = this.floatingDivsSplit.get(elementsRawUniqueId);
+          let floatingDiv = null
+          if (floatingDivSplit) {
+            let gay = floatingDivSplit.find(entry => entry.col === c)
+
+            if (gay && gay["elem"]) {
+              floatingDiv = gay["elem"];
+            }
+          }
+          let isNewDiv = false;
+
+          if (!floatingDiv) {
+            floatingDiv = document.createElement("div");
+            // floatingDiv.id = splitId;
+            floatingDiv.style.backgroundColor = backgroundColor
+            floatingDiv.className = "highlightedText split";
+            isNewDiv = true;
+          }
+
+          floatingDiv.style.borderBottom = "2px solid transparent";
+          let firstColStartIndex = Number.parseInt(startId);
+          let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
+          if (c === lowerCol) {
+            // First column
+            firstColStartIndex = startId;
+            firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
+
+            // this.addAttributes(firstColStartIndex, firstColEndIndex, floatingDiv)
+
+          } else if (c === upperCol - 1) {
+            // Last column
+            firstColStartIndex = this.wordStats[c][1];
+            firstColEndIndex = endId
+            floatingDiv.style.borderBottom = "2px solid blue";
+            // this.addAttributes(lastColStartIndex, endId, floatingDiv)
+          } else {
+            // Middle columns
+            firstColStartIndex = this.wordStats[c][1];
+            firstColEndIndex = this.wordStats[c + 1][1] - 1;
+
+            // this.addAttributes(colStartIndex, colEndIndex, floatingDiv)
+          }
+
+          // Only add to map and DOM if it's a new div
+          if (isNewDiv) {
+            let floatingDivSplit = this.floatingDivsSplit.get(elementsRawUniqueId);
+            if (!floatingDivSplit) {
+              // Initialize with an array containing the first object
+              this.floatingDivsSplit.set(elementsRawUniqueId, [{
+                col: c,
+                elem: floatingDiv,
+                start: firstColStartIndex,
+                end: firstColEndIndex
+              }]);
+            } else {
+              // Push new object to existing array
+              this.floatingDivsSplit.get(elementsRawUniqueId).push({
+                col: c,
+                elem: floatingDiv,
+                start: firstColStartIndex,
+                end: firstColEndIndex
+              });
+            }
+            document.body.appendChild(floatingDiv);
+          }
+
+          this.#repositionItems
+        }
+
+        this.floatingSelectionWrapped.set(elementsRawUniqueId, spanningColCount);
+      } else if (element.style.display === "none" && (yCol1 === yCol2)) {
+        element.style.display = "inline";
+        const rowId = element.getAttribute("rawId");
+        this.floatingDivsSplit.set(rowId, {})
+      }
+
+      const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
+
+      element.style.width = `${Math.ceil(this.getWordWidth(selectedText))}px`;
+      let top2 = this.findYValueFromIndex(startId);
+      let yOffset = top2 - this.charHoverPaddingMouse + this.mouseTopOffset
+
+      let xOffset = linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
+      console.log(this.charHoverPaddingMouse)
+      console.log(Math.ceil(this.charHoverPaddingMouse))
+      console.log(Math.round(this.charHoverPaddingMouse))
+      console.log(Math.floor(this.charHoverPaddingMouse))
+      console.log(this.getLeftPadding())
+      console.log(this.mouseLeftOffset)
+      console.log((Number.parseInt(this.fontSize) / 10))
+      element.style.transform = `translate(${Math.floor(xOffset)}px, ${yOffset}px)`;
+      // element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+
+      // element.style.top = `${top - this.charHoverPaddingMouse + this.mouseTopOffset}px`;
+
+      // element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
 
     } catch (error) {
       console.error('Error in positionFloatingComment:', error);
@@ -259,6 +400,7 @@ export class TextHighlighter {
   };
 
   hoveringComment() {
+
     this.floatingComments.forEach((div) => {
       let hoverItem = div;
 
@@ -319,29 +461,33 @@ export class TextHighlighter {
 
           isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
         }
-        const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
+        // const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
+        const splits = this.floatingDivsSplit.get(`${startId}-${endId}`)
+        if (splits) {
+          if (isInside) {
+            div.setAttribute('active', true)
 
-        if (isInside) {
-          div.setAttribute('active', true)
+            div.style.opacity = 1
+            div.style.zIndex = 50
 
-          div.style.opacity = 1
-          div.style.zIndex = 50
+            splits.forEach(item => {
 
-          splits.forEach(item => {
-            item.style.opacity = 1;
-          });
-        } else {
-          if (div.style.opacity == 1) {
-            div.style.opacity = 0
-            setTimeout(() => {
-              div.style.zIndex = 5;
-            }, this.hoverTransitionDuration);
+              item["elem"].style.opacity = 1;
+            });
+          } else {
+            if (div.style.opacity == 1) {
+              div.style.opacity = 0
+              setTimeout(() => {
+                div.style.zIndex = 5;
+              }, this.hoverTransitionDuration);
+            }
+
+            splits.forEach(item => {
+              item["elem"].style.opacity = this.unfocusedOpacity;
+            });
           }
-
-          splits.forEach(item => {
-            item.style.opacity = this.unfocusedOpacity;
-          });
         }
+
       }
     });
   }
@@ -649,8 +795,14 @@ export class TextHighlighter {
       }
     });
 
-    this.floatingDivsSplit.forEach((div) => {
-      this.#positionHighlight(div)
+    this.floatingDivsSplit.forEach((divArray, key) => {
+      divArray.forEach((divsplit) => {
+
+
+        this.#positionHighlightTwo(divsplit, key);
+
+
+      });
     });
   }
 
@@ -880,9 +1032,25 @@ export class TextHighlighter {
       commentHighlight.setAttribute("end", endIndex)
       commentHighlight.setAttribute("rawId", rawUniqueId)
       this.commentHighlights.set(rawUniqueId, commentHighlight);
+      if (this.floatingDivsSplit.get(rawUniqueId)) {
+        this.floatingDivsSplit.get(rawUniqueId).push({
+          col: 0,
+          elem: commentHighlight,
+          start: startIndex,
+          end: endIndex
+        });
+      } else {
+        this.floatingDivsSplit.set(rawUniqueId, [{
+          col: 0,
+          elem: commentHighlight,
+          start: startIndex,
+          end: endIndex
+        }]);
+      }
+
       document.body.appendChild(commentHighlight);
     }
-    this.#positionHighlight(this.commentHighlights.get(rawUniqueId));
+    //  this.#positionHighlight(this.commentHighlights.get(rawUniqueId));
     this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
 
     this.#repositionItems()

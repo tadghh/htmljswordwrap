@@ -45,6 +45,8 @@ body {
 .split {
 	position: absolute;
 	color: white;
+	left: 0px;
+	top: 0px;
 }
 
 .split:hover {
