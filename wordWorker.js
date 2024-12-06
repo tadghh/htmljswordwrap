@@ -1,6 +1,5 @@
 
 // TODO Form at edge of screen, don't let it go over bounds
-
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
 
@@ -197,6 +196,7 @@ export class TextHighlighter {
   }
 
   #positionCommentForm(element) {
+    // TODO switch to arr
     const startId = element.getAttribute("start")
     const endId = element.getAttribute("end")
     let paddingOffset = Number.parseFloat(window.getComputedStyle(element, null).getPropertyValue('border-left-width'))
@@ -211,6 +211,7 @@ export class TextHighlighter {
   #handleMouseMove = (event) => {
     this.relativeX = event.clientX - this.getLeftPadding();
     this.relativeY = event.clientY - this.getTopWordPadding();
+    // TODO make it static
     const wordStatsLengthReal = this.wordStats.length - 1;
 
     // Single division operation
@@ -240,90 +241,56 @@ export class TextHighlighter {
         `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
     }
     this.hoveringComment()
+    // const iterations = 10000;
+    // const start = performance.now();
+    // for (let i = 0; i < iterations; i++) {
+
+    // }
+    // const end = performance.now();
+    // console.log("Average time per call (ms):");
+    // console.log(((end - start) / iterations).toFixed(6));
   };
+  #getCurrentMouseIndex() {
+    const wordStatsLengthReal = this.wordStats.length - 1;
+    return this.#findLetterIndexByWidth(this.wordStats[this.mouseColSafe][1], this.mouseColSafe === wordStatsLengthReal
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1], this.relativeX)
+  }
+  #isMouseLastIndex() {
+    return this.wordStats
+      .slice(1)
+      .some(stat => (stat[1] - 1) === this.#getCurrentMouseIndex());
+  }
 
   hoveringComment() {
     this.floatingComments.forEach((div) => {
-      let hoverItem = div;
+      const startId = Number.parseInt(div.getAttribute("start"));
+      const endId = Number.parseInt(div.getAttribute("end"));
+      const currentMouseIndex = this.#getCurrentMouseIndex();
 
-      if (hoverItem) {
-        const startId = hoverItem.getAttribute("start");
-        const endId = hoverItem.getAttribute("end");
-        const mouseTopOffset = this.mouseTopOffset
-        const top = this.findYValueFromIndex(startId) + mouseTopOffset;
-        const newRelY = this.relativeY + this.getTopWordPadding() + mouseTopOffset;
-        const relativeX = this.relativeX
-        let startCol = this.findColFromIndex(startId)
-        let endCol = this.findColFromIndex(endId)
-        const isMultiLine = startCol != endCol
-        const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
+      let isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.#isMouseLastIndex()
 
-        let minXBorder = xCol;
-        let maxXBorder = this.getPaddingForIndex(endId)
+      const splits = this.floatingDivsSplit.get(`${startId}-${endId}`)
+      if (isInside) {
+        div.style.opacity = 1
+        div.style.zIndex = 50
 
-        let topBorder = top;
-        let bottomBorder = top + this.fontSizeRaw;
-
-        let isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
-        let isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
-        let isInside = isInsideX && isInsideY;
-
-        // TODO clean this up spaghetti mess
-        // Were checking if the mouse is in the middle rows of the text or the top or bottom row
-        if (isMultiLine) {
-          const wordStatsLengthReal = this.wordStats.length - 1;
-          let middleStart = this.wordStats[Math.max(1, Math.min(this.mouseColSafe + 1, wordStatsLengthReal))][1];
-          let minXBorderGeneric = this.getLeftPadding()
-
-          let middleStartYIndex = this.findYValueFromIndex(this.wordStats[startCol + 1][1]) + mouseTopOffset;
-          let middleEndColIndex = this.getPaddingForIndex(middleStart != 0 ? middleStart - 1 : 0);
-          let middleEndColYIndex = this.findYValueFromIndex(this.wordStats[endCol][1]) + mouseTopOffset
-
-          let isMiddleX = relativeX >= minXBorderGeneric && relativeX <= middleEndColIndex;
-          let isMiddleY = newRelY >= middleStartYIndex && newRelY <= middleEndColYIndex
-
-          let firstTop = top;
-          let LastBottom = this.findYValueFromIndex(endId) + mouseTopOffset;
-
-          let isInsideFirstY = newRelY >= firstTop && newRelY <= firstTop + this.fontSizeRaw;
-          let isInsideLastY = newRelY >= LastBottom && newRelY <= LastBottom + this.fontSizeRaw;
-
-          let maxInsideFirstX = this.findColFromIndex(startId)
-          let maxInsideFirstXIndex = this.wordStats[Math.min(maxInsideFirstX + 1, wordStatsLengthReal)][1]
-          let maxXBorderFirst = this.getPaddingForIndex(maxInsideFirstXIndex - 1)
-          let minXBorderFirst = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
-          let maxXBorderLast = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(endId))
-
-          let isInsideXFirstLine = relativeX >= minXBorderFirst && relativeX <= maxXBorderFirst;
-          let isInsideXLastLine = relativeX >= minXBorderGeneric && relativeX <= maxXBorderLast;
-          isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
+        splits.forEach(item => {
+          item["elem"].style.opacity = 1;
+        });
+      } else {
+        if (div.style.opacity == 1) {
+          div.style.opacity = 0
+          setTimeout(() => {
+            div.style.zIndex = 5;
+          }, this.hoverTransitionDuration);
         }
-        // const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
-        // TODO change this
-        const splits = this.floatingDivsSplit.get(`${startId}-${endId}`)
-        if (splits) {
-          if (isInside) {
-            div.setAttribute('active', true)
-            div.style.opacity = 1
-            div.style.zIndex = 50
 
-            splits.forEach(item => {
-              item["elem"].style.opacity = 1;
-            });
-          } else {
-            if (div.style.opacity == 1) {
-              div.style.opacity = 0
-              setTimeout(() => {
-                div.style.zIndex = 5;
-              }, this.hoverTransitionDuration);
-            }
-
-            splits.forEach(item => {
-              item["elem"].style.opacity = this.unfocusedOpacity;
-            });
-          }
-        }
+        splits.forEach(item => {
+          item["elem"].style.opacity = this.unfocusedOpacity;
+        });
       }
+
     });
   }
 
@@ -376,7 +343,7 @@ export class TextHighlighter {
           let startIndexForm = document.getElementById("startIndexForm")
           let endIndexForm = document.getElementById("endIndexForm")
 
-          // TODO make it append itself
+          // TODO make form it append itself
           document.body.appendChild(this.createForm(this.startLetterIndex, this.endLetterIndex));
           this.#repositionItems()
           if (startIndexForm && endIndexForm) {
@@ -554,6 +521,7 @@ export class TextHighlighter {
   // TODO from here use positioning logic on form
   #positionCommentContent(element) {
     if (element) {
+      // TODO move away from this attribute stuff, store vals in arr
       const startId = element.getAttribute("start");
       const endId = element.getAttribute("end");
 
