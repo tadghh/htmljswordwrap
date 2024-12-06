@@ -14,8 +14,6 @@ export class TextHighlighter {
     this.relativeY = 0;
     this.relativeX = 0;
     this.commentHighlights = new Map();
-    this.floatingSelectionCols = new Map();
-    this.floatingSelectionWrapped = new Map();
     this.floatingComments = new Map();
     this.floatingDivsSplit = new Map();
 
@@ -80,30 +78,23 @@ export class TextHighlighter {
     const startId = Number.parseInt(element2["start"]);
     const endId = element2["end"];
     const isHead = element2["head"] == true;
-
-    let element = element2[
-      "elem"
-    ]
+    let element = element2["elem"]
 
     try {
       this.#updateDivValues()
-      let linePadding = this.getPaddingForIndex(startId);
       let yCol1 = this.findColFromIndex(startId);
       let yCol2 = this.findColFromIndex(endId);
 
       const spanningColCount = this.#calcCols(startId, endId);
-      if (spanningColCount >= 1 && isHead) {
-        const elementsRawUniqueId = key;
+      const elementsRawUniqueId = key;
 
-        element.style.display = "none";
+      if (spanningColCount >= 1 && isHead) {
         let colorInt = element2["colorId"]
         let backgroundColor = this.getColor(Number.parseInt(colorInt))
-        console.log(backgroundColor)
         let lowerCol = yCol1;
         let upperCol = yCol1 + spanningColCount;
 
-        // Update or set the column count in the map
-        this.floatingSelectionCols.set(elementsRawUniqueId, spanningColCount);
+        element.style.display = "none";
 
         this.floatingDivsSplit.set(
           elementsRawUniqueId,
@@ -124,6 +115,7 @@ export class TextHighlighter {
           let isNewDiv = false;
           let currentHead = false
           let current_highlight_data = undefined
+
           if (floatingDivSplit.len != 0) {
             let current_highlight = floatingDivSplit.find(entry => entry.col == c)
 
@@ -182,8 +174,6 @@ export class TextHighlighter {
             }
           }
         }
-
-        this.floatingSelectionWrapped.set(elementsRawUniqueId, spanningColCount);
       } else if (element.style.display === "none" && (yCol1 === yCol2)) {
         element.style.display = "inline";
       }
@@ -207,9 +197,11 @@ export class TextHighlighter {
 
     element.style.left = `${Math.ceil(linePadding) + this.getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset}px`;
   }
+
   #getWordColCount() {
     return this.wordStats.length - 1
   }
+
   #handleMouseMove = (event) => {
     this.relativeX = event.clientX - this.getLeftPadding();
     this.relativeY = event.clientY - this.getTopWordPadding();
@@ -330,7 +322,6 @@ export class TextHighlighter {
 
       if (totalLength > 1) {
         this.#createHighlight();
-
         this.createForm(this.startLetterIndex, this.endLetterIndex)
         this.#repositionItems()
       }
