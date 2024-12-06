@@ -103,6 +103,7 @@ export class TextHighlighter {
 
         // Update or set the column count in the map
         this.floatingSelectionCols.set(elementsRawUniqueId, spanningColCount);
+
         this.floatingDivsSplit.set(
           elementsRawUniqueId,
           this.floatingDivsSplit
@@ -240,7 +241,6 @@ export class TextHighlighter {
   };
 
   hoveringComment() {
-
     this.floatingComments.forEach((div) => {
       let hoverItem = div;
 
@@ -393,11 +393,16 @@ export class TextHighlighter {
     }
   };
 
+  // TODO update this
   removeHighlights(id) {
-    let highlighted = document.querySelectorAll(`[rawid='${id}']`);
-    highlighted.forEach((div) => {
-      div.remove()
-    });
+    console.log(id)
+    console.log(this.floatingDivsSplit)
+    this.floatingDivsSplit.get(id).map((item) => {
+      let element = item["elem"]
+      element.remove()
+    })
+    this.floatingDivsSplit.delete(id)
+
   }
 
   formCommentSubmission(submission) {
@@ -424,6 +429,7 @@ export class TextHighlighter {
     this.removeForm(formId);
   }
 
+  // TODO fix positioning
   createForm(startIndex, endIndex) {
     this.formIsActive = true;
     const id = `form-${startIndex}-${endIndex}`;
@@ -481,19 +487,9 @@ export class TextHighlighter {
     });
 
     floatingDivForm.style.top = `${this.charHoverPaddingMouse + this.mouseTopOffset}px`;
-    // let head = ass
-    //   .filter((item) => {
-    //     if (item.col == 2) {
-    //       return true; // Exclude this item from the array
-    //     }
-    //     return false; // Keep this item in the array
-    //   })
-    console.log("head")
-    // console.log(ass)
-    // console.log(head[0])
-    // console.log(ass.indexOf(head[0]))
-    // let head_index = ass.indexOf(head[0]);
-    // Add event listener for radio button selection
+
+
+
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
       radio.addEventListener('change', (event) => {
@@ -506,7 +502,6 @@ export class TextHighlighter {
           highlight.color = color;
           highlight.setAttribute("commentType", selectedId)
           this.#updateHighlightColorsId(rawId, selectedId)
-
         }
       });
     });
@@ -591,7 +586,6 @@ export class TextHighlighter {
       }
 
       if (endCol - startCol >= 1) {
-
         top = this.findYValueFromIndex(endId);
         yColStartIndex = bottomLineWidth - wordWidth
         linePadding = this.getPaddingForIndex(endId);
@@ -887,7 +881,6 @@ export class TextHighlighter {
       this.#positionHighlightTwo(newObj, rawUniqueId);
       document.body.appendChild(commentHighlight);
     }
-    //  this.#positionHighlight(this.commentHighlights.get(rawUniqueId));
     this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
 
     this.#repositionItems()
