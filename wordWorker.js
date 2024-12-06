@@ -95,8 +95,9 @@ export class TextHighlighter {
         const elementsRawUniqueId = key;
 
         element.style.display = "none";
-        let colorInt = element.getAttribute("commentType")
+        let colorInt = element2["colorId"]
         let backgroundColor = this.getColor(Number.parseInt(colorInt))
+        console.log(backgroundColor)
         let lowerCol = yCol1;
         let upperCol = yCol1 + spanningColCount;
 
@@ -141,6 +142,7 @@ export class TextHighlighter {
             }
 
             floatingDiv.style.borderBottom = "2px solid transparent";
+            floatingDiv.style.backgroundColor = backgroundColor
             let firstColStartIndex = this.wordStats[c][1];
             let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
 
@@ -375,10 +377,8 @@ export class TextHighlighter {
       let totalLength = this.endLetterIndex - this.startLetterIndex;
 
       if (totalLength > 1) {
-        this.#createHighlight();
-        this.formIsActive = true;
-
-        if (this.formIsActive) {
+        if (!this.formIsActive) {
+          this.#createHighlight();
           let startIndexForm = document.getElementById("startIndexForm")
           let endIndexForm = document.getElementById("endIndexForm")
 
@@ -417,16 +417,7 @@ export class TextHighlighter {
 
     // TODO swap out client side
     // Create the highlight with the comment
-    let commentElement = document.getElementById(`floating-${startIndex}-${endIndex}`)
-
     this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment, commentTypeId);
-    const commentColor = this.getColor(commentTypeId);
-    let ass = this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)
-    ass.forEach((divsplit) => {
-
-      divsplit["elem"].style.backgroundColor = commentColor
-      // this.#positionHighlightTwo(divsplit, key);
-    });
 
     // Remove the form after submission
     const formId = `form-${startIndex}-${endIndex}`;
@@ -434,6 +425,7 @@ export class TextHighlighter {
   }
 
   createForm(startIndex, endIndex) {
+    this.formIsActive = true;
     const id = `form-${startIndex}-${endIndex}`;
     const elementString = `
     <div class="floatingForm">
@@ -483,14 +475,24 @@ export class TextHighlighter {
     floatingDivForm.className = "floatingForm";
     floatingDivForm.setAttribute("start", startIndex);
     floatingDivForm.setAttribute("end", endIndex);
-    let ass = this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)
+    let ass = this.floatingDivsSplit.get(rawId)
     ass.forEach((divsplit) => {
       divsplit["elem"].style.opacity = 1;
-      // this.#positionHighlightTwo(divsplit, key);
     });
 
     floatingDivForm.style.top = `${this.charHoverPaddingMouse + this.mouseTopOffset}px`;
-
+    // let head = ass
+    //   .filter((item) => {
+    //     if (item.col == 2) {
+    //       return true; // Exclude this item from the array
+    //     }
+    //     return false; // Keep this item in the array
+    //   })
+    console.log("head")
+    // console.log(ass)
+    // console.log(head[0])
+    // console.log(ass.indexOf(head[0]))
+    // let head_index = ass.indexOf(head[0]);
     // Add event listener for radio button selection
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
@@ -499,15 +501,12 @@ export class TextHighlighter {
         const color = this.getColor(selectedId);
 
         // Update the highlight in commentHighlights if applicable
-        if (this.commentHighlights && this.commentHighlights.get(rawId)) {
+        if (this.floatingDivsSplit && this.floatingDivsSplit.get(rawId)) {
           const highlight = this.commentHighlights.get(rawId);
           highlight.color = color;
           highlight.setAttribute("commentType", selectedId)
+          this.#updateHighlightColorsId(rawId, selectedId)
 
-          ass.forEach(divsplit => {
-            divsplit["elem"].style.backgroundColor = color;
-            divsplit["elem"].setAttribute('commentType', selectedId);
-          });
         }
       });
     });
@@ -538,46 +537,26 @@ export class TextHighlighter {
     const rawUniqueId = `${startIndex}-${endIndex}`;
 
     if (!this.commentHighlights.has(rawUniqueId)) {
-      const selectedText = this.contentTextCleaned.slice(startIndex, endIndex + 1);
       const commentHighlight = document.createElement("div");
-      const selectedId = parseInt(1);
-      const color = this.getColor(selectedId);
-
-      // commentHighlight.id = uniqueId;
       commentHighlight.className = "highlightedText split";
-      // commentHighlight.style.width = `${width}px`;
-
-      commentHighlight.setAttribute("start", startIndex)
-      commentHighlight.setAttribute("end", endIndex)
-      commentHighlight.setAttribute("commentType", selectedId)
-      commentHighlight.style.backgroundColor = color;
-      commentHighlight.setAttribute("rawId", rawUniqueId)
       this.commentHighlights.set(rawUniqueId, commentHighlight);
       let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
-      if (!floatingDivSplit) {
-        // Initialize with an array containing the first object
-        this.floatingDivsSplit.set(rawUniqueId, [{
-          head: true,
-          elem: commentHighlight,
-          start: startIndex,
-          end: endIndex
-        }]);
-      } else {
-        // Push new object to existing array
-        this.floatingDivsSplit.get(rawUniqueId).push({
-          head: true,
-          elem: commentHighlight,
-          start: startIndex,
-          end: endIndex
-        });
 
-      }
       let newObj = {
         head: true,
         elem: commentHighlight,
-        start: startIndex,
-        end: endIndex
+        start: Number.parseInt(startIndex),
+        end: Number.parseInt(endIndex),
+        colorId: Number.parseInt(1)
       }
+
+      if (!floatingDivSplit) {
+        // Initialize with an array containing the first object
+        // two comments wont have the same sawUniqueId so we should awlays make it here
+        // unique id is gen by mouse down letter index  and mouse up letter index
+        this.floatingDivsSplit.set(rawUniqueId, [newObj]);
+      }
+
       this.#positionHighlightTwo(newObj, rawUniqueId);
       document.body.appendChild(commentHighlight);
     }
@@ -865,16 +844,14 @@ export class TextHighlighter {
     if (textContent[startIndex] === " ") startIndex++;
     if (textContent[endIndex] === " ") endIndex--;
     // add example spans below
-    const uniqueId = `floating-highlighted-${startIndex}-${endIndex}`;
     const rawUniqueId = `${startIndex}-${endIndex}`;
-    const selectedText = textContent.slice(startIndex, endIndex + 1);
     const selectedId = parseInt(colorId);
     const color = this.getColor(selectedId);
     if (!this.floatingComments.has(rawUniqueId)) {
       const floatingComment = document.createElement("div");
 
       floatingComment.id = `floating-${startIndex}-${endIndex}`;
-      floatingComment.className = "highlightComment ";
+      floatingComment.className = "highlightComment";
       floatingComment.textContent = comment
       floatingComment.style.width = `${this.getWordWidth(comment)}px`;
       floatingComment.setAttribute("start", startIndex)
@@ -888,31 +865,26 @@ export class TextHighlighter {
 
     if (!this.commentHighlights.has(rawUniqueId)) {
       const commentHighlight = document.createElement("div");
-      commentHighlight.id = uniqueId;
       commentHighlight.className = "highlightedText split";
-      commentHighlight.style.backgroundColor = color;
-      commentHighlight.style.width = `${this.getWordWidth(selectedText)}px`;
-      commentHighlight.setAttribute("start", startIndex)
-      commentHighlight.setAttribute("end", endIndex)
-      commentHighlight.setAttribute("rawId", rawUniqueId)
       this.commentHighlights.set(rawUniqueId, commentHighlight);
-      if (this.floatingDivsSplit.get(rawUniqueId)) {
-        this.floatingDivsSplit.get(rawUniqueId).push({
-          col: 0,
-          elem: commentHighlight,
-          start: startIndex,
-          end: endIndex
-        });
-      } else {
-        console.log(rawUniqueId)
-        this.floatingDivsSplit.set(rawUniqueId, [{
-          col: 0,
-          elem: commentHighlight,
-          start: startIndex,
-          end: endIndex
-        }]);
+      let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
+
+      let newObj = {
+        head: true,
+        elem: commentHighlight,
+        start: Number.parseInt(startIndex),
+        end: Number.parseInt(endIndex),
+        colorId: Number.parseInt(colorId)
       }
 
+      if (!floatingDivSplit) {
+        // Initialize with an array containing the first object
+        // two comments wont have the same sawUniqueId so we should awlays make it here
+        // unique id is gen by mouse down letter index  and mouse up letter index
+        this.floatingDivsSplit.set(rawUniqueId, [newObj]);
+      }
+
+      this.#positionHighlightTwo(newObj, rawUniqueId);
       document.body.appendChild(commentHighlight);
     }
     //  this.#positionHighlight(this.commentHighlights.get(rawUniqueId));
@@ -1015,6 +987,22 @@ export class TextHighlighter {
       let x = form.getAttribute("start")
       let y = form.getAttribute("end")
       this.removeHighlights(`${x}-${y}`)
+    }
+  }
+
+
+
+  #updateHighlightColorsId(rawId, colorId) {
+    let items = this.floatingDivsSplit.get(rawId)
+    if (items) {
+      const selectedId = parseInt(colorId);
+      const color = this.getColor(selectedId);
+      items.map((item) => {
+        item["elem"].style.backgroundColor = color
+        if (item["head"] == true) {
+          item["colorId"] = selectedId
+        }
+      })
     }
   }
 
