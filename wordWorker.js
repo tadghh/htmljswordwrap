@@ -34,6 +34,8 @@ export class TextHighlighter {
 
     const computedStyle = getComputedStyle(this.highlightedDiv);
     this.fontSize = computedStyle.fontSize;
+    this.fontSizeRaw = Number.parseFloat(this.fontSize)
+
     this.fontFamily = computedStyle.fontFamily;
     // 1.2 is 'default' line height
     this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
@@ -247,24 +249,20 @@ export class TextHighlighter {
       if (hoverItem) {
         const startId = hoverItem.getAttribute("start");
         const endId = hoverItem.getAttribute("end");
-
+        const mouseTopOffset = this.mouseTopOffset
+        const top = this.findYValueFromIndex(startId) + mouseTopOffset;
+        const newRelY = this.relativeY + this.getTopWordPadding() + mouseTopOffset;
+        const relativeX = this.relativeX
         let startCol = this.findColFromIndex(startId)
         let endCol = this.findColFromIndex(endId)
         const isMultiLine = startCol != endCol
-        const mouseTopOffset = this.mouseTopOffset
-
-        const fontSizeRaw = Number.parseFloat(this.fontSize)
         const xCol = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
 
-        const newRelY = this.relativeY + this.getTopWordPadding() + mouseTopOffset;
-
-        const relativeX = this.relativeX
-        const top = this.findYValueFromIndex(startId) + mouseTopOffset;
         let minXBorder = xCol;
         let maxXBorder = this.getPaddingForIndex(endId)
 
         let topBorder = top;
-        let bottomBorder = top + fontSizeRaw;
+        let bottomBorder = top + this.fontSizeRaw;
 
         let isInsideX = relativeX >= minXBorder && relativeX <= maxXBorder;
         let isInsideY = newRelY >= topBorder && newRelY <= bottomBorder;
@@ -273,45 +271,43 @@ export class TextHighlighter {
         // TODO clean this up spaghetti mess
         // Were checking if the mouse is in the middle rows of the text or the top or bottom row
         if (isMultiLine) {
-          let middleStart = this.wordStats[endCol - 1][1];
-          let bottomTop = this.findYValueFromIndex(endId) + mouseTopOffset
-          bottomBorder = bottomTop
+          const wordStatsLengthReal = this.wordStats.length - 1;
+          let middleStart = this.wordStats[Math.max(1, Math.min(this.mouseColSafe + 1, wordStatsLengthReal))][1];
+          let minXBorderGeneric = this.getLeftPadding()
 
-          maxXBorder = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(middleStart - 1))
-          let middleStartIndex = this.getLeftPadding();
           let middleStartYIndex = this.findYValueFromIndex(this.wordStats[startCol + 1][1]) + mouseTopOffset;
-          let middleEndColIndex = maxXBorder;
+          let middleEndColIndex = this.getPaddingForIndex(middleStart != 0 ? middleStart - 1 : 0);
           let middleEndColYIndex = this.findYValueFromIndex(this.wordStats[endCol][1]) + mouseTopOffset
 
-          let isMiddleX = relativeX >= middleStartIndex && relativeX <= middleEndColIndex;
+          let isMiddleX = relativeX >= minXBorderGeneric && relativeX <= middleEndColIndex;
           let isMiddleY = newRelY >= middleStartYIndex && newRelY <= middleEndColYIndex
 
           let firstTop = top;
-          let LastBottom = bottomTop;
+          let LastBottom = this.findYValueFromIndex(endId) + mouseTopOffset;
 
-          let isInsideFirstY = newRelY >= firstTop && newRelY <= firstTop + fontSizeRaw;
-          let isInsideLastY = newRelY >= LastBottom && newRelY <= LastBottom + fontSizeRaw;
+          let isInsideFirstY = newRelY >= firstTop && newRelY <= firstTop + this.fontSizeRaw;
+          let isInsideLastY = newRelY >= LastBottom && newRelY <= LastBottom + this.fontSizeRaw;
 
+          let maxInsideFirstX = this.findColFromIndex(startId)
+          let maxInsideFirstXIndex = this.wordStats[Math.min(maxInsideFirstX + 1, wordStatsLengthReal)][1]
+          let maxXBorderFirst = this.getPaddingForIndex(maxInsideFirstXIndex - 1)
           let minXBorderFirst = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(startId))
           let maxXBorderLast = this.getNextLowestDivisibleByNinePointSix(this.getPaddingForIndex(endId))
-          let minXBorderLast = this.getLeftPadding()
 
-          let isInsideXFirstLine = relativeX >= minXBorderFirst && relativeX <= maxXBorder;
-          let isInsideXLastLine = relativeX >= minXBorderLast && relativeX <= maxXBorderLast;
-
+          let isInsideXFirstLine = relativeX >= minXBorderFirst && relativeX <= maxXBorderFirst;
+          let isInsideXLastLine = relativeX >= minXBorderGeneric && relativeX <= maxXBorderLast;
           isInside = (isInsideX && isInsideY) || (isInsideXFirstLine && isInsideFirstY) || (isInsideXLastLine && isInsideLastY) || (isMiddleY && isMiddleX);
         }
         // const splits = document.querySelectorAll(`[rawId="${startId}-${endId}"].split`);
+        // TODO change this
         const splits = this.floatingDivsSplit.get(`${startId}-${endId}`)
         if (splits) {
           if (isInside) {
             div.setAttribute('active', true)
-
             div.style.opacity = 1
             div.style.zIndex = 50
 
             splits.forEach(item => {
-
               item["elem"].style.opacity = 1;
             });
           } else {
@@ -327,11 +323,9 @@ export class TextHighlighter {
             });
           }
         }
-
       }
     });
   }
-
 
   #handleMouseDown = (event) => {
     let relativeX = event.clientX - this.getLeftPadding() + 2;
@@ -367,7 +361,7 @@ export class TextHighlighter {
 
     // Use binary search to find letter index
     if (!this.formIsActive) {
-      this.endLetterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);;
+      this.endLetterIndex = this.#findLetterIndexByWidth(startIndex, endIndex, relativeX);
 
       if (this.startLetterIndex > this.endLetterIndex) {
         [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
@@ -382,6 +376,7 @@ export class TextHighlighter {
           let startIndexForm = document.getElementById("startIndexForm")
           let endIndexForm = document.getElementById("endIndexForm")
 
+          // TODO make it append itself
           document.body.appendChild(this.createForm(this.startLetterIndex, this.endLetterIndex));
           this.#repositionItems()
           if (startIndexForm && endIndexForm) {
@@ -393,16 +388,12 @@ export class TextHighlighter {
     }
   };
 
-  // TODO update this
   removeHighlights(id) {
-    console.log(id)
-    console.log(this.floatingDivsSplit)
     this.floatingDivsSplit.get(id).map((item) => {
       let element = item["elem"]
       element.remove()
     })
     this.floatingDivsSplit.delete(id)
-
   }
 
   formCommentSubmission(submission) {
@@ -488,8 +479,6 @@ export class TextHighlighter {
 
     floatingDivForm.style.top = `${this.charHoverPaddingMouse + this.mouseTopOffset}px`;
 
-
-
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
       radio.addEventListener('change', (event) => {
@@ -556,12 +545,12 @@ export class TextHighlighter {
       document.body.appendChild(commentHighlight);
     }
     // Add the div element relative to the span
-
     this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
 
     // Initially position the div
     this.#repositionItems()
   }
+
   // TODO from here use positioning logic on form
   #positionCommentContent(element) {
     if (element) {
@@ -570,7 +559,7 @@ export class TextHighlighter {
 
       const wordWidth = this.getWordWidth(element.textContent);
       const maxWidth = this.getMaxWidth();
-      element.style.paddingLeft = `${(Number.parseInt(this.fontSize) / 10)}px`
+      element.style.paddingLeft = `${(this.fontSizeRaw / 10)}px`
       let yColStartIndex = this.getPaddingForIndex(startId);
       let linePadding = this.getPaddingForIndex(startId);
 
@@ -592,7 +581,7 @@ export class TextHighlighter {
         element.style.left = `${Math.ceil(linePadding) + Math.round(this.charHoverPadding) + this.getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth)}px`;
       } else {
         top = this.findYValueFromIndex(startId);
-        element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 10)}px`;
+        element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.getLeftPadding() + this.mouseLeftOffset - (this.fontSizeRaw / 10)}px`;
       }
 
       element.style.top = `${top + Number.parseFloat(this.fontSize) + this.mouseTopOffset}px`;
@@ -617,7 +606,7 @@ export class TextHighlighter {
         console.log(this.floatingDivsSplit)
       }
     });
-    this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
+    document.addEventListener("mousemove", this.#handleMouseMove);
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
@@ -658,7 +647,7 @@ export class TextHighlighter {
     let currentStringIndex = 0;
     let currentWidth = 0;
 
-    this.wordArray.forEach((word, iter) => {
+    this.wordArray.forEach((word) => {
       const currentWordWidth = this.getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
       let extra = word.endsWith(" ") ? 0 : this.spaceSize * -1;
@@ -668,21 +657,17 @@ export class TextHighlighter {
       } else {
         // If it doesn't fit, test without trailing space
         // Only subtract space if not last word and word has a space
-
         const endTest = Math.ceil(testWidth);
 
         if (endTest <= maxWidth + otherOff) {
           // && endTest + 2 != maxWidth
-
           currentWidth = endTest;
         } else if (endTest >= maxWidth + otherOff) {
           // Word doesn't fit, wrap to new lin
-
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
           currentWidth = currentWordWidth;
         } else {
-
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
           currentWidth = currentWordWidth;
@@ -700,7 +685,6 @@ export class TextHighlighter {
 
   getWidthFromRange(startIndex, yColIndex) {
     if (startIndex < 0 || yColIndex < 0) return null
-    // if (yColIndex < startIndex) return null
     let cumulativeWidth = 0;
     for (let i = startIndex; i < this.contentTextCleaned.length; i++) {
       if (i == yColIndex) {
@@ -837,7 +821,7 @@ export class TextHighlighter {
 
     if (textContent[startIndex] === " ") startIndex++;
     if (textContent[endIndex] === " ") endIndex--;
-    // add example spans below
+
     const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedId = parseInt(colorId);
     const color = this.getColor(selectedId);
@@ -963,7 +947,6 @@ export class TextHighlighter {
     return this.#widthSums.get(key);
   }
 
-
   removeForm(id) {
     let form = document.getElementById(id)
     if (form) {
@@ -982,8 +965,6 @@ export class TextHighlighter {
       this.removeHighlights(`${x}-${y}`)
     }
   }
-
-
 
   #updateHighlightColorsId(rawId, colorId) {
     let items = this.floatingDivsSplit.get(rawId)
