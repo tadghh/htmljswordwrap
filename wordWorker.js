@@ -21,7 +21,7 @@ export class TextHighlighter {
 
     // 300ms in the css
     this.hoverTransitionDuration = 333;
-    this.unfocusedOpacity = 1;
+    this.unfocusedOpacity = 0.2;
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
     this.canvas = document.createElement("canvas");
@@ -207,20 +207,20 @@ export class TextHighlighter {
 
     element.style.left = `${Math.ceil(linePadding) + this.getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset}px`;
   }
-
+  #getWordColCount() {
+    return this.wordStats.length - 1
+  }
   #handleMouseMove = (event) => {
     this.relativeX = event.clientX - this.getLeftPadding();
     this.relativeY = event.clientY - this.getTopWordPadding();
-    // TODO make it static
-    const wordStatsLengthReal = this.wordStats.length - 1;
 
     // Single division operation
     this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
-    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, wordStatsLengthReal));
+    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
 
     // Determine start and end indices once
     const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === wordStatsLengthReal
+    const endIndex = this.mouseColSafe === this.#getWordColCount()
       ? this.contentTextCleaned.length
       : this.wordStats[this.mouseColSafe + 1][1];
 
@@ -239,23 +239,16 @@ export class TextHighlighter {
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
         `cumWidth: ${this.#getCumulativeWidth(startIndex, letterIndex).toFixed(2)}px, ` +
         `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
+      this.hoveringComment()
     }
-    this.hoveringComment()
-    // const iterations = 10000;
-    // const start = performance.now();
-    // for (let i = 0; i < iterations; i++) {
-
-    // }
-    // const end = performance.now();
-    // console.log("Average time per call (ms):");
-    // console.log(((end - start) / iterations).toFixed(6));
   };
+
   #getCurrentMouseIndex() {
-    const wordStatsLengthReal = this.wordStats.length - 1;
-    return this.#findLetterIndexByWidth(this.wordStats[this.mouseColSafe][1], this.mouseColSafe === wordStatsLengthReal
+    return this.#findLetterIndexByWidth(this.wordStats[this.mouseColSafe][1], this.mouseColSafe === this.#getWordColCount()
       ? this.contentTextCleaned.length
       : this.wordStats[this.mouseColSafe + 1][1], this.relativeX)
   }
+
   #isMouseLastIndex() {
     return this.wordStats
       .slice(1)
@@ -290,18 +283,17 @@ export class TextHighlighter {
           item["elem"].style.opacity = this.unfocusedOpacity;
         });
       }
-
     });
   }
 
   #handleMouseDown = (event) => {
     let relativeX = event.clientX - this.getLeftPadding() + 2;
-    const wordStatsLengthReal = this.wordStats.length - 1;
+
     this.mouseCol = Math.floor(this.relativeY / this.getTextYSections());
-    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, wordStatsLengthReal));
+    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
     if (!this.formIsActive) {
       const startIndex = this.wordStats[this.mouseColSafe][1];
-      const endIndex = this.mouseColSafe === wordStatsLengthReal
+      const endIndex = this.mouseColSafe === this.#getWordColCount()
         ? this.contentTextCleaned.length
         : this.wordStats[this.mouseColSafe + 1][1];
 
@@ -314,7 +306,6 @@ export class TextHighlighter {
   #handleMouseUp = (event) => {
     // need the mouse to be over the whole char so consider it selected
     let relativeX = event.clientX - this.getLeftPadding();
-    const wordStatsLengthReal = this.wordStats.length - 1;
 
     if (relativeX % this.charHoverPadding != 0) {
       relativeX -= this.charHoverPaddingMouse
@@ -322,7 +313,7 @@ export class TextHighlighter {
 
     // Determine start and end indices once
     const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === wordStatsLengthReal
+    const endIndex = this.mouseColSafe === this.#getWordColCount()
       ? this.contentTextCleaned.length
       : this.wordStats[this.mouseColSafe + 1][1];
 
@@ -338,19 +329,10 @@ export class TextHighlighter {
       let totalLength = this.endLetterIndex - this.startLetterIndex;
 
       if (totalLength > 1) {
-        if (!this.formIsActive) {
-          this.#createHighlight();
-          let startIndexForm = document.getElementById("startIndexForm")
-          let endIndexForm = document.getElementById("endIndexForm")
+        this.#createHighlight();
 
-          // TODO make form it append itself
-          document.body.appendChild(this.createForm(this.startLetterIndex, this.endLetterIndex));
-          this.#repositionItems()
-          if (startIndexForm && endIndexForm) {
-            startIndexForm.textContent = `Start: ${this.contentTextCleaned[this.startLetterIndex]}`
-            endIndexForm.textContent = `End: ${this.contentTextCleaned[this.endLetterIndex]}`
-          }
-        }
+        this.createForm(this.startLetterIndex, this.endLetterIndex)
+        this.#repositionItems()
       }
     }
   };
@@ -469,8 +451,7 @@ export class TextHighlighter {
     // Add event listener for form submission
     const form = floatingDivForm.querySelector('form');
     form.addEventListener('submit', (event) => this.formCommentSubmission(event));
-
-    return floatingDivForm;
+    document.body.appendChild(floatingDivForm);
   }
 
 
