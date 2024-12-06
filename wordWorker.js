@@ -52,6 +52,8 @@ export class TextHighlighter {
     this.formIsActive = false
     this.#addEventListeners();
     this.createTextHighlight(739, 752, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
+
+    this.formElement = null;
   }
 
 
@@ -59,11 +61,11 @@ export class TextHighlighter {
     const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
     const yOffset = this.#getYValueFromIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
     const xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
-    const elementBody = document.body;
+    const elementBodyWidth = document.body.getBoundingClientRect().width;
 
     // Seems that some browsers discard the real width of elements
-    const window_size_remainder = Math.round(elementBody.getBoundingClientRect().width) - elementBody.getBoundingClientRect().width
-    const window_size_odd = Math.round(elementBody.getBoundingClientRect().width) - Math.floor(elementBody.getBoundingClientRect().width)
+    const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
+    const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
     const window_ratio_offset = window_size_odd + window_size_remainder
 
     element.style.width = `${Math.ceil(this.#getWordWidth(selectedText))}px`;
@@ -131,7 +133,6 @@ export class TextHighlighter {
 
             if (isNewDiv) {
               floatingDiv = document.createElement("div");
-              floatingDiv.style.backgroundColor = backgroundColor
               floatingDiv.className = "highlightedText split";
             }
 
@@ -185,67 +186,7 @@ export class TextHighlighter {
     }
   }
 
-  #positionCommentForm(element) {
-    // TODO switch to arr
-    const startId = element.getAttribute("start")
-    const endId = element.getAttribute("end")
-    let paddingOffset = Number.parseFloat(window.getComputedStyle(element, null).getPropertyValue('border-left-width'))
 
-    element.style.top = `${this.#getYValueFromIndex(endId) + Number.parseFloat(this.fontSize) + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (Number.parseFloat(this.fontSize) / 10)}px`;
-
-    let linePadding = this.#getPaddingForIndex(startId);
-
-    element.style.left = `${Math.ceil(linePadding) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset}px`;
-  }
-
-  #getWordColCount() {
-    return this.wordStats.length - 1
-  }
-
-  #handleMouseMove = (event) => {
-    this.relativeX = event.clientX - this.#getLeftPadding();
-    this.relativeY = event.clientY - this.#getTopWordPadding();
-
-    // Single division operation
-    this.mouseCol = Math.floor(this.relativeY / this.#getTextYSections());
-    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
-
-    // Determine start and end indices once
-    const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === this.#getWordColCount()
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1];
-
-    // Use binary search to find letter index
-    let letterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
-
-    if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
-      const char = this.contentTextCleaned[letterIndex];
-      const charWidth = this.#getCharacterWidth(char);
-      let formHoveringIndicator = document.getElementById("formHoverIndicator")
-      if (formHoveringIndicator) {
-        formHoveringIndicator.textContent = `Last Hovered: (${letterIndex},${this.mouseColSafe}) - ${char}`
-      }
-      // Create the output string only if needed
-      this.outputHover.textContent =
-        `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
-        `cumWidth: ${this.#getCumulativeWidth(startIndex, letterIndex).toFixed(2)}px, ` +
-        `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
-      this.#hoveringComment()
-    }
-  };
-
-  #getCurrentMouseIndex() {
-    return this.#getLetterIndexByWidth(this.wordStats[this.mouseColSafe][1], this.mouseColSafe === this.#getWordColCount()
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1], this.relativeX)
-  }
-
-  #isMouseLastIndex() {
-    return this.wordStats
-      .slice(1)
-      .some(stat => (stat[1] - 1) === this.#getCurrentMouseIndex());
-  }
 
   #hoveringComment() {
     this.floatingComments.forEach((div) => {
@@ -277,6 +218,44 @@ export class TextHighlighter {
       }
     });
   }
+
+  #handleMouseMove = (event) => {
+    this.relativeX = event.clientX - this.#getLeftPadding();
+    this.relativeY = event.clientY - this.#getTopWordPadding();
+
+    // Single division operation
+    this.mouseCol = Math.floor(this.relativeY / this.#getTextYSections());
+    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
+
+    // Determine start and end indices once
+    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const endIndex = this.mouseColSafe === this.#getWordColCount()
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1];
+
+    // Use binary search to find letter index
+    let letterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
+
+    if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
+      const char = this.contentTextCleaned[letterIndex];
+      const charWidth = this.#getCharacterWidth(char);
+
+      // TODO move into form create
+      let formHoveringIndicator = document.getElementById("formHoverIndicator")
+      if (formHoveringIndicator) {
+        formHoveringIndicator.textContent = `Last Hovered: (${letterIndex},${this.mouseColSafe}) - ${char}`
+      }
+      // Create the output string only if needed
+      this.outputHover.textContent =
+        `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
+        `cumWidth: ${this.#getCumulativeWidth(startIndex, letterIndex).toFixed(2)}px, ` +
+        `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
+      this.#hoveringComment()
+    }
+  };
+
+
+
 
   #handleMouseDown = (event) => {
     let relativeX = event.clientX - this.#getLeftPadding() + this.charHoverPaddingMouse;
@@ -328,13 +307,6 @@ export class TextHighlighter {
     }
   };
 
-  #removeHighlights(id) {
-    this.floatingDivsSplit.get(id).map((item) => {
-      let element = item["elem"]
-      element.remove()
-    })
-    this.floatingDivsSplit.delete(id)
-  }
 
   #formCommentSubmission(submission) {
     const form = submission.target;
@@ -359,7 +331,18 @@ export class TextHighlighter {
     const formId = `form-${startIndex}-${endIndex}`;
     this.#removeForm(formId);
   }
+  #positionCommentForm() {
+    // TODO switch to arr
+    const startId = this.formElement.getAttribute("start")
+    const endId = this.formElement.getAttribute("end")
+    let paddingOffset = Number.parseFloat(window.getComputedStyle(this.formElement, null).getPropertyValue('border-left-width'))
 
+    this.formElement.style.top = `${this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)}px`;
+
+    let linePadding = this.#getPaddingForIndex(startId);
+
+    this.formElement.style.left = `${Math.ceil(linePadding) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset}px`;
+  }
   // TODO fix positioning
   #createForm(startIndex, endIndex) {
     this.formIsActive = true;
@@ -417,19 +400,16 @@ export class TextHighlighter {
       divsplit["elem"].style.opacity = 1;
     });
 
-    floatingDivForm.style.top = `${this.charHoverPaddingMouse + this.mouseTopOffset}px`;
+    this.formElement = floatingDivForm
+    this.#positionCommentForm();
 
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
       radio.addEventListener('change', (event) => {
         const selectedId = parseInt(event.target.value, 10);
-        const color = this.#getColor(selectedId);
 
         // Update the highlight in commentHighlights if applicable
-        if (this.floatingDivsSplit && this.floatingDivsSplit.get(rawId)) {
-          const highlight = this.commentHighlights.get(rawId);
-          highlight.color = color;
-          highlight.setAttribute("commentType", selectedId)
+        if (this.floatingDivsSplit.has(rawId)) {
           this.#updateHighlightColorsId(rawId, selectedId)
         }
       });
@@ -437,12 +417,13 @@ export class TextHighlighter {
 
     // Add event listener to close button
     const closeButton = floatingDivForm.querySelector('.close-btn');
-    closeButton.addEventListener('click', () => this.#closeForm(id));
+    closeButton.addEventListener('click', () => this.#closeForm());
 
     // Add event listener for form submission
     const form = floatingDivForm.querySelector('form');
     form.addEventListener('submit', (event) => this.#formCommentSubmission(event));
     document.body.appendChild(floatingDivForm);
+
   }
 
 
@@ -459,11 +440,9 @@ export class TextHighlighter {
     const endIndex = this.endLetterIndex
     const rawUniqueId = `${startIndex}-${endIndex}`;
 
-    if (!this.commentHighlights.has(rawUniqueId)) {
+    if (!this.floatingDivsSplit.has(rawUniqueId)) {
       const commentHighlight = document.createElement("div");
       commentHighlight.className = "highlightedText split";
-      this.commentHighlights.set(rawUniqueId, commentHighlight);
-      let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
 
       let newObj = {
         head: true,
@@ -473,19 +452,13 @@ export class TextHighlighter {
         colorId: Number.parseInt(1)
       }
 
-      if (!floatingDivSplit) {
-        // Initialize with an array containing the first object
-        // two comments wont have the same sawUniqueId so we should awlays make it here
-        // unique id is gen by mouse down letter index  and mouse up letter index
-        this.floatingDivsSplit.set(rawUniqueId, [newObj]);
-      }
+      // Initialize with an array containing the first object
+      // two comments wont have the same sawUniqueId so we should awlays make it here
+      // unique id is gen by mouse down letter index  and mouse up letter index
+      this.floatingDivsSplit.set(rawUniqueId, [newObj]);
 
       this.#positionHighlightedText(newObj, rawUniqueId);
-      document.body.appendChild(commentHighlight);
     }
-    // Add the div element relative to the span
-    this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
-
     // Initially position the div
     this.#repositionItems()
   }
@@ -557,13 +530,10 @@ export class TextHighlighter {
       this.#positionCommentContent(div);
     });
 
-    this.commentHighlights.forEach((div) => {
-      // TODO slow
-      let hoverItem = document.getElementById(`form-${div.getAttribute("start")}-${div.getAttribute("end")}`);
-      if (hoverItem) {
-        this.#positionCommentForm(hoverItem)
-      }
-    });
+    if (this.formElement) {
+      this.#positionCommentForm(this.formElement)
+    }
+
 
     this.floatingDivsSplit.forEach((divArray, key) => {
       divArray.forEach((divsplit) => {
@@ -650,21 +620,6 @@ export class TextHighlighter {
     }
   }
 
-  #getMaxWidth() {
-    return this.divRect.width
-  }
-
-  #getTextYSections() {
-    return this.divRect.height / (this.wordStats.length);
-  }
-
-  #getLeftPadding() {
-    return this.divRect.left
-  }
-
-  #getTopWordPadding() {
-    return this.divRect.top
-  }
 
   #getCharacterWidth(char) {
     if (this.widthCache[char] === undefined) {
@@ -781,10 +736,10 @@ export class TextHighlighter {
       document.body.appendChild(floatingComment);
     }
 
-    if (!this.commentHighlights.has(rawUniqueId)) {
+    if (!this.floatingDivsSplit.has(rawUniqueId)) {
       const commentHighlight = document.createElement("div");
       commentHighlight.className = "highlightedText split";
-      this.commentHighlights.set(rawUniqueId, commentHighlight);
+      // this.createTextHighlight.set(rawUniqueId, commentHighlight);
       let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
 
       let newObj = {
@@ -837,6 +792,17 @@ export class TextHighlighter {
         return 'lightgreen'; // Default color for unknown IDs
     }
   }
+
+
+  #removeHighlights(id) {
+    this.floatingDivsSplit.get(id).map((item) => {
+      let element = item["elem"]
+      element.remove()
+    })
+    this.floatingDivsSplit.delete(id)
+  }
+
+
   // Binary search for letter index based on width
   #getLetterIndexByWidth(start, end, targetWidth) {
     let low = start;
@@ -887,22 +853,22 @@ export class TextHighlighter {
     return this.#widthSums.get(key);
   }
 
-  #removeForm(id) {
-    let form = document.getElementById(id)
+  #removeForm() {
+    let form = this.formElement
     if (form) {
       window.getSelection().removeAllRanges();
       form.remove()
       this.formIsActive = false;
+      this.formElement = null
     }
   }
 
-  #closeForm(id) {
-    let form = document.getElementById(id)
-    if (form) {
-      this.#removeForm(id)
-      let x = form.getAttribute("start")
-      let y = form.getAttribute("end")
+  #closeForm() {
+    if (this.formElement) {
+      let x = this.formElement.getAttribute("start")
+      let y = this.formElement.getAttribute("end")
       this.#removeHighlights(`${x}-${y}`)
+      this.#removeForm()
     }
   }
 
@@ -919,6 +885,37 @@ export class TextHighlighter {
       })
     }
   }
+  #getCurrentMouseIndex() {
+    return this.#getLetterIndexByWidth(this.wordStats[this.mouseColSafe][1], this.mouseColSafe === this.#getWordColCount()
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1], this.relativeX)
+  }
 
+  #getMaxWidth() {
+    return this.divRect.width
+  }
+
+  #getTextYSections() {
+    return this.divRect.height / (this.wordStats.length);
+  }
+
+  #getLeftPadding() {
+    return this.divRect.left
+  }
+
+
+  #getWordColCount() {
+    return this.wordStats.length - 1
+  }
+
+
+  #getTopWordPadding() {
+    return this.divRect.top
+  }
+  #isMouseLastIndex() {
+    return this.wordStats
+      .slice(1)
+      .some(stat => (stat[1] - 1) === this.#getCurrentMouseIndex());
+  }
   // #endregion
 }
