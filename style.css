@@ -1,13 +1,17 @@
 body {
-	background-color: darkgray;
+	--main-bg-color: rgb(32, 32, 32);
+	--comment-text-color: rgb(180, 180, 180);
+	background-color: var(--main-bg-color);
 	margin: 0px;
 }
+
 #highlightedDiv,
 .highlightedText,
 .split,
 .highlightComment {
 	font-size: 20px;
 }
+
 #highlightedDiv {
 	z-index: 15;
 	position: relative;
@@ -17,13 +21,21 @@ body {
 	overflow-wrap: break-word;
 	white-space: normal;
 	display: inline;
-
+	color: rgb(255, 255, 255);
 	/* line-height: 2.5; */
 }
 
 .highlightedText,
 .highlightComment {
 	opacity: 0.2;
+}
+
+/* Calibrate positions */
+.split,
+.highlightComment,
+.floatingForm {
+	left: 0px;
+	top: 0px;
 }
 
 .split,
@@ -39,29 +51,23 @@ body {
 	height: 21px;
 	margin-top: 6px;
 	border-radius: 2px;
-	color: white;
-}
-.split {
-	position: absolute;
-	color: white;
-	left: 0px;
-	top: 0px;
-}
-
-.split:hover {
-	opacity: 1;
 }
 
 .highlightComment {
 	position: absolute;
-	color: white;
-	background: green;
+	color: var(--comment-text-color);
 	z-index: 1;
 	opacity: 0%;
 	border-radius: 2px;
-	left: 0px;
-	top: 0px;
 	padding-left: 2px;
+}
+
+.split {
+	position: absolute;
+}
+
+.split:hover {
+	opacity: 1;
 }
 
 #commentFormHeader {
@@ -79,8 +85,6 @@ body {
 
 .floatingForm {
 	position: absolute;
-	left: 0px;
-	top: 0px;
 	font-size: 16px;
 	background-color: black;
 	color: white;
@@ -92,7 +96,6 @@ body {
 	border: solid;
 	z-index: 15;
 	padding-top: 6px;
-
 	padding-inline: 6px;
 	padding-bottom: 4px;
 	border-top-width: 0px;
@@ -115,5 +118,5 @@ body {
 }
 
 ::selection {
-	background: yellow;
+	background: darkgreen;
 }

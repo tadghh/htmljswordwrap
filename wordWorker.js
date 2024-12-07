@@ -48,7 +48,7 @@ export class TextHighlighter {
     this.wordStats = this.#calcWordPositions();
 
     this.charHoverPadding = this.#getCharacterWidth("m")
-    this.charHoverPaddingMouse = this.#getCharacterWidth("m") / (parseFloat(this.fontSize) / 10);
+    this.charHoverPaddingMouse = this.charHoverPadding / (parseFloat(this.fontSize) / 10);
     this.formIsActive = false
     this.#addEventListeners();
     this.createTextHighlight(739, 752, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
@@ -74,6 +74,7 @@ export class TextHighlighter {
       let yColStartIndex = this.#getPaddingForIndex(startId);
       let top = this.#getYValueFromIndex(endId);
 
+      // make sure comment doesnt go off screen
       if (yColStartIndex + wordWidth > maxWidth) {
         yColStartIndex = this.#getPaddingForIndex(endId);
         yColStartIndex -= (wordWidth) - this.charHoverPadding;
@@ -100,9 +101,8 @@ export class TextHighlighter {
     const yOffset = this.#getYValueFromIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
     const xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
 
-    const elementBodyWidth = document.body.getBoundingClientRect().width;
-
     // Seems that some browsers discard the real width of elements
+    const elementBodyWidth = document.body.getBoundingClientRect().width;
     const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
     const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
     const window_ratio_offset = window_size_odd + window_size_remainder
@@ -177,7 +177,6 @@ export class TextHighlighter {
               floatingDiv.className = "highlightedText split";
             }
 
-            floatingDiv.style.borderBottom = "2px solid transparent";
             floatingDiv.style.backgroundColor = backgroundColor
 
             let firstColStartIndex = this.wordStats[c][1];
@@ -189,12 +188,10 @@ export class TextHighlighter {
             } else if (c === lowerCol) {
               // First column
               firstColStartIndex = startId;
-              firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
             } else if (c === upperCol) {
               // Last column
               firstColStartIndex = this.wordStats[c][1];
               firstColEndIndex = endId
-              floatingDiv.style.borderBottom = "2px solid blue";
             } else {
               // Middle columns
               firstColStartIndex = this.wordStats[c][1];
@@ -532,7 +529,6 @@ export class TextHighlighter {
   }
 
   #repositionItems() {
-    // TODO Just use the divs
     this.floatingComments.forEach((div) => {
       this.#positionCommentContent(div);
     });
