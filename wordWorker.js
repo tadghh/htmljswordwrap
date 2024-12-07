@@ -56,21 +56,77 @@ export class TextHighlighter {
     this.formElement = null;
   }
 
+  #positionCommentContent(element) {
+    if (element) {
+      // TODO move away from this attribute stuff, store vals in arr
+      const startId = element.getAttribute("start");
+      const endId = element.getAttribute("end");
+      let xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
+      const wordWidth = this.#getWordWidth(element.textContent);
+      const maxWidth = this.#getMaxWidth();
+      const elementBodyWidth = document.body.getBoundingClientRect().width;
+
+      // Seems that some browsers discard the real width of elements
+      const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
+      const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
+      const window_ratio_offset = window_size_odd + window_size_remainder
+
+      let yColStartIndex = this.#getPaddingForIndex(startId);
+      let top = this.#getYValueFromIndex(endId);
+
+      if (yColStartIndex + wordWidth > maxWidth) {
+        yColStartIndex = this.#getPaddingForIndex(endId);
+        yColStartIndex -= (wordWidth) - this.charHoverPadding;
+      }
+
+      const startCol = this.#getColFromIndex(startId)
+      const endCol = this.#getColFromIndex(endId)
+
+      if (endCol - startCol >= 1) {
+        top = this.#getYValueFromIndex(endId);
+        xOffset = `${this.#getPaddingForIndex(endId) + Math.round(this.charHoverPadding) + this.#getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth)}px`;
+      } else {
+        top = this.#getYValueFromIndex(startId);
+      }
+
+      const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
+      element.style.transform = `translate(${Math.ceil(xOffset + window_ratio_offset) - 1}px, ${yOffset}px)`;
+    }
+  }
+
 
   #positionHighlight(element, startId, endId) {
     const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
     const yOffset = this.#getYValueFromIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
     const xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
+
     const elementBodyWidth = document.body.getBoundingClientRect().width;
 
     // Seems that some browsers discard the real width of elements
     const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
     const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
     const window_ratio_offset = window_size_odd + window_size_remainder
-    // element.style.opacity = 1
-    // element.style.backgroundColor = "black"
+
     element.style.width = `${Math.ceil(this.#getWordWidth(selectedText))}px`;
-    element.style.transform = `translate(${Math.ceil(xOffset + window_ratio_offset)}px, ${yOffset}px)`;
+    element.style.transform = `translate(${Math.ceil(xOffset + window_ratio_offset) - 1}px, ${yOffset}px)`;
+  }
+
+  #positionCommentForm() {
+    // TODO switch to arr
+    const startId = this.formElement.getAttribute("start")
+    const endId = this.formElement.getAttribute("end")
+    const rawId = `${startId}-${endId}`;
+
+    const splits = this.floatingDivsSplit.get(rawId)
+    splits.forEach(item => {
+      item["elem"].style.opacity = 1.0;
+    });
+
+    const paddingOffset = Number.parseFloat(window.getComputedStyle(this.formElement, null).getPropertyValue('border-left-width'))
+    const yOffset = this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
+    const xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset
+
+    this.formElement.style.transform = `translate(${Math.ceil(xOffset) - 1}px, ${yOffset}px)`;
   }
 
   #positionHighlightedText(element, key) {
@@ -333,24 +389,7 @@ export class TextHighlighter {
     const formId = `form-${startIndex}-${endIndex}`;
     this.#removeForm(formId);
   }
-  #positionCommentForm() {
-    // TODO switch to arr
-    const startId = this.formElement.getAttribute("start")
-    const endId = this.formElement.getAttribute("end")
-    const rawId = `${startId}-${endId}`;
 
-    const splits = this.floatingDivsSplit.get(rawId)
-    splits.forEach(item => {
-      item["elem"].style.opacity = 1.0;
-    });
-    let paddingOffset = Number.parseFloat(window.getComputedStyle(this.formElement, null).getPropertyValue('border-left-width'))
-
-    this.formElement.style.top = `${this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)}px`;
-
-    let linePadding = this.#getPaddingForIndex(startId);
-
-    this.formElement.style.left = `${Math.ceil(linePadding) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset}px`;
-  }
   // TODO fix positioning
   #createForm(startIndex, endIndex) {
     this.formIsActive = true;
@@ -468,43 +507,6 @@ export class TextHighlighter {
     this.#repositionItems()
   }
 
-  // TODO from here use positioning logic on form
-  #positionCommentContent(element) {
-    if (element) {
-      // TODO move away from this attribute stuff, store vals in arr
-      const startId = element.getAttribute("start");
-      const endId = element.getAttribute("end");
-
-      const wordWidth = this.#getWordWidth(element.textContent);
-      const maxWidth = this.#getMaxWidth();
-      element.style.paddingLeft = `${(this.fontSizeRaw / 10)}px`
-      let yColStartIndex = this.#getPaddingForIndex(startId);
-      let linePadding = this.#getPaddingForIndex(startId);
-
-      let startCol = this.#getColFromIndex(startId)
-      let endCol = this.#getColFromIndex(endId)
-      let top = this.#getYValueFromIndex(endId);
-      let lastColIndex = this.#getStartIndexFromIndex(endId);
-      let bottomLineWidth = this.#getWidthFromRange(lastColIndex, endId)
-
-      if (yColStartIndex + wordWidth > maxWidth) {
-        yColStartIndex = this.#getPaddingForIndex(endId);
-        yColStartIndex -= (wordWidth) - this.charHoverPadding;
-      }
-
-      if (endCol - startCol >= 1) {
-        top = this.#getYValueFromIndex(endId);
-        yColStartIndex = bottomLineWidth - wordWidth
-        linePadding = this.#getPaddingForIndex(endId);
-        element.style.left = `${Math.ceil(linePadding) + Math.round(this.charHoverPadding) + this.#getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth)}px`;
-      } else {
-        top = this.#getYValueFromIndex(startId);
-        element.style.left = `${linePadding + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (this.fontSizeRaw / 10)}px`;
-      }
-
-      element.style.top = `${top + Number.parseFloat(this.fontSize) + this.mouseTopOffset}px`;
-    }
-  }
 
   // #region Utility
 
