@@ -59,42 +59,42 @@ export class TextHighlighter {
   }
 
   #positionCommentContent(element) {
-    if (element) {
-      // TODO move away from this attribute stuff, store vals in arr
-      const startId = element.getAttribute("start");
-      const endId = element.getAttribute("end");
-      let xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
-      const wordWidth = this.#getWordWidth(element.textContent);
-      const maxWidth = this.#getMaxWidth();
-      const elementBodyWidth = document.body.getBoundingClientRect().width;
 
-      // Seems that some browsers discard the real width of elements
-      const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
-      const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
-      const window_ratio_offset = window_size_odd + window_size_remainder
+    // TODO move away from this attribute stuff, store vals in arr
+    const startId = Number.parseInt(element.getAttribute("start"));
+    const endId = Number.parseInt(element.getAttribute("end"));
+    let xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
+    const wordWidth = this.#getWordWidth(element.textContent);
+    const maxWidth = this.#getMaxWidth();
+    const elementBodyWidth = document.body.getBoundingClientRect().width;
 
-      let yColStartIndex = this.#getPaddingForIndex(startId);
-      let top = this.#getYValueFromIndex(endId);
+    // Seems that some browsers discard the real width of elements
+    const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
+    const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
+    const window_ratio_offset = window_size_odd + window_size_remainder
 
-      // make sure comment doesnt go off screen
-      if (yColStartIndex + wordWidth > maxWidth) {
-        yColStartIndex = this.#getPaddingForIndex(endId);
-        yColStartIndex -= (wordWidth) - this.charHoverPadding;
-      }
+    let yColStartIndex = this.#getPaddingForIndex(startId);
+    let top = this.#getYValueFromIndex(endId);
 
-      const startCol = this.#getColFromIndex(startId)
-      const endCol = this.#getColFromIndex(endId)
-
-      if (endCol - startCol >= 1) {
-        top = this.#getYValueFromIndex(endId);
-        xOffset = `${this.#getPaddingForIndex(endId) + Math.round(this.charHoverPadding) + this.#getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth)}px`;
-      } else {
-        top = this.#getYValueFromIndex(startId);
-      }
-
-      const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
-      element.style.transform = `translate(${Math.ceil(xOffset + window_ratio_offset) - 1}px, ${yOffset}px)`;
+    // make sure comment doesnt go off screen
+    if (yColStartIndex + wordWidth > maxWidth) {
+      yColStartIndex = this.#getPaddingForIndex(endId);
+      yColStartIndex -= (wordWidth) - this.charHoverPadding;
     }
+
+    const startCol = this.#getColFromIndex(startId)
+    const endCol = this.#getColFromIndex(endId)
+
+    if (endCol - startCol >= 1) {
+      top = this.#getYValueFromIndex(endId);
+      xOffset = this.#getPaddingForIndex(endId) + Math.round(this.charHoverPadding) + this.#getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth);
+    } else {
+      top = this.#getYValueFromIndex(startId);
+    }
+
+    const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
+
+    element.style.transform = `translate(${Math.ceil(xOffset + window_ratio_offset) - 1}px, ${yOffset}px)`;
   }
 
 
@@ -256,7 +256,7 @@ export class TextHighlighter {
       const comment = this.floatingDivsSplit.get(`${startId}-${endId}`)["comment"]
       if (comment) {
         if (isInside) {
-          comment.style.opacity = 0
+          comment.style.opacity = 1
           comment.style.zIndex = 50
           splits.forEach(item => {
             item["elem"].style.opacity = 1;
@@ -383,7 +383,11 @@ export class TextHighlighter {
 
     // TODO swap out client side
     // Create the highlight with the comment
-    this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment, commentTypeId);
+    // this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment, commentTypeId);
+    let fucking_comment = this.#buildComment(startIndex, endIndex, comment, commentTypeId)
+    this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = fucking_comment
+    this.#positionCommentContent(fucking_comment)
+    document.body.appendChild(fucking_comment);
 
     // Remove the form after submission
     const formId = `form-${startIndex}-${endIndex}`;
@@ -443,13 +447,6 @@ export class TextHighlighter {
     floatingDivForm.setAttribute("start", startIndex);
     floatingDivForm.setAttribute("end", endIndex);
     this.formElement = floatingDivForm
-
-
-    // const splits = this.floatingDivsSplit.get(rawId)["splits"]
-    // splits.forEach(item => {
-    //   item["elem"].style.opacity = 1.0;
-    // });
-
 
     this.#positionCommentForm();
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
@@ -722,6 +719,24 @@ export class TextHighlighter {
     // there is always one col
     return (this.#getColFromIndex(endIndex) - this.#getColFromIndex(startIndex)) + 1
   }
+  #buildComment(startIndex, endIndex, content, colorId) {
+    const rawUniqueId = `${startIndex}-${endIndex}`;
+    const selectedId = parseInt(colorId);
+
+    const color = this.#getColor(selectedId);
+
+    const floatingComment = document.createElement("div");
+    floatingComment.id = `floating-${startIndex}-${endIndex}`;
+    floatingComment.className = "highlightComment";
+    floatingComment.textContent = content
+    floatingComment.style.width = `${this.#getWordWidth(content)}px`;
+    floatingComment.setAttribute("start", startIndex)
+    floatingComment.setAttribute("end", endIndex)
+    floatingComment.setAttribute("rawId", rawUniqueId)
+    floatingComment.setAttribute("commentType", selectedId)
+    floatingComment.style.backgroundColor = color;
+    return floatingComment
+  }
 
   createTextHighlight(startIndex, endIndex, textContent, comment, colorId) {
     if (startIndex > endIndex) {
@@ -734,19 +749,9 @@ export class TextHighlighter {
 
     const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedId = parseInt(colorId);
-    const color = this.#getColor(selectedId);
 
     if (!this.floatingDivsSplit.has(rawUniqueId)) {
-      const floatingComment = document.createElement("div");
-      floatingComment.id = `floating-${startIndex}-${endIndex}`;
-      floatingComment.className = "highlightComment";
-      floatingComment.textContent = comment
-      floatingComment.style.width = `${this.#getWordWidth(comment)}px`;
-      floatingComment.setAttribute("start", startIndex)
-      floatingComment.setAttribute("end", endIndex)
-      floatingComment.setAttribute("rawId", rawUniqueId)
-      floatingComment.setAttribute("commentType", selectedId)
-      floatingComment.style.backgroundColor = color;
+      const floatingComment = this.#buildComment(startIndex, endIndex, comment, selectedId)
       const commentHighlight = document.createElement("div");
       commentHighlight.className = "highlightedText split";
 
