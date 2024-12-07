@@ -1,5 +1,7 @@
 
 // TODO Form at edge of screen, don't let it go over bounds
+// TODO public function to create highlight
+// TODO public function to check if word is highlighted
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
 
@@ -117,7 +119,7 @@ export class TextHighlighter {
     const endId = this.formElement.getAttribute("end")
     const rawId = `${startId}-${endId}`;
 
-    const splits = this.floatingDivsSplit.get(rawId)
+    const splits = this.floatingDivsSplit.get(rawId)["splits"]
     splits.forEach(item => {
       item["elem"].style.opacity = 1.0;
     });
@@ -139,87 +141,88 @@ export class TextHighlighter {
     const isHead = element["head"] == true;
     let highlightElement = element["elem"]
 
-    try {
-      this.#updateDivValues()
-      let yCol1 = this.#getColFromIndex(startId);
-      let yCol2 = this.#getColFromIndex(endId);
-      const spanningColCount = this.#calcCols(startId, endId);
-      const elementsRawUniqueId = key;
+    this.#updateDivValues()
+    let yCol1 = this.#getColFromIndex(startId);
+    let yCol2 = this.#getColFromIndex(endId);
+    const spanningColCount = this.#calcCols(startId, endId);
+    const elementsRawUniqueId = key;
 
-      if (spanningColCount > 1 && isHead) {
-        let colorInt = element["colorId"]
-        let backgroundColor = this.#getColor(Number.parseInt(colorInt))
-        let lowerCol = yCol1;
-        let upperCol = yCol2;
-        let floatingDivSplit = this.floatingDivsSplit.get(elementsRawUniqueId);
+    if (spanningColCount > 1 && isHead) {
+      let colorInt = element["colorId"]
+      let backgroundColor = this.#getColor(Number.parseInt(colorInt))
+      let lowerCol = yCol1;
+      let upperCol = yCol2;
+      let floatingDivSplit = this.floatingDivsSplit.get(elementsRawUniqueId)["splits"];
+      for (let c = lowerCol; c <= upperCol; c++) {
+        let floatingDiv = null
+        let isNewDiv = false;
+        let currentHead = false
+        let current_highlight_data = undefined
 
-        for (let c = lowerCol; c <= upperCol; c++) {
-          let floatingDiv = null
-          let isNewDiv = false;
-          let currentHead = false
-          let current_highlight_data = undefined
-
-          if (floatingDivSplit.len != 0) {
-            let current_highlight = floatingDivSplit.find((entry) => entry.col == c)
-
-            if (current_highlight && current_highlight["elem"]) {
-              current_highlight_data = current_highlight;
-              floatingDiv = current_highlight_data["elem"];
-              if (current_highlight["head"] !== undefined) {
-                currentHead = current_highlight["head"];
-              }
-            } else {
-              isNewDiv = true
+        if (floatingDivSplit.len != 0) {
+          let current_highlight = floatingDivSplit.find((entry) => entry.col == c)
+          if (current_highlight && current_highlight["elem"]) {
+            current_highlight_data = current_highlight;
+            floatingDiv = current_highlight_data["elem"];
+            if (current_highlight["head"] !== undefined) {
+              currentHead = current_highlight["head"];
             }
+          } else {
+            isNewDiv = true
+          }
 
-            if (isNewDiv) {
-              floatingDiv = document.createElement("div");
-              floatingDiv.className = "highlightedText split";
-            }
+          if (isNewDiv) {
+            floatingDiv = document.createElement("div");
+            floatingDiv.className = "highlightedText split";
+          }
 
-            floatingDiv.style.backgroundColor = backgroundColor
+          floatingDiv.style.backgroundColor = backgroundColor
+          floatingDiv.opacity = this.unfocusedOpacity
+          let firstColStartIndex = this.wordStats[c][1];
+          let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
 
-            let firstColStartIndex = this.wordStats[c][1];
-            let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
+          if (c == lowerCol && c == upperCol) {
+            firstColEndIndex = endId
+            firstColStartIndex = startId;
+          } else if (c === lowerCol) {
+            // First column
+            firstColStartIndex = startId;
+          } else if (c === upperCol) {
+            // Last column
+            firstColStartIndex = this.wordStats[c][1];
+            firstColEndIndex = endId
+          } else {
+            // Middle columns
+            firstColStartIndex = this.wordStats[c][1];
+            firstColEndIndex = this.wordStats[c + 1][1] - 1;
+          }
 
-            if (c == lowerCol && c == upperCol) {
-              firstColEndIndex = endId
-              firstColStartIndex = startId;
-            } else if (c === lowerCol) {
-              // First column
-              firstColStartIndex = startId;
-            } else if (c === upperCol) {
-              // Last column
-              firstColStartIndex = this.wordStats[c][1];
-              firstColEndIndex = endId
-            } else {
-              // Middle columns
-              firstColStartIndex = this.wordStats[c][1];
-              firstColEndIndex = this.wordStats[c + 1][1] - 1;
-            }
-
-            this.#positionHighlight(floatingDiv, firstColStartIndex, firstColEndIndex)
-            if (isNewDiv) {
-              document.body.appendChild(floatingDiv);
-              floatingDiv.opacity = this.unfocusedOpacity
-              this.floatingDivsSplit.get(elementsRawUniqueId).push({
-                col: c,
-                elem: floatingDiv,
-                start: firstColStartIndex,
-                end: firstColEndIndex
-              });
-            } else if (!currentHead) {
-              current_highlight_data["c"] = c
-              current_highlight_data["elem"] = floatingDiv
-              current_highlight_data["start"] = firstColStartIndex
-              current_highlight_data["end"] = firstColEndIndex
-            }
+          this.#positionHighlight(floatingDiv, firstColStartIndex, firstColEndIndex)
+          if (isNewDiv) {
+            document.body.appendChild(floatingDiv);
+            this.floatingDivsSplit.get(elementsRawUniqueId)["splits"].push({
+              col: c,
+              elem: floatingDiv,
+              start: firstColStartIndex,
+              end: firstColEndIndex
+            });
+          } else if (!currentHead) {
+            current_highlight_data["col"] = c
+            current_highlight_data["elem"] = floatingDiv
+            current_highlight_data["start"] = firstColStartIndex
+            current_highlight_data["end"] = firstColEndIndex
           }
         }
-        this.floatingDivsSplit.set(
-          elementsRawUniqueId,
-          this.floatingDivsSplit
-            .get(elementsRawUniqueId)
+      }
+
+      this.floatingDivsSplit.set(
+        elementsRawUniqueId,
+        {
+          comment: this.floatingDivsSplit
+            .get(elementsRawUniqueId)["comment"],
+
+          splits: this.floatingDivsSplit
+            .get(elementsRawUniqueId)["splits"]
             .filter((item) => {
               if (item.col > upperCol || item.col < lowerCol) {
                 item["elem"].remove();
@@ -227,49 +230,49 @@ export class TextHighlighter {
               }
               return true;
             })
-        );
-      } else if (highlightElement.style.display === "none" && (yCol1 === yCol2)) {
-        highlightElement.style.display = "inline";
-      }
-      if (isHead) {
-        let colorInt = element["colorId"]
-        let backgroundColor = this.#getColor(Number.parseInt(colorInt))
-        highlightElement.style.backgroundColor = backgroundColor
-      }
-      this.#positionHighlight(highlightElement, startId, endId)
-    } catch (error) {
-      console.error('Error in positionFloatingComment:', error);
+        }
+      );
+    } else if (highlightElement.style.display === "none" && (yCol1 === yCol2)) {
+      highlightElement.style.display = "inline";
     }
+    if (isHead) {
+      let colorInt = element["colorId"]
+      let backgroundColor = this.#getColor(Number.parseInt(colorInt))
+      highlightElement.style.backgroundColor = backgroundColor
+    }
+    this.#positionHighlight(highlightElement, startId, endId)
   }
 
-
-
   #hoveringComment() {
-    this.floatingComments.forEach((div) => {
-      const startId = Number.parseInt(div.getAttribute("start"));
-      const endId = Number.parseInt(div.getAttribute("end"));
+    this.floatingDivsSplit.forEach((div) => {
+      let head_element = div["splits"].find((el) => el.head == true)
+      const startId = head_element.start;
+      const endId = head_element.end;
       const currentMouseIndex = this.#getCurrentMouseIndex();
 
       let isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.#isMouseLastIndex()
 
-      const splits = this.floatingDivsSplit.get(`${startId}-${endId}`)
-      if (isInside) {
-        div.style.opacity = 1
-        div.style.zIndex = 50
-        splits.forEach(item => {
-          item["elem"].style.opacity = 1;
-        });
-      } else {
-        if (div.style.opacity == 1) {
-          div.style.opacity = 0
-          setTimeout(() => {
-            div.style.zIndex = 5;
-          }, this.hoverTransitionDuration);
-        }
+      const splits = this.floatingDivsSplit.get(`${startId}-${endId}`)["splits"]
+      const comment = this.floatingDivsSplit.get(`${startId}-${endId}`)["comment"]
+      if (comment) {
+        if (isInside) {
+          comment.style.opacity = 0
+          comment.style.zIndex = 50
+          splits.forEach(item => {
+            item["elem"].style.opacity = 1;
+          });
+        } else {
+          if (comment.style.opacity == 1) {
+            comment.style.opacity = 0
+            setTimeout(() => {
+              comment.style.zIndex = 5;
+            }, this.hoverTransitionDuration);
+          }
 
-        splits.forEach(item => {
-          item["elem"].style.opacity = this.unfocusedOpacity;
-        });
+          splits.forEach(item => {
+            item["elem"].style.opacity = this.unfocusedOpacity;
+          });
+        }
       }
     });
   }
@@ -442,10 +445,12 @@ export class TextHighlighter {
     this.formElement = floatingDivForm
 
 
-    const splits = this.floatingDivsSplit.get(rawId)
-    splits.forEach(item => {
-      item["elem"].style.opacity = 1.0;
-    });
+    // const splits = this.floatingDivsSplit.get(rawId)["splits"]
+    // splits.forEach(item => {
+    //   item["elem"].style.opacity = 1.0;
+    // });
+
+
     this.#positionCommentForm();
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
@@ -497,11 +502,14 @@ export class TextHighlighter {
       // Initialize with an array containing the first object
       // two comments wont have the same sawUniqueId so we should awlays make it here
       // unique id is gen by mouse down letter index  and mouse up letter index
-      this.floatingDivsSplit.set(rawUniqueId, [newObj]);
+      // this.floatingDivsSplit.set(rawUniqueId, [newObj]);
+      this.floatingDivsSplit.set(rawUniqueId, {
+        comment: null,
+        splits: [newObj]
+      });
       this.#positionHighlightedText(newObj, rawUniqueId);
+      this.#repositionItems()
     }
-    // Initially position the div
-    this.#repositionItems()
   }
 
 
@@ -534,9 +542,15 @@ export class TextHighlighter {
     });
 
     this.floatingDivsSplit.forEach((divArray, key) => {
-      divArray.forEach((divsplit) => {
-        this.#positionHighlightedText(divsplit, key);
-      });
+      if (divArray["splits"]) {
+        divArray["splits"].forEach((divsplit) => {
+          this.#positionHighlightedText(divsplit, key);
+        });
+      }
+
+      if (divArray["comment"]) {
+        this.#positionCommentContent(divArray["comment"])
+      }
     });
 
     if (this.formElement) {
@@ -722,7 +736,7 @@ export class TextHighlighter {
     const selectedId = parseInt(colorId);
     const color = this.#getColor(selectedId);
 
-    if (!this.floatingComments.has(rawUniqueId)) {
+    if (!this.floatingDivsSplit.has(rawUniqueId)) {
       const floatingComment = document.createElement("div");
       floatingComment.id = `floating-${startIndex}-${endIndex}`;
       floatingComment.className = "highlightComment";
@@ -733,16 +747,12 @@ export class TextHighlighter {
       floatingComment.setAttribute("rawId", rawUniqueId)
       floatingComment.setAttribute("commentType", selectedId)
       floatingComment.style.backgroundColor = color;
-      this.floatingComments.set(rawUniqueId, floatingComment);
-      document.body.appendChild(floatingComment);
-    }
-
-    if (!this.floatingDivsSplit.has(rawUniqueId)) {
       const commentHighlight = document.createElement("div");
       commentHighlight.className = "highlightedText split";
-      // this.createTextHighlight.set(rawUniqueId, commentHighlight);
-      let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
 
+      document.body.appendChild(floatingComment);
+      document.body.appendChild(commentHighlight);
+      let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
       let newObj = {
         head: true,
         elem: commentHighlight,
@@ -756,15 +766,13 @@ export class TextHighlighter {
         // Initialize with an array containing the first object
         // two comments wont have the same sawUniqueId so we should awlays make it here
         // unique id is gen by mouse down letter index  and mouse up letter index
-        this.floatingDivsSplit.set(rawUniqueId, [newObj]);
+        this.floatingDivsSplit.set(rawUniqueId, {
+          comment: floatingComment,
+          splits: [newObj]
+        });
       }
-
-      this.#positionHighlightedText(newObj, rawUniqueId);
-      document.body.appendChild(commentHighlight);
       this.#repositionItems()
     }
-    this.#positionCommentContent(this.floatingComments.get(rawUniqueId));
-    this.#repositionItems()
   }
 
   printOutWordStats() {
@@ -796,7 +804,7 @@ export class TextHighlighter {
   }
 
   #removeHighlights(id) {
-    this.floatingDivsSplit.get(id).map((item) => {
+    this.floatingDivsSplit.get(id)["splits"].map((item) => {
       let element = item["elem"]
       element.remove()
     })
@@ -856,6 +864,16 @@ export class TextHighlighter {
   #removeForm() {
     let form = this.formElement
     if (form) {
+      let x = this.formElement.getAttribute("start")
+      let y = this.formElement.getAttribute("end")
+      let highlights = this.floatingDivsSplit.get(`${x}-${y}`)
+      if (highlights) {
+        const splits = highlights["splits"]
+        splits.forEach(item => {
+          item["elem"].style.opacity = this.unfocusedOpacity;
+        });
+      }
+
       window.getSelection().removeAllRanges();
       form.remove()
       this.formIsActive = false;
@@ -873,7 +891,7 @@ export class TextHighlighter {
   }
 
   #updateHighlightColorsId(rawId, colorId) {
-    let items = this.floatingDivsSplit.get(rawId)
+    let items = this.floatingDivsSplit.get(rawId)["splits"]
     if (items) {
       const selectedId = parseInt(colorId);
       const color = this.#getColor(selectedId);
