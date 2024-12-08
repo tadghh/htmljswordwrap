@@ -1,6 +1,6 @@
 body {
 	--main-bg-color: rgb(32, 32, 32);
-	--comment-text-color: rgb(180, 180, 180);
+	--comment-text-color: rgb(7, 7, 7);
 	background-color: var(--main-bg-color);
 	margin: 0px;
 }

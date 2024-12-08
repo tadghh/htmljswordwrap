@@ -72,20 +72,17 @@ export class TextHighlighter {
     const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
     const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
     const window_ratio_offset = window_size_odd + window_size_remainder
-
+    const startCol = this.#getColFromIndex(startId)
+    const endCol = this.#getColFromIndex(endId)
     let yColStartIndex = this.#getPaddingForIndex(startId);
     let top = this.#getYValueFromIndex(endId);
 
     // make sure comment doesnt go off screen
     if (yColStartIndex + wordWidth > maxWidth) {
-      yColStartIndex = this.#getPaddingForIndex(endId);
-      yColStartIndex -= (wordWidth) - this.charHoverPadding;
-    }
-
-    const startCol = this.#getColFromIndex(startId)
-    const endCol = this.#getColFromIndex(endId)
-
-    if (endCol - startCol >= 1) {
+      console.log("here")
+      xOffset = this.#getPaddingForIndex(endId);
+      xOffset -= (wordWidth) - this.charHoverPadding;
+    } else if (endCol - startCol >= 1) {
       top = this.#getYValueFromIndex(endId);
       xOffset = this.#getPaddingForIndex(endId) + Math.round(this.charHoverPadding) + this.#getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth);
     } else {
@@ -94,7 +91,7 @@ export class TextHighlighter {
 
     const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
 
-    element.style.transform = `translate(${Math.ceil(xOffset + window_ratio_offset) - 1}px, ${yOffset}px)`;
+    element.style.transform = `translate(${Math.ceil(xOffset) - 1}px, ${yOffset}px)`;
   }
 
 
@@ -115,20 +112,24 @@ export class TextHighlighter {
 
   #positionCommentForm() {
     // TODO switch to arr
-    const startId = this.formElement.getAttribute("start")
-    const endId = this.formElement.getAttribute("end")
-    const rawId = `${startId}-${endId}`;
+    if (this.formElement) {
+      const startId = this.formElement["start"]
+      const endId = this.formElement["end"]
+      const rawId = `${startId}-${endId}`;
+      // TODO move into form create
+      const elem = this.formElement["elem"]
 
-    const splits = this.floatingDivsSplit.get(rawId)["splits"]
-    splits.forEach(item => {
-      item["elem"].style.opacity = 1.0;
-    });
+      const splits = this.floatingDivsSplit.get(rawId)["splits"]
+      splits.forEach(item => {
+        item["elem"].style.opacity = 1.0;
+      });
 
-    const paddingOffset = Number.parseFloat(window.getComputedStyle(this.formElement, null).getPropertyValue('border-left-width'))
-    const yOffset = this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
-    const xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset
+      const paddingOffset = Number.parseFloat(window.getComputedStyle(elem, null).getPropertyValue('border-left-width'))
+      const yOffset = this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
+      const xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset
 
-    this.formElement.style.transform = `translate(${Math.ceil(xOffset) - 1}px, ${yOffset}px)`;
+      elem.style.transform = `translate(${Math.ceil(xOffset) - 1}px, ${yOffset}px)`;
+    }
   }
 
   #positionHighlightedText(element, key) {
@@ -277,6 +278,16 @@ export class TextHighlighter {
     });
   }
 
+  #getCurrentHoveredLetter() {
+    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const endIndex = this.mouseColSafe === this.#getWordColCount()
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1];
+
+    // Use binary search to find letter index
+    return this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
+  }
+
   #handleMouseMove = (event) => {
     this.relativeX = event.clientX - this.#getLeftPadding();
     this.relativeY = event.clientY - this.#getTopWordPadding();
@@ -287,33 +298,26 @@ export class TextHighlighter {
 
     // Determine start and end indices once
     const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === this.#getWordColCount()
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1];
+
 
     // Use binary search to find letter index
-    let letterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
+    let letterIndex = this.#getCurrentHoveredLetter()
 
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
       const char = this.contentTextCleaned[letterIndex];
       const charWidth = this.#getCharacterWidth(char);
 
-      // TODO move into form create
-      let formHoveringIndicator = document.getElementById("formHoverIndicator")
-      if (formHoveringIndicator) {
-        formHoveringIndicator.textContent = `Last Hovered: (${letterIndex},${this.mouseColSafe}) - ${char}`
-      }
+
       // Create the output string only if needed
       this.outputHover.textContent =
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
         `cumWidth: ${this.#getCumulativeWidth(startIndex, letterIndex).toFixed(2)}px, ` +
         `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
-      this.#hoveringComment()
+
+      this.#liveItems()
+
     }
   };
-
-
-
 
   #handleMouseDown = (event) => {
     let relativeX = event.clientX - this.#getLeftPadding() + this.charHoverPaddingMouse;
@@ -383,7 +387,6 @@ export class TextHighlighter {
 
     // TODO swap out client side
     // Create the highlight with the comment
-    // this.createTextHighlight(startIndex, endIndex, this.contentTextCleaned, comment, commentTypeId);
     let fucking_comment = this.#buildComment(startIndex, endIndex, comment, commentTypeId)
     this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = fucking_comment
     this.#positionCommentContent(fucking_comment)
@@ -444,9 +447,10 @@ export class TextHighlighter {
     const rawId = `${startIndex}-${endIndex}`;
     floatingDivForm.id = id;
     floatingDivForm.className = "floatingForm";
-    floatingDivForm.setAttribute("start", startIndex);
-    floatingDivForm.setAttribute("end", endIndex);
-    this.formElement = floatingDivForm
+    const formElements = Array.from(floatingDivForm.children).find((element) => element.tagName == "FORM")
+    let formHoveringIndicator = Array.from(formElements.querySelectorAll('*')).find((elm) => elm.tagName == "SMALL")
+    console.log(formHoveringIndicator)
+    this.formElement = { elem: floatingDivForm, start: startIndex, end: endIndex, mouseInfo: formHoveringIndicator }
 
     this.#positionCommentForm();
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
@@ -533,11 +537,19 @@ export class TextHighlighter {
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
 
-  #repositionItems() {
-    this.floatingComments.forEach((div) => {
-      this.#positionCommentContent(div);
-    });
+  #liveItems() {
+    this.#hoveringComment()
 
+    if (this.formElement) {
+      const indicator = this.formElement["mouseInfo"]
+      let letterIndex = this.#getCurrentHoveredLetter()
+      if (indicator) {
+        indicator.textContent = `Last Hovered: (${this.contentTextCleaned[letterIndex]},${this.mouseColSafe}) - ${letterIndex}`
+      }
+    }
+  }
+
+  #repositionItems() {
     this.floatingDivsSplit.forEach((divArray, key) => {
       if (divArray["splits"]) {
         divArray["splits"].forEach((divsplit) => {
@@ -549,10 +561,6 @@ export class TextHighlighter {
         this.#positionCommentContent(divArray["comment"])
       }
     });
-
-    if (this.formElement) {
-      this.#positionCommentForm()
-    }
   }
 
   #calcWordPositions() {
@@ -713,6 +721,9 @@ export class TextHighlighter {
   #handleResizeOrScroll = () => {
     this.#updateDivValues();
     this.#repositionItems();
+    if (this.formElement) {
+      this.#positionCommentForm()
+    }
   };
 
   #calcCols(startIndex, endIndex) {
@@ -720,20 +731,15 @@ export class TextHighlighter {
     return (this.#getColFromIndex(endIndex) - this.#getColFromIndex(startIndex)) + 1
   }
   #buildComment(startIndex, endIndex, content, colorId) {
-    const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedId = parseInt(colorId);
-
     const color = this.#getColor(selectedId);
 
     const floatingComment = document.createElement("div");
-    floatingComment.id = `floating-${startIndex}-${endIndex}`;
     floatingComment.className = "highlightComment";
     floatingComment.textContent = content
     floatingComment.style.width = `${this.#getWordWidth(content)}px`;
     floatingComment.setAttribute("start", startIndex)
     floatingComment.setAttribute("end", endIndex)
-    floatingComment.setAttribute("rawId", rawUniqueId)
-    floatingComment.setAttribute("commentType", selectedId)
     floatingComment.style.backgroundColor = color;
     return floatingComment
   }
@@ -867,10 +873,10 @@ export class TextHighlighter {
   }
 
   #removeForm() {
-    let form = this.formElement
+    let form = this.formElement["elem"]
     if (form) {
-      let x = this.formElement.getAttribute("start")
-      let y = this.formElement.getAttribute("end")
+      let x = this.formElement["start"]
+      let y = this.formElement["end"]
       let highlights = this.floatingDivsSplit.get(`${x}-${y}`)
       if (highlights) {
         const splits = highlights["splits"]
@@ -888,8 +894,8 @@ export class TextHighlighter {
 
   #closeForm() {
     if (this.formElement) {
-      let x = this.formElement.getAttribute("start")
-      let y = this.formElement.getAttribute("end")
+      let x = this.formElement["start"]
+      let y = this.formElement["end"]
       this.#removeHighlights(`${x}-${y}`)
       this.#removeForm()
     }
