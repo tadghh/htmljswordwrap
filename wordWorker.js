@@ -1,5 +1,4 @@
 
-// TODO Form at edge of screen, don't let it go over bounds
 // TODO public function to create highlight
 // TODO public function to check if word is highlighted
 export class TextHighlighter {
@@ -66,22 +65,22 @@ export class TextHighlighter {
     let xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
     const wordWidth = this.#getWordWidth(element.textContent);
     const maxWidth = this.#getMaxWidth();
-    const elementBodyWidth = document.body.getBoundingClientRect().width;
-
-    // Seems that some browsers discard the real width of elements
-    const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
-    const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
-    const window_ratio_offset = window_size_odd + window_size_remainder
     const startCol = this.#getColFromIndex(startId)
     const endCol = this.#getColFromIndex(endId)
+    // const elementBodyWidth = document.body.getBoundingClientRect().width;
+
+    // Seems that some browsers discard the real width of elements
+    // const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
+    // const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
+    // const window_ratio_offset = window_size_odd + window_size_remainder
+
     let yColStartIndex = this.#getPaddingForIndex(startId);
     let top = this.#getYValueFromIndex(endId);
 
     // make sure comment doesnt go off screen
     if (yColStartIndex + wordWidth > maxWidth) {
-      console.log("here")
       xOffset = this.#getPaddingForIndex(endId);
-      xOffset -= (wordWidth) - this.charHoverPadding;
+      xOffset -= wordWidth - this.charHoverPadding;
     } else if (endCol - startCol >= 1) {
       top = this.#getYValueFromIndex(endId);
       xOffset = this.#getPaddingForIndex(endId) + Math.round(this.charHoverPadding) + this.#getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth);
@@ -112,21 +111,28 @@ export class TextHighlighter {
 
   #positionCommentForm() {
     // TODO switch to arr
-    if (this.formElement) {
+    if (this.formElement["elem"]) {
       const startId = this.formElement["start"]
       const endId = this.formElement["end"]
-      const rawId = `${startId}-${endId}`;
-      // TODO move into form create
       const elem = this.formElement["elem"]
+      const maxWidth = this.#getMaxWidth();
+      const yColStartIndex = this.#getPaddingForIndex(startId);
+      const formWidth = this.formElement["elem"].getBoundingClientRect().width
+      const paddingOffset = Number.parseFloat(window.getComputedStyle(elem, null).getPropertyValue('border-left-width'))
+      const yOffset = this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
 
-      const splits = this.floatingDivsSplit.get(rawId)["splits"]
-      splits.forEach(item => {
+      this.floatingDivsSplit.get(`${startId}-${endId}`)["splits"].forEach(item => {
         item["elem"].style.opacity = 1.0;
       });
 
-      const paddingOffset = Number.parseFloat(window.getComputedStyle(elem, null).getPropertyValue('border-left-width'))
-      const yOffset = this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
-      const xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset
+
+
+      let xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset
+
+      if (yColStartIndex + formWidth > maxWidth) {
+        xOffset = this.#getPaddingForIndex(endId);
+        xOffset -= formWidth - this.charHoverPadding;
+      }
 
       elem.style.transform = `translate(${Math.ceil(xOffset) - 1}px, ${yOffset}px)`;
     }
@@ -372,8 +378,8 @@ export class TextHighlighter {
 
   #formCommentSubmission(submission) {
     const form = submission.target;
-    const startIndex = parseInt(form.closest('.floatingForm').getAttribute('start'));
-    const endIndex = parseInt(form.closest('.floatingForm').getAttribute('end'));
+    const startIndex = this.formElement["start"];
+    const endIndex = this.formElement["end"];
     const comment = form.comment.value;
     const selectedRadio = form.querySelector('input[name="commentType"]:checked');
     if (!selectedRadio) {
@@ -387,17 +393,16 @@ export class TextHighlighter {
 
     // TODO swap out client side
     // Create the highlight with the comment
-    let fucking_comment = this.#buildComment(startIndex, endIndex, comment, commentTypeId)
-    this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = fucking_comment
-    this.#positionCommentContent(fucking_comment)
-    document.body.appendChild(fucking_comment);
+    const builtComment = this.#buildComment(startIndex, endIndex, comment, commentTypeId)
+    this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = builtComment
+    this.#positionCommentContent(builtComment)
+    document.body.appendChild(builtComment);
 
     // Remove the form after submission
     const formId = `form-${startIndex}-${endIndex}`;
     this.#removeForm(formId);
   }
 
-  // TODO fix positioning
   #createForm(startIndex, endIndex) {
     this.formIsActive = true;
     const id = `form-${startIndex}-${endIndex}`;
@@ -452,7 +457,7 @@ export class TextHighlighter {
     console.log(formHoveringIndicator)
     this.formElement = { elem: floatingDivForm, start: startIndex, end: endIndex, mouseInfo: formHoveringIndicator }
 
-    this.#positionCommentForm();
+
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
       radio.addEventListener('change', (event) => {
@@ -473,6 +478,7 @@ export class TextHighlighter {
     const form = floatingDivForm.querySelector('form');
     form.addEventListener('submit', (event) => this.#formCommentSubmission(event));
     document.body.appendChild(floatingDivForm);
+    this.#positionCommentForm();
   }
 
   #createHighlight() {
