@@ -4,6 +4,7 @@
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
 
+
   // Cache cumulative widths
   #widthSums = new Map();
   constructor(highlightedDiv, outputId, outputHoverId) {
@@ -17,7 +18,9 @@ export class TextHighlighter {
     this.commentHighlights = new Map();
     this.floatingComments = new Map();
     this.floatingDivsSplit = new Map();
-
+    this.MIN_FORM_OPACITY = 0.10
+    this.DISTANCE_FORM_POWER = 0.8
+    this.MAX_DISTANCE_FORM_DIVISOR = 6 // Screen diagonal divided by this
     // 300ms in the css
     this.hoverTransitionDuration = 333;
     this.unfocusedOpacity = 0.2;
@@ -110,7 +113,6 @@ export class TextHighlighter {
   }
 
   #positionCommentForm() {
-    // TODO switch to arr
     if (this.formElement["elem"]) {
       const startId = this.formElement["start"]
       const endId = this.formElement["end"]
@@ -118,16 +120,14 @@ export class TextHighlighter {
       const maxWidth = this.#getMaxWidth();
       const yColStartIndex = this.#getPaddingForIndex(startId);
       const formWidth = this.formElement["elem"].getBoundingClientRect().width
-      const paddingOffset = Number.parseFloat(window.getComputedStyle(elem, null).getPropertyValue('border-left-width'))
+      const paddingOffset = Number.parseFloat(window.getComputedStyle(elem).getPropertyValue('border-left-width'))
       const yOffset = this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
 
       this.floatingDivsSplit.get(`${startId}-${endId}`)["splits"].forEach(item => {
         item["elem"].style.opacity = 1.0;
       });
 
-
-
-      let xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getLeftPadding() + Math.floor(paddingOffset) + this.mouseLeftOffset
+      let xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getLeftPadding()
 
       if (yColStartIndex + formWidth > maxWidth) {
         xOffset = this.#getPaddingForIndex(endId);
@@ -313,7 +313,6 @@ export class TextHighlighter {
       const char = this.contentTextCleaned[letterIndex];
       const charWidth = this.#getCharacterWidth(char);
 
-
       // Create the output string only if needed
       this.outputHover.textContent =
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
@@ -321,8 +320,8 @@ export class TextHighlighter {
         `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
 
       this.#liveItems()
-
     }
+
   };
 
   #handleMouseDown = (event) => {
@@ -542,18 +541,55 @@ export class TextHighlighter {
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
-
   #liveItems() {
     this.#hoveringComment()
-
     if (this.formElement) {
       const indicator = this.formElement["mouseInfo"]
+      const formRect = this.formElement["elem"].getBoundingClientRect()
+      const leftBound = formRect.left
+      const rightBound = formRect.right
+      const topBound = formRect.top
+      const bottomBound = formRect.bottom
+
+      // Check if inside bounds
+      if (event.clientX <= rightBound && event.clientX >= leftBound
+        && event.clientY >= topBound && event.clientY <= bottomBound) {
+        this.formElement["elem"].style.opacity = 1
+
+      } else {
+        // Calculate horizontal and vertical distances
+        let dx = 0
+        let dy = 0
+
+        // Horizontal distance
+        if (event.clientX < leftBound) dx = leftBound - event.clientX
+        else if (event.clientX > rightBound) dx = event.clientX - rightBound
+
+        // Vertical distance
+        if (event.clientY < topBound) dy = topBound - event.clientY
+        else if (event.clientY > bottomBound) dy = event.clientY - bottomBound
+
+        // Calculate actual distance using Pythagorean theorem
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        const maxDistance = Math.sqrt(
+          window.innerWidth * window.innerWidth +
+          window.innerHeight * window.innerHeight
+        ) / this.MAX_DISTANCE_FORM_DIVISOR // Changed from 4 to 3 to account for diagonal movement
+
+        // Adjust the power for a more even falloff in all directions
+        const opacity = Math.max(this.MIN_FORM_OPACITY, 1 - Math.pow(distance / maxDistance, this.DISTANCE_FORM_POWER))
+        this.formElement["elem"].style.opacity = opacity
+      }
+
       let letterIndex = this.#getCurrentHoveredLetter()
       if (indicator) {
         indicator.textContent = `Last Hovered: (${this.contentTextCleaned[letterIndex]},${this.mouseColSafe}) - ${letterIndex}`
       }
     }
   }
+
+
 
   #repositionItems() {
     this.floatingDivsSplit.forEach((divArray, key) => {
