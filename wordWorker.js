@@ -109,7 +109,9 @@ export class TextHighlighter {
     let items = []
     this.floatingDivsSplit.forEach(highlightObj => {
       let section = this.contentTextCleaned.slice(highlightObj.start, highlightObj.end)
-      items.push(section.includes(word))
+      if (section.includes(word)) {
+        items.push(highlightObj)
+      }
     })
     return items
   }
@@ -234,9 +236,6 @@ export class TextHighlighter {
             floatingDiv.style.opacity = 1
           }
         }
-        console.log(Math.max(this.#getWordColCount(), yCol1 + 1))
-        console.log(this.#getWordColCount())
-        console.log(this.#getWordColCount())
 
         floatingDiv.style.backgroundColor = backgroundColor
 
