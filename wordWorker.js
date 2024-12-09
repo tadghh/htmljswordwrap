@@ -50,7 +50,12 @@ export class TextHighlighter {
 
   // Cache cumulative widths
   #widthSums = new Map();
-  constructor(highlightedDiv, outputId, outputHoverId) {
+  constructor(highlightedDiv, outputHoverId) {
+    this.MIN_FORM_OPACITY = 0.10
+    this.DISTANCE_FORM_POWER = 0.8
+    this.MAX_DISTANCE_FORM_DIVISOR = 6
+    this.HOVER_TRANSITION_DURATION = 150;
+    this.UNFOCUSED_OPACITY = 0.2;
     this.widthCache = {};
     this.startLetterIndex = -1;
     this.endLetterIndex = -1;
@@ -58,22 +63,14 @@ export class TextHighlighter {
     this.mouseColSafe = 0;
     this.relativeY = 0;
     this.relativeX = 0;
-    this.commentHighlights = new Map();
-    this.floatingComments = new Map();
+
     this.floatingDivsSplit = new Map();
-    this.MIN_FORM_OPACITY = 0.10
-    this.DISTANCE_FORM_POWER = 0.8
-    this.MAX_DISTANCE_FORM_DIVISOR = 6 // Screen diagonal divided by this
-    // 300ms in the css
-    this.hoverTransitionDuration = 150;
-    this.unfocusedOpacity = 0.2;
+
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
-    this.canvas = document.createElement("canvas");
-    this.context = this.canvas.getContext("2d");
+    this.context = document.createElement("canvas").getContext("2d");
 
-    this.highlightedDiv = document.getElementById("highlightedDiv");
-    this.output = document.getElementById(outputId);
+    this.highlightedDiv = document.getElementById(highlightedDiv);
     this.outputHover = document.getElementById(outputHoverId);
 
     const computedStyle = getComputedStyle(this.highlightedDiv);
@@ -87,11 +84,13 @@ export class TextHighlighter {
     this.divRect = this.highlightedDiv.getBoundingClientRect();
 
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
+
     this.contentTextCleaned = this.highlightedDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
     this.spaceSize = this.#getWordWidth(" ");
     this.wordArray = this.contentTextCleaned.split(" ").map((word, i, arr) =>
       i < arr.length - 1 ? word + " " : word
     );
+
     this.wordStats = this.#calcWordPositions();
 
     this.charHoverPadding = this.#getCharacterWidth("m")
@@ -99,7 +98,7 @@ export class TextHighlighter {
     this.formIsActive = false
     this.#addEventListeners();
     this.createTextHighlight(739, 752, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
-    this.delay = 500
+
     this.formElement = null;
   }
 
@@ -306,7 +305,7 @@ export class TextHighlighter {
           console.log("other")
 
           splits.forEach(item => {
-            item["elem"].style.opacity = this.unfocusedOpacity;
+            item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
           });
           if (comment.style.opacity == 1) {
             comment.style.opacity = 0
@@ -317,7 +316,7 @@ export class TextHighlighter {
               if (comment.style.opacity == 0) {
                 comment.style.zIndex = 5;
               }
-            }, this.hoverTransitionDuration);
+            }, this.HOVER_TRANSITION_DURATION);
           }
 
         }
@@ -934,7 +933,7 @@ export class TextHighlighter {
       if (highlights) {
         const splits = highlights["splits"]
         splits.forEach(item => {
-          item["elem"].style.opacity = this.unfocusedOpacity;
+          item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
         });
       }
 
