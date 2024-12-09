@@ -234,11 +234,19 @@ export class TextHighlighter {
             floatingDiv.style.opacity = 1
           }
         }
+        console.log(Math.max(this.#getWordColCount(), yCol1 + 1))
+        console.log(this.#getWordColCount())
+        console.log(this.#getWordColCount())
 
         floatingDiv.style.backgroundColor = backgroundColor
 
         let firstColStartIndex = this.wordStats[c][1];
-        let firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
+        let firstColEndIndex = 0
+        if (this.wordStats[yCol1 + 1] == undefined) {
+          firstColEndIndex = this.wordStats[yCol1][1] - 1;
+        } else {
+          firstColEndIndex = this.wordStats[yCol1 + 1][1] - 1;
+        }
 
         if (c == lowerCol && c == upperCol) {
           firstColEndIndex = endId
