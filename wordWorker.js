@@ -121,53 +121,50 @@ export class TextHighlighter {
     if (element) {
       const startId = commentObj.start;
       const endId = commentObj.end
-      let xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
+      const startIndex = this.#getStartIndexForIndex(startId)
       const wordWidth = this.#getWordWidth(element.textContent);
       const maxWidth = this.#getHighlightAreaMaxWidth();
-      const startCol = this.#getIndexColumnNumber(startId)
-      const endCol = this.#getIndexColumnNumber(endId)
+      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
+      const isOutOfBounds = this.#getPaddingForIndex(startId) + wordWidth > maxWidth;
+      const endLineStartIndex = this.#getStartIndexForIndex(endId)
 
-      let yColStartIndex = this.#getPaddingForIndex(startId);
+      let xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId)
       let top = this.#getTopPaddingForIndex(endId);
 
-      // make sure comment doesnt go off screen
-      if (yColStartIndex + wordWidth > maxWidth) {
-        xOffset = this.#getPaddingForIndex(endId);
-        xOffset -= wordWidth - this.charHoverPadding;
-      } else if (endCol - startCol >= 1) {
+      if (isOutOfBounds) {
+        // make sure comment doesnt go off screen
+        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId)
+        xOffset -= wordWidth;
+      } else if (isMultiLine) {
+        // For comments (highlights) with more than one line
         top = this.#getTopPaddingForIndex(endId);
-        xOffset = this.#getPaddingForIndex(endId) + Math.round(this.charHoverPadding) + this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth);
+        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (element.textContent.length - 1));
       } else {
         top = this.#getTopPaddingForIndex(startId);
       }
 
       const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
 
-      element.style.transform = `translate(${Math.ceil(xOffset) - 1}px, ${yOffset}px)`;
+      element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
-
 
   #positionHighlight(element, startId, endId) {
     if (element != null) {
       // console.log(element)
       const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
       const yOffset = this.#getTopPaddingForIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
-      const xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
 
       // Seems that some browsers discard the real width of elements
-      const elementBodyWidth = document.body.getBoundingClientRect().width;
-      const window_size_remainder = Math.round(elementBodyWidth) - elementBodyWidth
-      const window_size_odd = Math.round(elementBodyWidth) - Math.floor(elementBodyWidth)
-      const window_ratio_offset = window_size_odd + window_size_remainder
-
       element.style.width = `${Math.ceil(this.#getWordWidth(selectedText))}px`;
-      element.style.transform = `translate(${Math.ceil(xOffset + window_ratio_offset) - 1}px, ${yOffset}px)`;
+
+      let startIndex = this.#getStartIndexForIndex(startId)
+      element.style.transform = `translate(${this.#getCumulativeWidthForIndexRange(startIndex, startId)}px, ${yOffset}px)`;
     } else {
       console.log("bad element")
     }
   }
-
+  // TODO overflowing subtract scrollbar width
   #positionCommentForm() {
     if (this.formElement["elem"]) {
       const startId = this.formElement["start"]
@@ -705,7 +702,7 @@ export class TextHighlighter {
 
   #getCharacterWidth(char) {
     if (this.widthCache[char] === undefined) {
-      this.widthCache[char] = Number.parseFloat(Number.parseFloat(this.context.measureText(char).width).toFixed(2));
+      this.widthCache[char] = Number.parseFloat(Number.parseFloat(this.context.measureText(char).width).toFixed(0));
     }
     return this.widthCache[char];
   }
