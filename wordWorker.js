@@ -1,6 +1,11 @@
 
 // TODO public function to create highlight
 // TODO public function to check if word is highlighted
+// TODO better function names
+// TODO function to set highlight colors
+// TODO function to enable ids on highlight elements
+// Or just return array of elements for "search"
+// TODO submission api
 export class TextHighlighter {
   static TEXT_RENDER_BUFFER = 3;
   static FORM_HTML = `
@@ -173,7 +178,7 @@ export class TextHighlighter {
     }
   }
 
-  #positionHighlightedText(key, startId, endId) {
+  #updateHighlightElements(key, startId, endId) {
     this.#updateDivValues()
 
     const spanningColCount = this.#calcCols(startId, endId);
@@ -195,7 +200,6 @@ export class TextHighlighter {
         let isNewDiv = false;
         let currentHead = false
         let current_highlight_data = undefined
-        console.log("yo")
         let current_highlight = highlightSplits.find((entry) => entry.col == c)
 
         if (current_highlight && current_highlight["elem"]) {
@@ -242,7 +246,6 @@ export class TextHighlighter {
           firstColEndIndex = this.wordStats[c + 1][1] - 1;
         }
 
-        this.#positionHighlight(floatingDiv, firstColStartIndex, firstColEndIndex)
         if (isNewDiv) {
           document.body.appendChild(floatingDiv);
           this.floatingDivsSplit.get(elementsRawUniqueId)["splits"].push({
@@ -282,13 +285,14 @@ export class TextHighlighter {
     this.floatingDivsSplit.forEach((div) => {
       const startId = div.start;
       const endId = div.end;
+
       const currentMouseIndex = this.#getCurrentMouseIndex();
 
-      let isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.#isMouseLastIndex()
+      const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.#isMouseLastIndex()
 
-      const splits = this.floatingDivsSplit.get(`${startId}-${endId}`)["splits"]
-      const comment = this.floatingDivsSplit.get(`${startId}-${endId}`)["comment"].elem
+      const comment = div.comment.elem
       if (comment) {
+        const splits = div.splits
         if (isInside) {
           comment.style.opacity = 1
           comment.style.zIndex = 50
@@ -334,7 +338,7 @@ export class TextHighlighter {
 
 
     // Use binary search to find letter index
-    let letterIndex = this.#getCurrentHoveredLetter()
+    const letterIndex = this.#getCurrentHoveredLetter()
 
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
       const char = this.contentTextCleaned[letterIndex];
@@ -348,7 +352,6 @@ export class TextHighlighter {
 
       this.#liveItems()
     }
-
   };
 
   #handleMouseDown = (event) => {
@@ -356,15 +359,14 @@ export class TextHighlighter {
 
     this.mouseCol = Math.floor(this.relativeY / this.#getTextYSections());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
+
     if (!this.formIsActive) {
       const startIndex = this.wordStats[this.mouseColSafe][1];
       const endIndex = this.mouseColSafe === this.#getWordColCount()
         ? this.contentTextCleaned.length
         : this.wordStats[this.mouseColSafe + 1][1];
 
-      // Use binary search to find letter index
-      let letterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
-      this.startLetterIndex = letterIndex;
+      this.startLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
     }
   };
 
@@ -436,18 +438,21 @@ export class TextHighlighter {
     const rawId = `${startIndex}-${endIndex}`;
     const id = `form-${rawId}`;
     const elementString = TextHighlighter.FORM_HTML
-
     const parser = new DOMParser();
     const doc = parser.parseFromString(elementString, 'text/html');
     const floatingDivForm = doc.body.firstElementChild;
+    const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
+
+    const formElement = floatingDivForm.querySelector('form');
+    formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
+
+    const closeButton = floatingDivForm.querySelector('.close-btn');
+    closeButton.addEventListener('click', () => this.#closeForm());
 
     floatingDivForm.id = id;
     floatingDivForm.className = "floatingForm";
 
-    const formElement = floatingDivForm.querySelector('form');
     // Add event listener for form submission
-    formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
-
     const formHoveringIndicator = formElement.querySelector('small');
 
     this.formElement = {
@@ -456,8 +461,7 @@ export class TextHighlighter {
       end: endIndex,
       mouseInfo: formHoveringIndicator
     }
-    console.log(this.floatingDivsSplit.has(rawId))
-    const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
+
     radioButtons.forEach(radio => {
       radio.addEventListener('change', (event) => {
         const selectedId = parseInt(event.target.value, 10);
@@ -468,10 +472,6 @@ export class TextHighlighter {
         }
       });
     });
-
-    // Add event listener to close button
-    const closeButton = floatingDivForm.querySelector('.close-btn');
-    closeButton.addEventListener('click', () => this.#closeForm());
 
     document.body.appendChild(floatingDivForm);
     this.#positionCommentForm();
@@ -501,6 +501,7 @@ export class TextHighlighter {
           elem: null,
           start: null,
           end: null,
+          // TODO set default type id
           type: 2
         },
         splits: [],
@@ -508,7 +509,6 @@ export class TextHighlighter {
         end: endIndex
       });
 
-      this.#positionHighlightedText(rawUniqueId, startIndex, endIndex);
       this.#repositionItems()
     }
   }
@@ -521,6 +521,7 @@ export class TextHighlighter {
     window.addEventListener("resize", this.#handleResizeOrScroll);
     window.addEventListener("scroll", () => {
       this.mouseTopOffset = window.scrollY;
+      // 🤓 Horizontal scroll 👆
       this.mouseLeftOffset = window.scrollX;
       this.#handleResizeOrScroll();
     });
@@ -536,9 +537,7 @@ export class TextHighlighter {
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
-
-  #liveItems() {
-    this.#hoveringComment()
+  #formTransparency() {
     if (this.formElement) {
       const indicator = this.formElement["mouseInfo"]
       const formRect = this.formElement["elem"].getBoundingClientRect()
@@ -586,10 +585,15 @@ export class TextHighlighter {
     }
   }
 
+  #liveItems() {
+    this.#hoveringComment()
+    this.#formTransparency()
+  }
+
   #repositionItems() {
     this.floatingDivsSplit.forEach((divArray, key) => {
       const highlightSplits = divArray["splits"]
-      this.#positionHighlightedText(key, divArray.start, divArray.end);
+      this.#updateHighlightElements(key, divArray.start, divArray.end);
 
       if (highlightSplits) {
         highlightSplits.forEach((split) => {
