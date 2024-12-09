@@ -195,7 +195,7 @@ export class TextHighlighter {
         let isNewDiv = false;
         let currentHead = false
         let current_highlight_data = undefined
-
+        console.log("yo")
         let current_highlight = highlightSplits.find((entry) => entry.col == c)
 
         if (current_highlight && current_highlight["elem"]) {
@@ -384,13 +384,15 @@ export class TextHighlighter {
 
     // Use binary search to find letter index
     if (!this.formIsActive) {
+
       this.endLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
 
       if (this.startLetterIndex > this.endLetterIndex) {
         [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
         this.startLetterIndex++
       }
-
+      if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
+      if (this.contentTextCleaned[this.endLetterIndex] === " ") this.endLetterIndex--;
       let totalLength = this.endLetterIndex - this.startLetterIndex;
 
       if (totalLength > 1) {
@@ -454,7 +456,7 @@ export class TextHighlighter {
       end: endIndex,
       mouseInfo: formHoveringIndicator
     }
-
+    console.log(this.floatingDivsSplit.has(rawId))
     const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
     radioButtons.forEach(radio => {
       radio.addEventListener('change', (event) => {
