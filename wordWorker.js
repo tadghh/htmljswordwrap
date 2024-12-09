@@ -105,6 +105,15 @@ export class TextHighlighter {
     return [startIndex, endIndex]
   }
 
+  getWordHighlights(word) {
+    let items = []
+    this.floatingDivsSplit.forEach(highlightObj => {
+      let section = this.contentTextCleaned.slice(highlightObj.start, highlightObj.end)
+      items.push(section.includes(word))
+    })
+    return items
+  }
+
   #positionCommentContent(commentObj) {
     const element = commentObj.elem
     if (element) {
@@ -767,7 +776,7 @@ export class TextHighlighter {
     this.mouseTopOffset = window.scrollY;
     // 🤓 Horizontal scroll 👆
     this.mouseLeftOffset = window.scrollX;
-    console.log(this.getWordIndexes("reconnaissance"))
+    console.log(this.getWordHighlights("of"))
     this.#updateDivValues();
     this.#repositionItems();
 
