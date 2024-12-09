@@ -1,13 +1,9 @@
-
-// TODO public function to create highlight
 // TODO public function to check if word is highlighted
-// TODO better function names
 // TODO function to set highlight colors
 // TODO function to enable ids on highlight elements
 // Or just return array of elements for "search"
 // TODO submission api
 export class TextHighlighter {
-  static TEXT_RENDER_BUFFER = 3;
   static FORM_HTML = `
     <div class="floatingForm">
         <form action="">
@@ -100,6 +96,13 @@ export class TextHighlighter {
     this.createTextHighlight(739, 752, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
 
     this.formElement = null;
+  }
+
+  getWordIndexes(word) {
+    const startIndex = this.contentTextCleaned.indexOf(word)
+    const endIndex = startIndex + word.length - 1
+
+    return [startIndex, endIndex]
   }
 
   #positionCommentContent(commentObj) {
@@ -279,31 +282,26 @@ export class TextHighlighter {
     }
   }
 
-  #hoveringComment() {
-
-
+  #handleMouseHoveringComment() {
     this.floatingDivsSplit.forEach((div) => {
       const startId = div.start;
       const endId = div.end;
-      let timeoutId;
       const currentMouseIndex = this.#getCurrentMouseIndex();
-
       const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.#isMouseLastIndex()
-
       const comment = div.comment.elem
+      let timeoutId;
+
       if (comment) {
         const splits = div.splits
 
         if (isInside) {
-          clearTimeout(timeoutId);  // Clear any pending z-index changes
+          clearTimeout(timeoutId);
           comment.style.opacity = 1
           comment.style.zIndex = 50
           splits.forEach(item => {
             item["elem"].style.opacity = 1;
           });
         } else {
-          console.log("other")
-
           splits.forEach(item => {
             item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
           });
@@ -312,13 +310,11 @@ export class TextHighlighter {
           }
           if (comment.style.opacity == 0) {
             timeoutId = setTimeout(() => {
-              // Double-check opacity is still 0 before changing z-index
               if (comment.style.opacity == 0) {
                 comment.style.zIndex = 5;
               }
             }, this.HOVER_TRANSITION_DURATION);
           }
-
         }
       }
     });
@@ -526,12 +522,7 @@ export class TextHighlighter {
 
   #addEventListeners() {
     window.addEventListener("resize", this.#handleResizeOrScroll);
-    window.addEventListener("scroll", () => {
-      this.mouseTopOffset = window.scrollY;
-      // 🤓 Horizontal scroll 👆
-      this.mouseLeftOffset = window.scrollX;
-      this.#handleResizeOrScroll();
-    });
+    window.addEventListener("scroll", this.#handleResizeOrScroll);
 
     document.addEventListener('keydown', (event) => {
       if (event.key === 'g') {
@@ -595,7 +586,7 @@ export class TextHighlighter {
   }
 
   #liveItems() {
-    this.#hoveringComment()
+    this.#handleMouseHoveringComment()
     this.#updateFormTransparency()
   }
 
@@ -773,8 +764,13 @@ export class TextHighlighter {
   }
 
   #handleResizeOrScroll = () => {
+    this.mouseTopOffset = window.scrollY;
+    // 🤓 Horizontal scroll 👆
+    this.mouseLeftOffset = window.scrollX;
+    console.log(this.getWordIndexes("reconnaissance"))
     this.#updateDivValues();
     this.#repositionItems();
+
     if (this.formElement) {
       this.#positionCommentForm()
     }
