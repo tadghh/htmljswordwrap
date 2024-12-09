@@ -142,7 +142,9 @@ export class TextHighlighter {
       } else {
         top = this.#getTopPaddingForIndex(startId);
       }
-
+      if (xOffset < 0) {
+        xOffset = 0
+      }
       const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
 
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
