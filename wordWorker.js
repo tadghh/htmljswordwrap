@@ -108,24 +108,24 @@ export class TextHighlighter {
     if (element) {
       const startId = commentObj.start;
       const endId = commentObj.end
-      let xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
+      let xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
       const wordWidth = this.#getWordWidth(element.textContent);
-      const maxWidth = this.#getMaxWidth();
-      const startCol = this.#getColFromIndex(startId)
-      const endCol = this.#getColFromIndex(endId)
+      const maxWidth = this.#getHighlightAreaMaxWidth();
+      const startCol = this.#getIndexColumnNumber(startId)
+      const endCol = this.#getIndexColumnNumber(endId)
 
       let yColStartIndex = this.#getPaddingForIndex(startId);
-      let top = this.#getYValueFromIndex(endId);
+      let top = this.#getTopPaddingForIndex(endId);
 
       // make sure comment doesnt go off screen
       if (yColStartIndex + wordWidth > maxWidth) {
         xOffset = this.#getPaddingForIndex(endId);
         xOffset -= wordWidth - this.charHoverPadding;
       } else if (endCol - startCol >= 1) {
-        top = this.#getYValueFromIndex(endId);
-        xOffset = this.#getPaddingForIndex(endId) + Math.round(this.charHoverPadding) + this.#getLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth);
+        top = this.#getTopPaddingForIndex(endId);
+        xOffset = this.#getPaddingForIndex(endId) + Math.round(this.charHoverPadding) + this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset - Math.floor(wordWidth);
       } else {
-        top = this.#getYValueFromIndex(startId);
+        top = this.#getTopPaddingForIndex(startId);
       }
 
       const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
@@ -139,8 +139,8 @@ export class TextHighlighter {
     if (element != null) {
       // console.log(element)
       const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
-      const yOffset = this.#getYValueFromIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
-      const xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
+      const yOffset = this.#getTopPaddingForIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
+      const xOffset = this.#getPaddingForIndex(startId) + Math.floor(this.charHoverPaddingMouse) + this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset - (Number.parseInt(this.fontSize) / 5)
 
       // Seems that some browsers discard the real width of elements
       const elementBodyWidth = document.body.getBoundingClientRect().width;
@@ -161,13 +161,13 @@ export class TextHighlighter {
       const startId = this.formElement["start"]
       const endId = this.formElement["end"]
       const elem = this.formElement["elem"]
-      const maxWidth = this.#getMaxWidth();
+      const maxWidth = this.#getHighlightAreaMaxWidth();
       const yColStartIndex = this.#getPaddingForIndex(startId);
       const formWidth = this.formElement["elem"].getBoundingClientRect().width
       const paddingOffset = Number.parseFloat(window.getComputedStyle(elem).getPropertyValue('border-left-width'))
-      const yOffset = this.#getYValueFromIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
+      const yOffset = this.#getTopPaddingForIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
 
-      let xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getLeftPadding()
+      let xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getHighlightAreaLeftPadding()
 
       if (yColStartIndex + formWidth > maxWidth) {
         xOffset = this.#getPaddingForIndex(endId);
@@ -184,8 +184,8 @@ export class TextHighlighter {
     const spanningColCount = this.#calcCols(startId, endId);
     const elementsRawUniqueId = key;
 
-    let yCol1 = this.#getColFromIndex(startId);
-    let yCol2 = this.#getColFromIndex(endId);
+    let yCol1 = this.#getIndexColumnNumber(startId);
+    let yCol2 = this.#getIndexColumnNumber(endId);
 
     let highlightSplits = this.floatingDivsSplit.get(key).splits
     let commentType = this.floatingDivsSplit.get(key).comment.type
@@ -326,11 +326,11 @@ export class TextHighlighter {
   }
 
   #handleMouseMove = (event) => {
-    this.relativeX = event.clientX - this.#getLeftPadding();
-    this.relativeY = event.clientY - this.#getTopWordPadding();
+    this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding();
+    this.relativeY = event.clientY - this.#getHighlightAreaTopPadding();
 
     // Single division operation
-    this.mouseCol = Math.floor(this.relativeY / this.#getTextYSections());
+    this.mouseCol = Math.floor(this.relativeY / this.#getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
 
     // Determine start and end indices once
@@ -347,7 +347,7 @@ export class TextHighlighter {
       // Create the output string only if needed
       this.outputHover.textContent =
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
-        `cumWidth: ${this.#getCumulativeWidth(startIndex, letterIndex).toFixed(2)}px, ` +
+        `cumWidth: ${this.#getCumulativeWidthForIndexRange(startIndex, letterIndex).toFixed(2)}px, ` +
         `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
 
       this.#liveItems()
@@ -355,9 +355,9 @@ export class TextHighlighter {
   };
 
   #handleMouseDown = (event) => {
-    let relativeX = event.clientX - this.#getLeftPadding() + this.charHoverPaddingMouse;
+    let relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.charHoverPaddingMouse;
 
-    this.mouseCol = Math.floor(this.relativeY / this.#getTextYSections());
+    this.mouseCol = Math.floor(this.relativeY / this.#getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
 
     if (!this.formIsActive) {
@@ -372,7 +372,7 @@ export class TextHighlighter {
 
   #handleMouseUp = (event) => {
     // need the mouse to be over the whole char so consider it selected
-    let relativeX = event.clientX - this.#getLeftPadding();
+    let relativeX = event.clientX - this.#getHighlightAreaLeftPadding();
 
     if (relativeX % this.charHoverPadding != 0) {
       relativeX -= this.charHoverPaddingMouse
@@ -386,7 +386,6 @@ export class TextHighlighter {
 
     // Use binary search to find letter index
     if (!this.formIsActive) {
-
       this.endLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
 
       if (this.startLetterIndex > this.endLetterIndex) {
@@ -537,7 +536,10 @@ export class TextHighlighter {
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
-  #formTransparency() {
+
+
+  // Sets the forms opacity based on the distance from the mouse
+  #updateFormTransparency() {
     if (this.formElement) {
       const indicator = this.formElement["mouseInfo"]
       const formRect = this.formElement["elem"].getBoundingClientRect()
@@ -571,9 +573,9 @@ export class TextHighlighter {
         const maxDistance = Math.sqrt(
           window.innerWidth * window.innerWidth +
           window.innerHeight * window.innerHeight
-        ) / this.MAX_DISTANCE_FORM_DIVISOR // Changed from 4 to 3 to account for diagonal movement
+        ) / this.MAX_DISTANCE_FORM_DIVISOR
 
-        // Adjust the power for a more even falloff in all directions
+
         const opacity = Math.max(this.MIN_FORM_OPACITY, 1 - Math.pow(distance / maxDistance, this.DISTANCE_FORM_POWER))
         this.formElement["elem"].style.opacity = opacity
       }
@@ -587,9 +589,10 @@ export class TextHighlighter {
 
   #liveItems() {
     this.#hoveringComment()
-    this.#formTransparency()
+    this.#updateFormTransparency()
   }
 
+  // Updates items that depend on window size or related
   #repositionItems() {
     this.floatingDivsSplit.forEach((divArray, key) => {
       const highlightSplits = divArray["splits"]
@@ -607,9 +610,10 @@ export class TextHighlighter {
     });
   }
 
+  // Creates an array that corresponds to the text on screen
   #calcWordPositions() {
     const widthCache = [[0, 0]];
-    let maxWidth = Math.ceil(this.#getMaxWidth());
+    let maxWidth = Math.ceil(this.#getHighlightAreaMaxWidth());
     let window_size_remainder = Math.round(maxWidth) - maxWidth
 
     let window_size_odd = Math.round(maxWidth) - Math.floor(maxWidth)
@@ -622,9 +626,14 @@ export class TextHighlighter {
     let currentStringIndex = 0;
     let currentWidth = 0;
 
+    // Remember the text content is just one long string
     this.wordArray.forEach((word) => {
       const currentWordWidth = this.#getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
+
+      // The last word can be found by assuming it doesnt end with a space
+      // a non issue if it doesnt as the browser will display correct behavior
+      // assumed behav = that the last word ends with a space
       let extra = word.endsWith(" ") ? 0 : this.spaceSize * -1;
       // First test: does word fit on current line with space?
       if (testWidth <= maxWidth + this.spaceSize + extra) {
@@ -658,7 +667,7 @@ export class TextHighlighter {
     return num % this.charHoverPadding === 0 ? num : num - (num % this.charHoverPadding);
   }
 
-  #getWidthFromRange(startIndex, yColIndex) {
+  #getCumulativeWidthInsideIndexRange(startIndex, yColIndex) {
     if (startIndex < 0 || yColIndex < 0) return null
     let cumulativeWidth = 0;
     for (let i = startIndex; i < this.contentTextCleaned.length; i++) {
@@ -672,7 +681,7 @@ export class TextHighlighter {
   #getPaddingForIndex(startIndex) {
     if (startIndex < 0) return null
 
-    let colStartIndex = this.#getStartIndexFromIndex(startIndex);
+    let colStartIndex = this.#getStartIndexForIndex(startIndex);
 
     if (colStartIndex < 0) return null
 
@@ -696,20 +705,20 @@ export class TextHighlighter {
     return [...word].reduce((total, char) => total + this.#getCharacterWidth(char), 0);
   }
 
-  #getStartIndexFromIndex(startLetterIndex) {
+  #getStartIndexForIndex(index) {
     let previousValue = null;
-    let lastSize = this.wordStats[this.wordStats.length - 1][1]
-    if (startLetterIndex == 0) {
+    let lastSize = this.wordStats[this.#getWordColCount()][1]
+    if (index == 0) {
       return 0
     }
-    if (lastSize <= startLetterIndex) {
+    if (lastSize <= index) {
       return lastSize
     }
     for (const value of Object.values(this.wordStats)) {
-      if (startLetterIndex === value[1]) {
+      if (index === value[1]) {
         return value[1];  // Exact match on boundary
       }
-      if (startLetterIndex < value[1]) {
+      if (index < value[1]) {
         return previousValue ? previousValue[1] : 0;  // Return previous boundary
       }
       previousValue = value;
@@ -718,15 +727,15 @@ export class TextHighlighter {
     return null;
   }
 
-  #getColFromIndex(startLetterIndex) {
+  #getIndexColumnNumber(index) {
     let previousValue = null;
-    let lastSize = this.wordStats[this.wordStats.length - 1][1]
+    let lastSize = this.wordStats[this.#getWordColCount()][1]
 
-    if (lastSize <= startLetterIndex) {
-      return this.wordStats[this.wordStats.length - 1][0]
+    if (lastSize <= index) {
+      return this.wordStats[this.#getWordColCount()][0]
     }
     for (const value of Object.values(this.wordStats)) {
-      if (startLetterIndex < value[1]) {
+      if (index < value[1]) {
 
         return previousValue ? previousValue[0] : null;
       }
@@ -736,19 +745,18 @@ export class TextHighlighter {
     return null;
   }
 
-  #getYValueFromIndex(startLetterIndex) {
+  #getTopPaddingForIndex(index) {
     let previousValue = null;
-    let lastColIndex = this.wordStats[this.wordStats.length - 1][1]
+    let lastColIndex = this.wordStats[this.#getWordColCount()][1]
 
-    if (lastColIndex <= startLetterIndex) {
-      return ((this.wordStats.length - 1) * this.#getTextYSections()) + this.#getTopWordPadding();
+    if (lastColIndex <= index) {
+      return (this.#getWordColCount() * this.#getTextContentVerticalSectionCount()) + this.#getHighlightAreaTopPadding();
     }
 
     for (const value of Object.values(this.wordStats)) {
-      let yPx = (value[0] * this.#getTextYSections()) + this.#getTopWordPadding();
+      let yPx = (value[0] * this.#getTextContentVerticalSectionCount()) + this.#getHighlightAreaTopPadding();
 
-      if (startLetterIndex < value[1]) {
-
+      if (index < value[1]) {
         return previousValue !== null ? previousValue : yPx;
       }
       previousValue = yPx;
@@ -772,7 +780,7 @@ export class TextHighlighter {
 
   #calcCols(startIndex, endIndex) {
     // there is always one col
-    return (this.#getColFromIndex(endIndex) - this.#getColFromIndex(startIndex)) + 1
+    return (this.#getIndexColumnNumber(endIndex) - this.#getIndexColumnNumber(startIndex)) + 1
   }
 
   #buildComment(content, colorId) {
@@ -803,8 +811,6 @@ export class TextHighlighter {
 
     if (!this.floatingDivsSplit.has(rawUniqueId)) {
       const floatingComment = this.#buildComment(comment, selectedId)
-
-
       document.body.appendChild(floatingComment);
       let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
 
@@ -829,14 +835,14 @@ export class TextHighlighter {
 
   printOutWordStats() {
     let printString = ""
-    for (let i = 0; i < this.wordStats.length - 1; i++) {
+    for (let i = 0; i < this.#getWordColCount(); i++) {
       const start = this.wordStats[i][1];
       const end = this.wordStats[i + 1][1];
-      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.#getWidthFromRange(start, end)}\n`;
+      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.#getCumulativeWidthInsideIndexRange(start, end)}\n`;
     }
     // Print last line
-    const lastIndex = this.wordStats[this.wordStats.length - 1];
-    printString += `${this.wordStats.length - 1} ${this.contentTextCleaned.slice(lastIndex[1])}`;
+    const lastIndex = this.wordStats[this.#getWordColCount()];
+    printString += `${this.#getWordColCount()} ${this.contentTextCleaned.slice(lastIndex[1])}`;
     console.log(printString)
   }
 
@@ -855,13 +861,13 @@ export class TextHighlighter {
     }
   }
 
-  #removeHighlights(id) {
+  #removeFormHighlights(formId) {
     // This also removes the relevant comment, hmmm
-    this.floatingDivsSplit.get(id)["splits"].map((item) => {
+    this.floatingDivsSplit.get(formId)["splits"].map((item) => {
       let element = item["elem"]
       element.remove()
     })
-    this.floatingDivsSplit.delete(id)
+    this.floatingDivsSplit.delete(formId)
   }
 
   // Binary search for letter index based on width
@@ -871,14 +877,14 @@ export class TextHighlighter {
     let cumulativeWidth = 0;
 
     // First check if we're beyond the total width
-    const totalWidth = this.#getCumulativeWidth(start, end);
+    const totalWidth = this.#getCumulativeWidthForIndexRange(start, end);
     if (targetWidth >= totalWidth) {
       return end - 1;
     }
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
-      cumulativeWidth = this.#getCumulativeWidth(start, mid + 1);
+      cumulativeWidth = this.#getCumulativeWidthForIndexRange(start, mid + 1);
 
       if (cumulativeWidth === targetWidth) {
         return mid;
@@ -886,13 +892,13 @@ export class TextHighlighter {
 
       if (cumulativeWidth < targetWidth) {
         if (mid + 1 <= high &&
-          this.#getCumulativeWidth(start, mid + 2) > targetWidth) {
+          this.#getCumulativeWidthForIndexRange(start, mid + 2) > targetWidth) {
           return mid + 1;
         }
         low = mid + 1;
       } else {
         if (mid - 1 >= low &&
-          this.#getCumulativeWidth(start, mid) < targetWidth) {
+          this.#getCumulativeWidthForIndexRange(start, mid) < targetWidth) {
           return mid;
         }
         high = mid - 1;
@@ -902,11 +908,11 @@ export class TextHighlighter {
     return low;
   }
 
-  #getCumulativeWidth(start, end) {
-    const key = `${start}-${end}`;
+  #getCumulativeWidthForIndexRange(startIndex, endIndex) {
+    const key = `${startIndex}-${endIndex}`;
     if (!this.#widthSums.has(key)) {
       let sum = 0;
-      for (let i = start; i < end; i++) {
+      for (let i = startIndex; i < endIndex; i++) {
         sum += this.#getCharacterWidth(this.contentTextCleaned[i]);
       }
       this.#widthSums.set(key, sum);
@@ -940,7 +946,7 @@ export class TextHighlighter {
     if (this.formElement) {
       let x = this.formElement["start"]
       let y = this.formElement["end"]
-      this.#removeHighlights(`${x}-${y}`)
+      this.#removeFormHighlights(`${x}-${y}`)
       this.#removeForm()
     }
   }
@@ -967,15 +973,15 @@ export class TextHighlighter {
       : this.wordStats[this.mouseColSafe + 1][1], this.relativeX)
   }
 
-  #getMaxWidth() {
+  #getHighlightAreaMaxWidth() {
     return this.divRect.width
   }
 
-  #getTextYSections() {
+  #getTextContentVerticalSectionCount() {
     return this.divRect.height / (this.wordStats.length);
   }
 
-  #getLeftPadding() {
+  #getHighlightAreaLeftPadding() {
     return this.divRect.left
   }
 
@@ -983,10 +989,11 @@ export class TextHighlighter {
     return this.wordStats.length - 1
   }
 
-  #getTopWordPadding() {
+  #getHighlightAreaTopPadding() {
     return this.divRect.top
   }
 
+  // Check if the mouse is over the last index of a row.
   #isMouseLastIndex() {
     return this.wordStats
       .slice(1)
