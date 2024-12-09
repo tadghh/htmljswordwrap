@@ -65,7 +65,7 @@ export class TextHighlighter {
     this.DISTANCE_FORM_POWER = 0.8
     this.MAX_DISTANCE_FORM_DIVISOR = 6 // Screen diagonal divided by this
     // 300ms in the css
-    this.hoverTransitionDuration = 333;
+    this.hoverTransitionDuration = 150;
     this.unfocusedOpacity = 0.2;
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
@@ -99,7 +99,7 @@ export class TextHighlighter {
     this.formIsActive = false
     this.#addEventListeners();
     this.createTextHighlight(739, 752, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
-
+    this.delay = 500
     this.formElement = null;
   }
 
@@ -153,7 +153,6 @@ export class TextHighlighter {
     } else {
       console.log("bad element")
     }
-
   }
 
   #positionCommentForm() {
@@ -282,10 +281,12 @@ export class TextHighlighter {
   }
 
   #hoveringComment() {
+
+
     this.floatingDivsSplit.forEach((div) => {
       const startId = div.start;
       const endId = div.end;
-
+      let timeoutId;
       const currentMouseIndex = this.#getCurrentMouseIndex();
 
       const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.#isMouseLastIndex()
@@ -293,23 +294,32 @@ export class TextHighlighter {
       const comment = div.comment.elem
       if (comment) {
         const splits = div.splits
+
         if (isInside) {
+          clearTimeout(timeoutId);  // Clear any pending z-index changes
           comment.style.opacity = 1
           comment.style.zIndex = 50
           splits.forEach(item => {
             item["elem"].style.opacity = 1;
           });
         } else {
-          if (comment.style.opacity == 1) {
-            comment.style.opacity = 0
-            setTimeout(() => {
-              comment.style.zIndex = 5;
-            }, this.hoverTransitionDuration);
-          }
+          console.log("other")
 
           splits.forEach(item => {
             item["elem"].style.opacity = this.unfocusedOpacity;
           });
+          if (comment.style.opacity == 1) {
+            comment.style.opacity = 0
+          }
+          if (comment.style.opacity == 0) {
+            timeoutId = setTimeout(() => {
+              // Double-check opacity is still 0 before changing z-index
+              if (comment.style.opacity == 0) {
+                comment.style.zIndex = 5;
+              }
+            }, this.hoverTransitionDuration);
+          }
+
         }
       }
     });
@@ -335,7 +345,6 @@ export class TextHighlighter {
 
     // Determine start and end indices once
     const startIndex = this.wordStats[this.mouseColSafe][1];
-
 
     // Use binary search to find letter index
     const letterIndex = this.#getCurrentHoveredLetter()
@@ -575,7 +584,6 @@ export class TextHighlighter {
           window.innerHeight * window.innerHeight
         ) / this.MAX_DISTANCE_FORM_DIVISOR
 
-
         const opacity = Math.max(this.MIN_FORM_OPACITY, 1 - Math.pow(distance / maxDistance, this.DISTANCE_FORM_POWER))
         this.formElement["elem"].style.opacity = opacity
       }
@@ -600,9 +608,7 @@ export class TextHighlighter {
 
       if (highlightSplits) {
         highlightSplits.forEach((split) => {
-          if (split != null) {
-            this.#positionHighlight(split.elem, split.start, split.end)
-          }
+          this.#positionHighlight(split.elem, split.start, split.end)
         })
       }
 
@@ -618,9 +624,11 @@ export class TextHighlighter {
 
     let window_size_odd = Math.round(maxWidth) - Math.floor(maxWidth)
     let window_ratio_offset = window_size_odd + window_size_remainder
+
     if (maxWidth % 2 != 0) {
       maxWidth += window_ratio_offset
     }
+
     let otherOff = Number.parseFloat(this.fontSize) / 10
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
@@ -644,7 +652,6 @@ export class TextHighlighter {
         const endTest = Math.ceil(testWidth);
 
         if (endTest <= maxWidth + otherOff) {
-          // && endTest + 2 != maxWidth
           currentWidth = endTest;
         } else if (endTest >= maxWidth + otherOff) {
           // Word doesn't fit, wrap to new lin
@@ -661,10 +668,6 @@ export class TextHighlighter {
     });
 
     return widthCache;
-  }
-
-  getNextLowestDivisibleByNinePointSix(num) {
-    return num % this.charHoverPadding === 0 ? num : num - (num % this.charHoverPadding);
   }
 
   #getCumulativeWidthInsideIndexRange(startIndex, yColIndex) {
