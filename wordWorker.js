@@ -129,22 +129,17 @@ export class TextHighlighter {
       const endLineStartIndex = this.#getStartIndexForIndex(endId)
 
       let xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId)
-      let top = this.#getTopPaddingForIndex(endId);
+      let top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
 
-      if (isOutOfBounds) {
+      if (isOutOfBounds || isMultiLine) {
         // make sure comment doesnt go off screen
-        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId)
-        xOffset -= wordWidth;
-      } else if (isMultiLine) {
-        // For comments (highlights) with more than one line
-        top = this.#getTopPaddingForIndex(endId);
         xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (element.textContent.length - 1));
-      } else {
-        top = this.#getTopPaddingForIndex(startId);
       }
+
       if (xOffset < 0) {
         xOffset = 0
       }
+
       const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
 
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
