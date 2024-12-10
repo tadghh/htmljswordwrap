@@ -127,9 +127,10 @@ export class TextHighlighter {
       const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
       const isOutOfBounds = this.#getPaddingForIndex(startId) + wordWidth > maxWidth;
       const endLineStartIndex = this.#getStartIndexForIndex(endId)
+      const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
+
 
       let xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId)
-      let top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
 
       if (isOutOfBounds || isMultiLine) {
         // make sure comment doesnt go off screen
@@ -170,17 +171,22 @@ export class TextHighlighter {
       const maxWidth = this.#getHighlightAreaMaxWidth();
       const yColStartIndex = this.#getPaddingForIndex(startId);
       const formWidth = this.formElement["elem"].getBoundingClientRect().width
-      const paddingOffset = Number.parseFloat(window.getComputedStyle(elem).getPropertyValue('border-left-width'))
-      const yOffset = this.#getTopPaddingForIndex(endId) + this.fontSizeRaw + Math.ceil(this.charHoverPaddingMouse) - paddingOffset - (this.fontSizeRaw / 10)
+      const isOutOfBounds = yColStartIndex + formWidth > maxWidth
+      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
+      const endLineStartIndex = this.#getStartIndexForIndex(endId)
+      const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
+      let endIndex = this.#getStartIndexForIndex(endId)
+      let xOffset = this.#getCumulativeWidthForIndexRange(endIndex, endId)
+      let yOffset = top + this.mouseTopOffset
 
-      let xOffset = Math.ceil(this.#getPaddingForIndex(startId)) + this.#getHighlightAreaLeftPadding()
-
-      if (yColStartIndex + formWidth > maxWidth) {
-        xOffset = this.#getPaddingForIndex(endId);
-        xOffset -= formWidth - this.charHoverPadding;
+      if (isOutOfBounds) {
+        // make sure comment doesnt go off screen
+        console.log("as")
+        yOffset += Number.parseFloat(this.fontSize)
+        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (formWidth));
       }
 
-      elem.style.transform = `translate(${Math.ceil(xOffset) - 1}px, ${yOffset}px)`;
+      elem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
 

@@ -89,14 +89,16 @@ body {
 	color: white;
 	width: 350px;
 	height: min-content;
-	border-top-left-radius: 0px !important;
-	border-top-right-radius: 0px !important;
+	border-top-left-radius: 2px !important;
+	border-top-right-radius: 2px !important;
 	border-radius: 5px;
 	border: solid;
 	z-index: 15;
-	padding-top: 6px;
 	padding-inline: 6px;
 	padding-bottom: 4px;
+	margin-top: 2px;
+	margin-inline: 12px;
+	margin-bottom: 4px;
 	border-top-width: 0px;
 	border-color: white;
 }
