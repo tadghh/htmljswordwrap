@@ -124,11 +124,10 @@ export class TextHighlighter {
       const startIndex = this.#getStartIndexForIndex(startId)
       const wordWidth = this.#getWordWidth(element.textContent);
       const maxWidth = this.#getHighlightAreaMaxWidth();
-      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
       const isOutOfBounds = this.#getPaddingForIndex(startId) + wordWidth > maxWidth;
       const endLineStartIndex = this.#getStartIndexForIndex(endId)
+      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
       const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
-
 
       let xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId)
 
@@ -162,7 +161,8 @@ export class TextHighlighter {
       console.log("bad element")
     }
   }
-  // TODO overflowing subtract scrollbar width
+
+
   #positionCommentForm() {
     if (this.formElement["elem"]) {
       const startId = this.formElement["start"]
@@ -172,8 +172,8 @@ export class TextHighlighter {
       const yColStartIndex = this.#getPaddingForIndex(startId);
       const formWidth = this.formElement["elem"].getBoundingClientRect().width
       const isOutOfBounds = yColStartIndex + formWidth > maxWidth
-      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
       const endLineStartIndex = this.#getStartIndexForIndex(endId)
+      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
       const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
       let endIndex = this.#getStartIndexForIndex(endId)
       let xOffset = this.#getCumulativeWidthForIndexRange(endIndex, endId)
@@ -181,7 +181,6 @@ export class TextHighlighter {
 
       if (isOutOfBounds) {
         // make sure comment doesnt go off screen
-        console.log("as")
         yOffset += Number.parseFloat(this.fontSize)
         xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (formWidth));
       }
