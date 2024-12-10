@@ -308,7 +308,7 @@ export class TextHighlighter {
         if (isInside) {
           clearTimeout(timeoutId);
           comment.style.opacity = 1
-          comment.style.zIndex = 50
+          comment.style.zIndex = 25
           splits.forEach(item => {
             item["elem"].style.opacity = 1;
           });
@@ -322,7 +322,7 @@ export class TextHighlighter {
           if (comment.style.opacity == 0) {
             timeoutId = setTimeout(() => {
               if (comment.style.opacity == 0) {
-                comment.style.zIndex = 5;
+                comment.style.zIndex = 15;
               }
             }, this.HOVER_TRANSITION_DURATION);
           }
