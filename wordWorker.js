@@ -19,23 +19,7 @@ export class TextHighlighter {
             <textarea id="text" name="comment"></textarea>
 
             <div id="commentType">
-                <label>Type:</label>
-                <div>
-                    <input type="radio" id="misc" name="commentType" value="1" checked>
-                    <label for="misc">Misc Comments</label>
-                </div>
-                <div>
-                    <input type="radio" id="incorrect" name="commentType" value="2">
-                    <label for="incorrect">Incorrect Info</label>
-                </div>
-                <div>
-                    <input type="radio" id="sources" name="commentType" value="3">
-                    <label for="sources">Sources?</label>
-                </div>
-                <div>
-                    <input type="radio" id="question" name="commentType" value="4">
-                    <label for="question">Question</label>
-                </div>
+
             </div>
 
             <button type="submit">Comment</button>
@@ -182,9 +166,10 @@ export class TextHighlighter {
       const endId = this.formElement["end"]
       const elem = this.formElement["elem"]
       const maxWidth = this.#getHighlightAreaMaxWidth();
-      const yColStartIndex = this.#getPaddingForIndex(startId);
+      const yColStartIndex = this.#getPaddingForIndex(endId);
       const formWidth = this.formElement["elem"].getBoundingClientRect().width
       const isOutOfBounds = yColStartIndex + formWidth > maxWidth
+      console.log(` ${yColStartIndex} ${formWidth} ${yColStartIndex + formWidth}  ${maxWidth}`)
       const endLineStartIndex = this.#getStartIndexForIndex(endId)
       const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
       const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
@@ -204,16 +189,13 @@ export class TextHighlighter {
 
   #updateHighlightElements(key, startId, endId) {
     this.#updateDivValues()
-
     const spanningColCount = this.#calcCols(startId, endId);
     const elementsRawUniqueId = key;
-
     let yCol1 = this.#getIndexColumnNumber(startId);
     let yCol2 = this.#getIndexColumnNumber(endId);
-
     let highlightSplits = this.floatingDivsSplit.get(key).splits
     let colorId = this.floatingDivsSplit.get(key).colorId
-    console.log(this.floatingDivsSplit.get(key))
+
     if (spanningColCount >= 1) {
       let backgroundColor = this.#getColor(Number.parseInt(colorId))
       let lowerCol = yCol1;
@@ -510,7 +492,6 @@ export class TextHighlighter {
     const parser = new DOMParser();
     const doc = parser.parseFromString(elementString, 'text/html');
     const floatingDivForm = doc.body.firstElementChild;
-    const radioButtons = floatingDivForm.querySelectorAll('input[name="commentType"]');
 
     const formElement = floatingDivForm.querySelector('form');
     formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
@@ -531,17 +512,44 @@ export class TextHighlighter {
       mouseInfo: formHoveringIndicator
     }
 
-    radioButtons.forEach(radio => {
-      radio.addEventListener('change', (event) => {
-        console.log(radio)
-        const selectedId = parseInt(event.target.value, 10);
-        console.log(selectedId)
-        // Update the highlight in commentHighlights if applicable
-        if (this.floatingDivsSplit.has(rawId)) {
-          this.#updateHighlightColorsId(rawId, selectedId)
+    const colorSquaresContainer = document.createElement('div');
+    colorSquaresContainer.className = 'color-squares';
+
+    // Create squares dynamically from the colors object
+    Object.entries(this.highlightColors).forEach(([value, color]) => {
+      // Skip the default color
+      if (value !== 'default') {
+        const square = document.createElement('button');
+        square.type = 'button';
+        square.className = 'color-square';
+        square.dataset.value = value;
+        square.style.backgroundColor = color;
+
+        // Add white border for light colors
+        if (color === 'white') {
+          square.style.border = '1px solid #ccc';
         }
-      });
+
+        square.addEventListener('click', () => {
+          // Remove selected class from all squares
+          colorSquaresContainer.querySelectorAll('.color-square')
+            .forEach(s => s.classList.remove('selected'));
+          // Add selected class to clicked square
+          square.classList.add('selected');
+
+          if (this.floatingDivsSplit.has(rawId)) {
+            this.#updateHighlightColorsId(rawId, value);
+          }
+        });
+
+        colorSquaresContainer.appendChild(square);
+      }
     });
+
+    // Replace the radio buttons container with our new squares
+    const commentType = floatingDivForm.querySelector('#commentType');
+    commentType.innerHTML = ''; // Clear existing content
+    commentType.appendChild(colorSquaresContainer);
 
     document.body.appendChild(floatingDivForm);
     this.#positionCommentForm();
@@ -940,7 +948,8 @@ export class TextHighlighter {
   }
 
   #getColor(id) {
-    return this.highlightColors[id] || this.highlightColors.default;
+    const colorId = parseInt(id);
+    return this.highlightColors[colorId] || this.highlightColors.default;
   }
 
   #removeFormHighlights(formId) {
@@ -1003,7 +1012,6 @@ export class TextHighlighter {
   }
 
   #updateHighlightColorsId(rawId, colorId) {
-
     let items = this.floatingDivsSplit.get(rawId).splits
 
     if (items) {
@@ -1011,11 +1019,9 @@ export class TextHighlighter {
       this.floatingDivsSplit.get(rawId).comment.type = selectedId;
       this.floatingDivsSplit.get(rawId).colorId = selectedId;
       const color = this.#getColor(selectedId);
+
       items.map((item) => {
         item["elem"].style.backgroundColor = color
-        if (item["head"] == true) {
-          item["colorId"] = selectedId
-        }
       })
     }
   }

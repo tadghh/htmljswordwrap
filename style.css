@@ -121,3 +121,26 @@ body {
 ::selection {
 	background: darkgreen;
 }
+
+.color-squares {
+	display: flex;
+	gap: 8px;
+	margin-top: 5px;
+}
+
+.color-square {
+	width: 24px;
+	height: 24px;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	padding: 0;
+}
+
+.color-square:hover {
+	transform: scale(1.1);
+}
+
+.color-square.selected {
+	box-shadow: 0 0 0 2px #000;
+}
