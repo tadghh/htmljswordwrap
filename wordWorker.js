@@ -148,7 +148,6 @@ export class TextHighlighter {
 
   #positionHighlight(element, startId, endId) {
     if (element != null) {
-      // console.log(element)
       const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
       const yOffset = this.#getTopPaddingForIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
 
@@ -161,7 +160,6 @@ export class TextHighlighter {
       console.log("bad element")
     }
   }
-
 
   #positionCommentForm() {
     if (this.formElement["elem"]) {
@@ -180,7 +178,7 @@ export class TextHighlighter {
       let yOffset = top + this.mouseTopOffset
 
       if (isOutOfBounds) {
-        // make sure comment doesnt go off screen
+        // make sure form doesnt go off screen
         yOffset += Number.parseFloat(this.fontSize)
         xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (formWidth));
       }
@@ -335,16 +333,6 @@ export class TextHighlighter {
     });
   }
 
-  #getCurrentHoveredLetter() {
-    const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === this.#getWordColCount()
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1];
-
-    // Use binary search to find letter index
-    return this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
-  }
-
   #handleMouseMove = (event) => {
     this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding();
     this.relativeY = event.clientY - this.#getHighlightAreaTopPadding();
@@ -423,7 +411,6 @@ export class TextHighlighter {
     }
   };
 
-
   #formCommentSubmission(submission) {
     const form = submission.target;
     const startIndex = this.formElement["start"];
@@ -495,63 +482,6 @@ export class TextHighlighter {
     this.#positionCommentForm();
   }
 
-  #createHighlight() {
-    let startIndex = Number.parseInt(this.startLetterIndex)
-    let endIndex = Number.parseInt(this.endLetterIndex)
-
-    if (startIndex > endIndex) {
-      [startIndex, endIndex] = [endIndex, startIndex];
-      startIndex++
-    }
-
-    if (this.contentTextCleaned[startIndex] === " ") startIndex++;
-    if (this.contentTextCleaned[endIndex] === " ") endIndex--;
-    // add example spans below
-
-    const rawUniqueId = `${startIndex}-${endIndex}`;
-
-    if (!this.floatingDivsSplit.has(rawUniqueId)) {
-      // Initialize with an array containing the first object
-      // two comments wont have the same UniqueId, so we should always make it here
-      // unique id is gen by mouse down letter index  and mouse up letter index
-      this.floatingDivsSplit.set(rawUniqueId, {
-        comment: {
-          elem: null,
-          start: null,
-          end: null,
-          // TODO set default type id
-          type: 2
-        },
-        splits: [],
-        start: startIndex,
-        end: endIndex
-      });
-
-      this.#repositionItems()
-    }
-  }
-
-
-  // #region Utility
-
-
-  #addEventListeners() {
-    window.addEventListener("resize", this.#handleResizeOrScroll);
-    window.addEventListener("scroll", this.#handleResizeOrScroll);
-
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'g') {
-        this.printOutWordStats()
-        console.log(this.wordStats)
-        console.log(this.floatingDivsSplit)
-      }
-    });
-    document.addEventListener("mousemove", this.#handleMouseMove);
-    this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
-    this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
-  }
-
-
   // Sets the forms opacity based on the distance from the mouse
   #updateFormTransparency() {
     if (this.formElement) {
@@ -597,6 +527,89 @@ export class TextHighlighter {
       if (indicator) {
         indicator.textContent = `Last Hovered: (${this.contentTextCleaned[letterIndex]},${this.mouseColSafe}) - ${letterIndex}`
       }
+    }
+  }
+
+  #removeForm() {
+    let form = this.formElement["elem"]
+
+    if (form) {
+      let x = this.formElement["start"]
+      let y = this.formElement["end"]
+
+      let highlights = this.floatingDivsSplit.get(`${x}-${y}`)
+      if (highlights) {
+        const splits = highlights["splits"]
+        splits.forEach(item => {
+          item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
+        });
+      }
+
+      window.getSelection().removeAllRanges();
+      form.remove()
+      this.formIsActive = false;
+      this.formElement = null
+    }
+  }
+
+  #closeForm() {
+    if (this.formElement) {
+      let x = this.formElement["start"]
+      let y = this.formElement["end"]
+      this.#removeFormHighlights(`${x}-${y}`)
+      this.#removeForm()
+    }
+  }
+
+
+  // #region Utility
+  #addEventListeners() {
+    window.addEventListener("resize", this.#handleResizeOrScroll);
+    window.addEventListener("scroll", this.#handleResizeOrScroll);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'g') {
+        this.printOutWordStats()
+      }
+    });
+    document.addEventListener("mousemove", this.#handleMouseMove);
+    this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
+    this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
+  }
+
+  #createHighlight() {
+    let startIndex = Number.parseInt(this.startLetterIndex)
+    let endIndex = Number.parseInt(this.endLetterIndex)
+
+    if (startIndex > endIndex) {
+      [startIndex, endIndex] = [endIndex, startIndex];
+      startIndex++
+    }
+
+    if (this.contentTextCleaned[startIndex] === " ") startIndex++;
+    if (this.contentTextCleaned[endIndex] === " ") endIndex--;
+    // add example spans below
+
+    const rawUniqueId = `${startIndex}-${endIndex}`;
+
+    if (!this.floatingDivsSplit.has(rawUniqueId)) {
+      // Initialize with an array containing the first object
+      // two comments wont have the same UniqueId, so we should always make it here
+      // unique id is gen by mouse down letter index  and mouse up letter index
+      this.floatingDivsSplit.set(rawUniqueId, {
+        comment: {
+          elem: null,
+          start: null,
+          end: null,
+          // TODO set default type id
+          type: 2
+        },
+        splits: [],
+        start: startIndex,
+        end: endIndex
+      });
+
+      this.#repositionItems()
     }
   }
 
@@ -782,7 +795,6 @@ export class TextHighlighter {
     this.mouseTopOffset = window.scrollY;
     // 🤓 Horizontal scroll 👆
     this.mouseLeftOffset = window.scrollX;
-    console.log(this.getWordHighlights("of"))
     this.#updateDivValues();
     this.#repositionItems();
 
@@ -857,6 +869,8 @@ export class TextHighlighter {
     const lastIndex = this.wordStats[this.#getWordColCount()];
     printString += `${this.#getWordColCount()} ${this.contentTextCleaned.slice(lastIndex[1])}`;
     console.log(printString)
+    console.log(this.wordStats)
+    console.log(this.floatingDivsSplit)
   }
 
   #getColor(id) {
@@ -933,37 +947,6 @@ export class TextHighlighter {
     return this.#widthSums.get(key);
   }
 
-  #removeForm() {
-    let form = this.formElement["elem"]
-
-    if (form) {
-      let x = this.formElement["start"]
-      let y = this.formElement["end"]
-
-      let highlights = this.floatingDivsSplit.get(`${x}-${y}`)
-      if (highlights) {
-        const splits = highlights["splits"]
-        splits.forEach(item => {
-          item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
-        });
-      }
-
-      window.getSelection().removeAllRanges();
-      form.remove()
-      this.formIsActive = false;
-      this.formElement = null
-    }
-  }
-
-  #closeForm() {
-    if (this.formElement) {
-      let x = this.formElement["start"]
-      let y = this.formElement["end"]
-      this.#removeFormHighlights(`${x}-${y}`)
-      this.#removeForm()
-    }
-  }
-
   #updateHighlightColorsId(rawId, colorId) {
     this.floatingDivsSplit.get(rawId).comment.type = parseInt(colorId);
     let items = this.floatingDivsSplit.get(rawId).splits
@@ -1004,6 +987,16 @@ export class TextHighlighter {
 
   #getHighlightAreaTopPadding() {
     return this.divRect.top
+  }
+
+  #getCurrentHoveredLetter() {
+    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const endIndex = this.mouseColSafe === this.#getWordColCount()
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1];
+
+    // Use binary search to find letter index
+    return this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
   }
 
   // Check if the mouse is over the last index of a row.
