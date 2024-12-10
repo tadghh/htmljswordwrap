@@ -46,12 +46,27 @@ export class TextHighlighter {
 
   // Cache cumulative widths
   #widthSums = new Map();
-  constructor(highlightedDiv, outputHoverId) {
+  constructor(highlightedDiv,
+    outputHoverId,
+    submissionAPI = null,
+    mouseUpFunction = null,
+    highlightColors = null) {
     this.MIN_FORM_OPACITY = 0.10
     this.DISTANCE_FORM_POWER = 0.8
     this.MAX_DISTANCE_FORM_DIVISOR = 6
     this.HOVER_TRANSITION_DURATION = 150;
     this.UNFOCUSED_OPACITY = 0.2;
+
+    this.mouseUpFunction = mouseUpFunction || this.defaultFormAction.bind(this);
+    this.highlightSubmissionAPI = submissionAPI ? submissionAPI : null
+    this.highlightColors = highlightColors ? highlightColors : {
+      1: 'white',     // Misc comments
+      2: 'pink',      // Incorrect info
+      3: 'lightblue', // Sources?
+      4: 'skyblue',   // Question
+      default: 'lightgreen' // Default color
+    }
+
     this.widthCache = {};
     this.startLetterIndex = -1;
     this.endLetterIndex = -1;
@@ -197,10 +212,10 @@ export class TextHighlighter {
     let yCol2 = this.#getIndexColumnNumber(endId);
 
     let highlightSplits = this.floatingDivsSplit.get(key).splits
-    let commentType = this.floatingDivsSplit.get(key).comment.type
-
+    let colorId = this.floatingDivsSplit.get(key).colorId
+    console.log(this.floatingDivsSplit.get(key))
     if (spanningColCount >= 1) {
-      let backgroundColor = this.#getColor(Number.parseInt(commentType))
+      let backgroundColor = this.#getColor(Number.parseInt(colorId))
       let lowerCol = yCol1;
       let upperCol = yCol2;
 
@@ -288,6 +303,7 @@ export class TextHighlighter {
             }
             return true;
           }),
+          colorId: colorId,
           start: startId,
           end: endId
         }
@@ -404,12 +420,48 @@ export class TextHighlighter {
       let totalLength = this.endLetterIndex - this.startLetterIndex;
 
       if (totalLength > 1) {
-        this.#createHighlight();
-        this.#createForm(this.startLetterIndex, this.endLetterIndex)
-        this.#repositionItems()
+        this.mouseUpFunction()
       }
     }
   };
+
+  getStartLetterIndex() {
+    return this.startLetterIndex
+  }
+  getEndLetterIndex() {
+    return this.endLetterIndex
+  }
+  defaultFormAction() {
+    this.#createHighlight();
+    this.#createForm(this.startLetterIndex, this.endLetterIndex)
+    this.#repositionItems()
+  }
+
+
+  async postDataFetch(url, data) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add any other headers like authorization
+          'Authorization': 'Bearer your-token-here'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+
 
   #formCommentSubmission(submission) {
     const form = submission.target;
@@ -421,15 +473,27 @@ export class TextHighlighter {
 
     // Prevent default form submission
     submission.preventDefault();
-    // TODO Api call
 
-    // TODO swap out client side
-    // Create the highlight with the comment
+
     const builtComment = {
       elem: this.#buildComment(comment, commentTypeId),
       start: startIndex,
       end: endIndex
     }
+
+    if (this.highlightSubmissionAPI) {
+      this.postDataFetch(this.highlightSubmissionAPI,
+        {
+          ...builtComment,
+          // TODO user ids? is this our problem, or should the end user be handling this themselves?
+          id: crypto.randomUUID()
+        }
+      )
+    }
+
+    // TODO swap out client side
+    // Create the highlight with the comment
+
 
     this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = builtComment
     this.#positionCommentContent(builtComment)
@@ -469,8 +533,9 @@ export class TextHighlighter {
 
     radioButtons.forEach(radio => {
       radio.addEventListener('change', (event) => {
+        console.log(radio)
         const selectedId = parseInt(event.target.value, 10);
-
+        console.log(selectedId)
         // Update the highlight in commentHighlights if applicable
         if (this.floatingDivsSplit.has(rawId)) {
           this.#updateHighlightColorsId(rawId, selectedId)
@@ -601,12 +666,12 @@ export class TextHighlighter {
           elem: null,
           start: null,
           end: null,
-          // TODO set default type id
-          type: 2
+          type: 1
         },
         splits: [],
         start: startIndex,
-        end: endIndex
+        end: endIndex,
+        colorId: 1
       });
 
       this.#repositionItems()
@@ -851,7 +916,8 @@ export class TextHighlighter {
           },
           splits: [],
           start: startIndex,
-          end: endIndex
+          end: endIndex,
+          colorId: 1
         });
       }
       this.#repositionItems()
@@ -874,18 +940,7 @@ export class TextHighlighter {
   }
 
   #getColor(id) {
-    switch (id) {
-      case 1:
-        return 'white'; // Misc comments
-      case 2:
-        return 'pink'; // Incorrect info
-      case 3:
-        return 'lightblue'; // Sources?
-      case 4:
-        return 'skyblue'; // Question
-      default:
-        return 'lightgreen'; // Default color for unknown IDs
-    }
+    return this.highlightColors[id] || this.highlightColors.default;
   }
 
   #removeFormHighlights(formId) {
@@ -948,11 +1003,13 @@ export class TextHighlighter {
   }
 
   #updateHighlightColorsId(rawId, colorId) {
-    this.floatingDivsSplit.get(rawId).comment.type = parseInt(colorId);
+
     let items = this.floatingDivsSplit.get(rawId).splits
 
     if (items) {
       const selectedId = parseInt(colorId);
+      this.floatingDivsSplit.get(rawId).comment.type = selectedId;
+      this.floatingDivsSplit.get(rawId).colorId = selectedId;
       const color = this.#getColor(selectedId);
       items.map((item) => {
         item["elem"].style.backgroundColor = color
