@@ -15,9 +15,9 @@
 			"^(\\.{1,2}/.*)\\.js$": "$1"
 		}
 	},
-	"author": "",
+	"author": "Ethan (Tadgh) Henry",
 	"license": "ISC",
-	"description": "",
+	"description": "A plugin to create highlights on existing text. Without affecting the content",
 	"devDependencies": {
 		"@eslint/js": "^9.14.0",
 		"eslint": "^9.14.0",

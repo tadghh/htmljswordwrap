@@ -4,6 +4,9 @@ body {
 	background-color: var(--main-bg-color);
 	margin: 0px;
 }
+#cont {
+	background-color: var(--main-bg-color);
+}
 
 #highlightedDiv,
 .highlightedText,
@@ -17,6 +20,7 @@ body {
 	position: relative;
 	/* font-family: Nunito; */
 	/* font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; */
+
 	cursor: pointer;
 	overflow-wrap: break-word;
 	white-space: normal;
@@ -115,10 +119,6 @@ body {
 
 .floatingForm > form > button {
 	align-self: flex-end;
-}
-
-::selection {
-	background: darkgreen;
 }
 
 .color-squares {

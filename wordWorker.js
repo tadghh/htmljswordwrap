@@ -1,8 +1,7 @@
-// TODO public function to check if word is highlighted
-// TODO function to set highlight colors
 // TODO function to enable ids on highlight elements
 // Or just return array of elements for "search"
-// TODO submission api
+
+
 export class TextHighlighter {
   static FORM_HTML = `
     <div class="floatingForm">
@@ -50,6 +49,11 @@ export class TextHighlighter {
       4: 'skyblue',   // Question
       default: 'lightgreen' // Default color
     }
+
+    document.styleSheets[0].insertRule(`::selection {
+      background: ${this.#getColor(1)};
+      color: black;
+    }`, 0);
 
     this.widthCache = {};
     this.startLetterIndex = -1;
@@ -410,9 +414,11 @@ export class TextHighlighter {
   getStartLetterIndex() {
     return this.startLetterIndex
   }
+
   getEndLetterIndex() {
     return this.endLetterIndex
   }
+
   defaultFormAction() {
     this.#createHighlight();
     this.#createForm(this.startLetterIndex, this.endLetterIndex)
@@ -445,17 +451,31 @@ export class TextHighlighter {
   }
 
 
+
   #formCommentSubmission(submission) {
     const form = submission.target;
     const startIndex = this.formElement["start"];
     const endIndex = this.formElement["end"];
     const comment = form.comment.value;
-    const selectedRadio = form.querySelector('input[name="commentType"]:checked');
-    const commentTypeId = parseInt(selectedRadio.value);
 
-    // Prevent default form submission
+    // Get the value from the hidden input instead of radio
+    const commentTypeInput = form.querySelector('input[name="commentType"]');
+    if (!commentTypeInput) {
+      console.error('No comment type input found');
+      return;
+    }
+    const commentTypeId = parseInt(commentTypeInput.value);
+
+    // Add some debugging
+    console.log('Form values:', {
+      startIndex,
+      endIndex,
+      comment,
+      commentTypeId,
+      formElements: form.elements // see all form elements
+    });
+
     submission.preventDefault();
-
 
     const builtComment = {
       elem: this.#buildComment(comment, commentTypeId),
@@ -463,7 +483,7 @@ export class TextHighlighter {
       end: endIndex
     }
 
-    if (this.highlightSubmissionAPI) {
+    if (this.highlightSubmissionAPI != null) {
       this.postDataFetch(this.highlightSubmissionAPI,
         {
           ...builtComment,
@@ -472,11 +492,6 @@ export class TextHighlighter {
         }
       )
     }
-
-    // TODO swap out client side
-    // Create the highlight with the comment
-
-
     this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = builtComment
     this.#positionCommentContent(builtComment)
 
@@ -494,7 +509,6 @@ export class TextHighlighter {
     const floatingDivForm = doc.body.firstElementChild;
 
     const formElement = floatingDivForm.querySelector('form');
-    formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
 
     const closeButton = floatingDivForm.querySelector('.close-btn');
     closeButton.addEventListener('click', () => this.#closeForm());
@@ -512,6 +526,11 @@ export class TextHighlighter {
       mouseInfo: formHoveringIndicator
     }
 
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'commentType';
+    hiddenInput.value = '1';
+    formElement.appendChild(hiddenInput);
     const colorSquaresContainer = document.createElement('div');
     colorSquaresContainer.className = 'color-squares';
 
@@ -525,17 +544,14 @@ export class TextHighlighter {
         square.dataset.value = value;
         square.style.backgroundColor = color;
 
-        // Add white border for light colors
-        if (color === 'white') {
-          square.style.border = '1px solid #ccc';
-        }
-
         square.addEventListener('click', () => {
           // Remove selected class from all squares
+          hiddenInput.value = value;
+
           colorSquaresContainer.querySelectorAll('.color-square')
             .forEach(s => s.classList.remove('selected'));
-          // Add selected class to clicked square
           square.classList.add('selected');
+          window.getSelection().removeAllRanges();
 
           if (this.floatingDivsSplit.has(rawId)) {
             this.#updateHighlightColorsId(rawId, value);
@@ -546,9 +562,9 @@ export class TextHighlighter {
       }
     });
 
-    // Replace the radio buttons container with our new squares
+    formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
+
     const commentType = floatingDivForm.querySelector('#commentType');
-    commentType.innerHTML = ''; // Clear existing content
     commentType.appendChild(colorSquaresContainer);
 
     document.body.appendChild(floatingDivForm);
@@ -925,7 +941,7 @@ export class TextHighlighter {
           splits: [],
           start: startIndex,
           end: endIndex,
-          colorId: 1
+          colorId: colorId
         });
       }
       this.#repositionItems()
