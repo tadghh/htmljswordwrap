@@ -1,7 +1,7 @@
 {
-	"name": "htmljswordwrap",
-	"version": "1.0.0",
-	"main": "app.js",
+	"name": "highlightjs",
+	"version": "2.0.0",
+	"main": "highlightjs.js",
 	"scripts": {
 		"test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
 	},

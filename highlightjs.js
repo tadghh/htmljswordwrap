@@ -397,12 +397,7 @@ export class TextHighlighter {
     if (!this.formIsActive) {
       this.endLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
 
-      if (this.startLetterIndex > this.endLetterIndex) {
-        [this.startLetterIndex, this.endLetterIndex] = [this.endLetterIndex, this.startLetterIndex];
-        this.startLetterIndex++
-      }
-      if (this.contentTextCleaned[this.startLetterIndex] === " ") this.startLetterIndex++;
-      if (this.contentTextCleaned[this.endLetterIndex] === " ") this.endLetterIndex--;
+      [this.startLetterIndex, this.endLetterIndex] = this.#cleanSelectionIndexes()
       let totalLength = this.endLetterIndex - this.startLetterIndex;
 
       if (totalLength > 1) {
@@ -412,11 +407,13 @@ export class TextHighlighter {
   };
 
   getStartLetterIndex() {
-    return this.startLetterIndex
+    const startIndex = this.#cleanSelectionIndexes()[0]
+    return startIndex
   }
 
   getEndLetterIndex() {
-    return this.endLetterIndex
+    const endIndex = this.#cleanSelectionIndexes()[1]
+    return endIndex
   }
 
   defaultFormAction() {
@@ -500,75 +497,81 @@ export class TextHighlighter {
   }
 
   #createForm(startIndex, endIndex) {
-    this.formIsActive = true;
     const rawId = `${startIndex}-${endIndex}`;
-    const id = `form-${rawId}`;
+    const id = rawId;
     const elementString = TextHighlighter.FORM_HTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(elementString, 'text/html');
     const floatingDivForm = doc.body.firstElementChild;
+    try {
+      const formElement = floatingDivForm.querySelector('form');
+      const closeButton = floatingDivForm.querySelector('.close-btn');
 
-    const formElement = floatingDivForm.querySelector('form');
+      closeButton.addEventListener('click', () => this.#closeForm());
 
-    const closeButton = floatingDivForm.querySelector('.close-btn');
-    closeButton.addEventListener('click', () => this.#closeForm());
+      floatingDivForm.id = id;
+      floatingDivForm.className = "floatingForm";
 
-    floatingDivForm.id = id;
-    floatingDivForm.className = "floatingForm";
+      // Add event listener for form submission
+      const formHoveringIndicator = formElement.querySelector('small');
 
-    // Add event listener for form submission
-    const formHoveringIndicator = formElement.querySelector('small');
-
-    this.formElement = {
-      elem: floatingDivForm,
-      start: startIndex,
-      end: endIndex,
-      mouseInfo: formHoveringIndicator
-    }
-
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'commentType';
-    hiddenInput.value = '1';
-    formElement.appendChild(hiddenInput);
-    const colorSquaresContainer = document.createElement('div');
-    colorSquaresContainer.className = 'color-squares';
-
-    // Create squares dynamically from the colors object
-    Object.entries(this.highlightColors).forEach(([value, color]) => {
-      // Skip the default color
-      if (value !== 'default') {
-        const square = document.createElement('button');
-        square.type = 'button';
-        square.className = 'color-square';
-        square.dataset.value = value;
-        square.style.backgroundColor = color;
-
-        square.addEventListener('click', () => {
-          // Remove selected class from all squares
-          hiddenInput.value = value;
-
-          colorSquaresContainer.querySelectorAll('.color-square')
-            .forEach(s => s.classList.remove('selected'));
-          square.classList.add('selected');
-          window.getSelection().removeAllRanges();
-
-          if (this.floatingDivsSplit.has(rawId)) {
-            this.#updateHighlightColorsId(rawId, value);
-          }
-        });
-
-        colorSquaresContainer.appendChild(square);
+      this.formElement = {
+        elem: floatingDivForm,
+        start: startIndex,
+        end: endIndex,
+        mouseInfo: formHoveringIndicator
       }
-    });
 
-    formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
+      const hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.name = 'commentType';
+      hiddenInput.value = '1';
+      formElement.appendChild(hiddenInput);
+      const colorSquaresContainer = document.createElement('div');
+      colorSquaresContainer.className = 'color-squares';
 
-    const commentType = floatingDivForm.querySelector('#commentType');
-    commentType.appendChild(colorSquaresContainer);
+      // Create squares dynamically from the colors object
+      Object.entries(this.highlightColors).forEach(([value, color]) => {
+        // Skip the default color
+        if (value !== 'default') {
+          const square = document.createElement('button');
+          square.type = 'button';
+          square.className = 'color-square';
+          square.dataset.value = value;
+          square.style.backgroundColor = color;
 
-    document.body.appendChild(floatingDivForm);
-    this.#positionCommentForm();
+          square.addEventListener('click', () => {
+            // Remove selected class from all squares
+            hiddenInput.value = value;
+
+            colorSquaresContainer.querySelectorAll('.color-square')
+              .forEach(s => s.classList.remove('selected'));
+            square.classList.add('selected');
+            window.getSelection().removeAllRanges();
+
+            if (this.floatingDivsSplit.has(rawId)) {
+              this.#updateHighlightColorsId(rawId, value);
+            }
+          });
+
+          colorSquaresContainer.appendChild(square);
+        }
+      });
+
+      formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
+
+      const commentType = floatingDivForm.querySelector('#commentType');
+      commentType.appendChild(colorSquaresContainer);
+      this.formIsActive = true;
+
+      document.body.appendChild(floatingDivForm);
+      this.#positionCommentForm();
+
+
+    } catch {
+
+      console.log("its null")
+    }
   }
 
   // Sets the forms opacity based on the distance from the mouse
@@ -642,7 +645,7 @@ export class TextHighlighter {
   }
 
   #closeForm() {
-    if (this.formElement) {
+    if (this.formElement && this.formIsActive) {
       let x = this.formElement["start"]
       let y = this.formElement["end"]
       this.#removeFormHighlights(`${x}-${y}`)
@@ -665,11 +668,9 @@ export class TextHighlighter {
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
-
-  #createHighlight() {
+  #cleanSelectionIndexes() {
     let startIndex = Number.parseInt(this.startLetterIndex)
     let endIndex = Number.parseInt(this.endLetterIndex)
-
     if (startIndex > endIndex) {
       [startIndex, endIndex] = [endIndex, startIndex];
       startIndex++
@@ -677,6 +678,11 @@ export class TextHighlighter {
 
     if (this.contentTextCleaned[startIndex] === " ") startIndex++;
     if (this.contentTextCleaned[endIndex] === " ") endIndex--;
+    return [startIndex, endIndex]
+  }
+  #createHighlight() {
+    let [startIndex, endIndex] = this.#cleanSelectionIndexes()
+
     // add example spans below
 
     const rawUniqueId = `${startIndex}-${endIndex}`;
