@@ -55,6 +55,8 @@ export class TextHighlighter {
       color: black;
     }`, 0);
 
+    this.defaultFormHTML = TextHighlighter.FORM_HTML
+    this.formTransparency = false
     this.widthCache = {};
     this.startLetterIndex = -1;
     this.endLetterIndex = -1;
@@ -101,6 +103,30 @@ export class TextHighlighter {
     this.formElement = null;
   }
 
+  setFormHTML(htmlContent) {
+    // TODO verify elements
+
+    this.defaultFormHTML = htmlContent
+  }
+
+  // enables the submission form transparency
+  toggleFormTransparency() {
+    this.formTransparency = this.formTransparency ? true : false
+  }
+
+  // gets the index when the mouse was pressed
+  getStartLetterIndex() {
+    const startIndex = this.#cleanSelectionIndexes()[0]
+    return startIndex
+  }
+
+  // gets the index when the mouse cursor was released
+  getEndLetterIndex() {
+    const endIndex = this.#cleanSelectionIndexes()[1]
+    return endIndex
+  }
+
+  // gets the start and end indexes of 'word'
   getWordIndexes(word) {
     const startIndex = this.contentTextCleaned.indexOf(word)
     const endIndex = startIndex + word.length - 1
@@ -108,6 +134,7 @@ export class TextHighlighter {
     return [startIndex, endIndex]
   }
 
+  // Returns the highlight objects containing 'word'
   getWordHighlights(word) {
     let items = []
     this.floatingDivsSplit.forEach(highlightObj => {
@@ -119,81 +146,12 @@ export class TextHighlighter {
     return items
   }
 
-  #positionCommentContent(commentObj) {
-    const element = commentObj.elem
-    if (element) {
-      const startId = commentObj.start;
-      const endId = commentObj.end
-      const startIndex = this.#getStartIndexForIndex(startId)
-      const wordWidth = this.#getWordWidth(element.textContent);
-      const maxWidth = this.#getHighlightAreaMaxWidth();
-      const isOutOfBounds = this.#getPaddingForIndex(startId) + wordWidth > maxWidth;
-      const endLineStartIndex = this.#getStartIndexForIndex(endId)
-      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
-      const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
+  // Highlights
 
-      let xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId)
-
-      if (isOutOfBounds || isMultiLine) {
-        // make sure comment doesnt go off screen
-        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (element.textContent.length - 1));
-      }
-
-      if (xOffset < 0) {
-        xOffset = 0
-      }
-
-      const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
-
-      element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
-    }
-  }
-
-  #positionHighlight(element, startId, endId) {
-    if (element != null) {
-      const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
-      const yOffset = this.#getTopPaddingForIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
-
-      // Seems that some browsers discard the real width of elements
-      element.style.width = `${Math.ceil(this.#getWordWidth(selectedText))}px`;
-
-      let startIndex = this.#getStartIndexForIndex(startId)
-      element.style.transform = `translate(${this.#getCumulativeWidthForIndexRange(startIndex, startId)}px, ${yOffset}px)`;
-    } else {
-      console.log("bad element")
-    }
-  }
-
-  #positionCommentForm() {
-    if (this.formElement["elem"]) {
-      const startId = this.formElement["start"]
-      const endId = this.formElement["end"]
-      const elem = this.formElement["elem"]
-      const maxWidth = this.#getHighlightAreaMaxWidth();
-      const yColStartIndex = this.#getPaddingForIndex(endId);
-      const formWidth = this.formElement["elem"].getBoundingClientRect().width
-      const isOutOfBounds = yColStartIndex + formWidth > maxWidth
-      console.log(` ${yColStartIndex} ${formWidth} ${yColStartIndex + formWidth}  ${maxWidth}`)
-      const endLineStartIndex = this.#getStartIndexForIndex(endId)
-      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
-      const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
-      let endIndex = this.#getStartIndexForIndex(endId)
-      let xOffset = this.#getCumulativeWidthForIndexRange(endIndex, endId)
-      let yOffset = top + this.mouseTopOffset
-
-      if (isOutOfBounds) {
-        // make sure form doesnt go off screen
-        yOffset += Number.parseFloat(this.fontSize)
-        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (formWidth));
-      }
-
-      elem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
-    }
-  }
-
+  // Updates the highlight elements, adjusting for screen size
   #updateHighlightElements(key, startId, endId) {
-    this.#updateDivValues()
-    const spanningColCount = this.#calcCols(startId, endId);
+    this.#updateOffsetsAndBounds()
+    const spanningColCount = this.#calcColsInRange(startId, endId);
     const elementsRawUniqueId = key;
     let yCol1 = this.#getIndexColumnNumber(startId);
     let yCol2 = this.#getIndexColumnNumber(endId);
@@ -228,7 +186,7 @@ export class TextHighlighter {
           floatingDiv.className = "highlightedText split";
         }
 
-        if (this.formIsActive) {
+        if (this.formIsActive && this.formElement) {
           let formId = `${this.formElement.start}-${this.formElement.end}`
           if (formId == key) {
             floatingDiv.style.opacity = 1
@@ -297,6 +255,133 @@ export class TextHighlighter {
     }
   }
 
+  // Updates the color of the highlights for the given ID and color ID
+  #updateHighlightColorsId(rawId, colorId) {
+    let items = this.floatingDivsSplit.get(rawId).splits
+
+    if (items) {
+      const selectedId = parseInt(colorId);
+      this.floatingDivsSplit.get(rawId).comment.type = selectedId;
+      this.floatingDivsSplit.get(rawId).colorId = selectedId;
+      const color = this.#getColor(selectedId);
+
+      items.map((item) => {
+        item["elem"].style.backgroundColor = color
+      })
+    }
+  }
+
+  // Returns a tuple of the start and end indexes. Corrects the indexes during a 'reverse selection' additionally adjusts to not include trailing spaces
+  #cleanSelectionIndexes() {
+    let startIndex = Number.parseInt(this.startLetterIndex)
+    let endIndex = Number.parseInt(this.endLetterIndex)
+    if (startIndex > endIndex) {
+      [startIndex, endIndex] = [endIndex, startIndex];
+      startIndex++
+    }
+
+    if (this.contentTextCleaned[startIndex] === " ") startIndex++;
+    if (this.contentTextCleaned[endIndex] === " ") endIndex--;
+    return [startIndex, endIndex]
+  }
+
+  // Creates a highlight
+  #createHighlight() {
+    let [startIndex, endIndex] = this.#cleanSelectionIndexes()
+
+    // add example spans below
+
+    const rawUniqueId = `${startIndex}-${endIndex}`;
+
+    if (!this.floatingDivsSplit.has(rawUniqueId)) {
+      // Initialize with an array containing the first object
+      // two comments wont have the same UniqueId, so we should always make it here
+      // unique id is gen by mouse down letter index  and mouse up letter index
+      this.floatingDivsSplit.set(rawUniqueId, {
+        comment: {
+          elem: null,
+          start: null,
+          end: null,
+          type: 1
+        },
+        splits: [],
+        start: startIndex,
+        end: endIndex,
+        colorId: 1
+      });
+
+      this.#repositionItems()
+    }
+  }
+
+  // Creates a highlight and comment based on the below params
+  createTextHighlight(startIndex, endIndex, textContent, comment, colorId) {
+    if (startIndex > endIndex) {
+      [startIndex, endIndex] = [endIndex, startIndex];
+      startIndex++
+    }
+
+    if (textContent[startIndex] === " ") startIndex++;
+    if (textContent[endIndex] === " ") endIndex--;
+
+    const rawUniqueId = `${startIndex}-${endIndex}`;
+    const selectedId = parseInt(colorId);
+
+    if (!this.floatingDivsSplit.has(rawUniqueId)) {
+      const floatingComment = this.#buildComment(comment, selectedId)
+      document.body.appendChild(floatingComment);
+      let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
+
+      if (!floatingDivSplit) {
+        // Initialize with an array containing the first object
+        // two comments wont have the same sawUniqueId so we should awlays make it here
+        // unique id is gen by mouse down letter index  and mouse up letter index
+        this.floatingDivsSplit.set(rawUniqueId, {
+          comment: {
+            elem: floatingComment,
+            start: startIndex,
+            end: endIndex
+          },
+          splits: [],
+          start: startIndex,
+          end: endIndex,
+          colorId: colorId
+        });
+      }
+      this.#repositionItems()
+    }
+  }
+
+
+  // #region Utility
+  // Events
+
+  // Gets the index of the character the mouse is hovering over
+  #getCurrentMouseIndex() {
+    return this.#getLetterIndexByWidth(this.wordStats[this.mouseColSafe][1], this.mouseColSafe === this.#getWordColCount()
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1], this.relativeX)
+  }
+
+  // Get the current letter the mouse is hovering over
+  #getCurrentHoveredLetter() {
+    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const endIndex = this.mouseColSafe === this.#getWordColCount()
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1];
+
+    // Use binary search to find letter index
+    return this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
+  }
+
+  // Check if the mouse is over the last index of a row.
+  #isMouseLastIndex() {
+    return this.wordStats
+      .slice(1)
+      .some(stat => (stat[1] - 1) === this.#getCurrentMouseIndex());
+  }
+
+  // Changes the opacity of the given highlight and comment depending on if the mouse is within the indexes a highlight
   #handleMouseHoveringComment() {
     this.floatingDivsSplit.forEach((div) => {
       const startId = div.start;
@@ -335,6 +420,7 @@ export class TextHighlighter {
     });
   }
 
+
   #handleMouseMove = (event) => {
     this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding();
     this.relativeY = event.clientY - this.#getHighlightAreaTopPadding();
@@ -363,6 +449,34 @@ export class TextHighlighter {
     }
   };
 
+  // handles mouse up, behaviour depends on the current form being inactive
+  #handleMouseUp = (event) => {
+    // need the mouse to be over the whole char so consider it selected
+    let relativeX = event.clientX - this.#getHighlightAreaLeftPadding();
+
+    // deals with fussy highlight behavior on word bounds
+    if (relativeX % this.charHoverPadding != 0) {
+      relativeX -= this.charHoverPaddingMouse
+    }
+
+    // Determine start and end indices once
+    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const endIndex = this.mouseColSafe === this.#getWordColCount()
+      ? this.contentTextCleaned.length
+      : this.wordStats[this.mouseColSafe + 1][1];
+
+    if (!this.formIsActive) {
+      this.endLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
+
+      [this.startLetterIndex, this.endLetterIndex] = this.#cleanSelectionIndexes()
+      let totalLength = this.endLetterIndex - this.startLetterIndex;
+
+      if (totalLength > 1) {
+        this.mouseUpFunction()
+      }
+    }
+  };
+
   #handleMouseDown = (event) => {
     let relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.charHoverPaddingMouse;
 
@@ -379,338 +493,44 @@ export class TextHighlighter {
     }
   };
 
-  #handleMouseUp = (event) => {
-    // need the mouse to be over the whole char so consider it selected
-    let relativeX = event.clientX - this.#getHighlightAreaLeftPadding();
-
-    if (relativeX % this.charHoverPadding != 0) {
-      relativeX -= this.charHoverPaddingMouse
-    }
-
-    // Determine start and end indices once
-    const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === this.#getWordColCount()
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1];
-
-    // Use binary search to find letter index
-    if (!this.formIsActive) {
-      this.endLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
-
-      [this.startLetterIndex, this.endLetterIndex] = this.#cleanSelectionIndexes()
-      let totalLength = this.endLetterIndex - this.startLetterIndex;
-
-      if (totalLength > 1) {
-        this.mouseUpFunction()
-      }
-    }
-  };
-
-  getStartLetterIndex() {
-    const startIndex = this.#cleanSelectionIndexes()[0]
-    return startIndex
-  }
-
-  getEndLetterIndex() {
-    const endIndex = this.#cleanSelectionIndexes()[1]
-    return endIndex
-  }
-
-  defaultFormAction() {
-    this.#createHighlight();
-    this.#createForm(this.startLetterIndex, this.endLetterIndex)
-    this.#repositionItems()
-  }
-
-
-  async postDataFetch(url, data) {
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Add any other headers like authorization
-          'Authorization': 'Bearer your-token-here'
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error('Error:', error);
-      throw error;
-    }
-  }
-
-
-
-  #formCommentSubmission(submission) {
-    const form = submission.target;
-    const startIndex = this.formElement["start"];
-    const endIndex = this.formElement["end"];
-    const comment = form.comment.value;
-
-    // Get the value from the hidden input instead of radio
-    const commentTypeInput = form.querySelector('input[name="commentType"]');
-    if (!commentTypeInput) {
-      console.error('No comment type input found');
-      return;
-    }
-    const commentTypeId = parseInt(commentTypeInput.value);
-
-    // Add some debugging
-    console.log('Form values:', {
-      startIndex,
-      endIndex,
-      comment,
-      commentTypeId,
-      formElements: form.elements // see all form elements
-    });
-
-    submission.preventDefault();
-
-    const builtComment = {
-      elem: this.#buildComment(comment, commentTypeId),
-      start: startIndex,
-      end: endIndex
-    }
-
-    if (this.highlightSubmissionAPI != null) {
-      this.postDataFetch(this.highlightSubmissionAPI,
-        {
-          ...builtComment,
-          // TODO user ids? is this our problem, or should the end user be handling this themselves?
-          id: crypto.randomUUID()
-        }
-      )
-    }
-    this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = builtComment
-    this.#positionCommentContent(builtComment)
-
-    // Remove the form after submission
-    this.#removeForm(this.formElement["elem"].id);
-  }
-
-  #createForm(startIndex, endIndex) {
-    const rawId = `${startIndex}-${endIndex}`;
-    const id = rawId;
-    const elementString = TextHighlighter.FORM_HTML
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(elementString, 'text/html');
-    const floatingDivForm = doc.body.firstElementChild;
-    try {
-      const formElement = floatingDivForm.querySelector('form');
-      const closeButton = floatingDivForm.querySelector('.close-btn');
-
-      closeButton.addEventListener('click', () => this.#closeForm());
-
-      floatingDivForm.id = id;
-      floatingDivForm.className = "floatingForm";
-
-      // Add event listener for form submission
-      const formHoveringIndicator = formElement.querySelector('small');
-
-      this.formElement = {
-        elem: floatingDivForm,
-        start: startIndex,
-        end: endIndex,
-        mouseInfo: formHoveringIndicator
-      }
-
-      const hiddenInput = document.createElement('input');
-      hiddenInput.type = 'hidden';
-      hiddenInput.name = 'commentType';
-      hiddenInput.value = '1';
-      formElement.appendChild(hiddenInput);
-      const colorSquaresContainer = document.createElement('div');
-      colorSquaresContainer.className = 'color-squares';
-
-      // Create squares dynamically from the colors object
-      Object.entries(this.highlightColors).forEach(([value, color]) => {
-        // Skip the default color
-        if (value !== 'default') {
-          const square = document.createElement('button');
-          square.type = 'button';
-          square.className = 'color-square';
-          square.dataset.value = value;
-          square.style.backgroundColor = color;
-
-          square.addEventListener('click', () => {
-            // Remove selected class from all squares
-            hiddenInput.value = value;
-
-            colorSquaresContainer.querySelectorAll('.color-square')
-              .forEach(s => s.classList.remove('selected'));
-            square.classList.add('selected');
-            window.getSelection().removeAllRanges();
-
-            if (this.floatingDivsSplit.has(rawId)) {
-              this.#updateHighlightColorsId(rawId, value);
-            }
-          });
-
-          colorSquaresContainer.appendChild(square);
-        }
-      });
-
-      formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
-
-      const commentType = floatingDivForm.querySelector('#commentType');
-      commentType.appendChild(colorSquaresContainer);
-      this.formIsActive = true;
-
-      document.body.appendChild(floatingDivForm);
-      this.#positionCommentForm();
-
-
-    } catch {
-
-      console.log("its null")
-    }
-  }
-
-  // Sets the forms opacity based on the distance from the mouse
-  #updateFormTransparency() {
-    if (this.formElement) {
-      const indicator = this.formElement["mouseInfo"]
-      const formRect = this.formElement["elem"].getBoundingClientRect()
-      const leftBound = formRect.left
-      const rightBound = formRect.right
-      const topBound = formRect.top
-      const bottomBound = formRect.bottom
-
-      // Check if inside bounds
-      const isInsideForm = event.clientX <= rightBound && event.clientX >= leftBound
-        && event.clientY >= topBound && event.clientY <= bottomBound
-
-      if (isInsideForm) {
-        this.formElement["elem"].style.opacity = 1
-      } else {
-        // Calculate horizontal and vertical distances
-        let dx = 0
-        let dy = 0
-
-        // Horizontal distance
-        if (event.clientX < leftBound) dx = leftBound - event.clientX
-        else if (event.clientX > rightBound) dx = event.clientX - rightBound
-
-        // Vertical distance
-        if (event.clientY < topBound) dy = topBound - event.clientY
-        else if (event.clientY > bottomBound) dy = event.clientY - bottomBound
-
-        // Calculate actual distance using Pythagorean theorem
-        const distance = Math.sqrt(dx * dx + dy * dy)
-
-        const maxDistance = Math.sqrt(
-          window.innerWidth * window.innerWidth +
-          window.innerHeight * window.innerHeight
-        ) / this.MAX_DISTANCE_FORM_DIVISOR
-
-        const opacity = Math.max(this.MIN_FORM_OPACITY, 1 - Math.pow(distance / maxDistance, this.DISTANCE_FORM_POWER))
-        this.formElement["elem"].style.opacity = opacity
-      }
-
-      let letterIndex = this.#getCurrentHoveredLetter()
-      if (indicator) {
-        indicator.textContent = `Last Hovered: (${this.contentTextCleaned[letterIndex]},${this.mouseColSafe}) - ${letterIndex}`
-      }
-    }
-  }
-
-  #removeForm() {
-    let form = this.formElement["elem"]
-
-    if (form) {
-      let x = this.formElement["start"]
-      let y = this.formElement["end"]
-
-      let highlights = this.floatingDivsSplit.get(`${x}-${y}`)
-      if (highlights) {
-        const splits = highlights["splits"]
-        splits.forEach(item => {
-          item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
-        });
-      }
-
-      window.getSelection().removeAllRanges();
-      form.remove()
-      this.formIsActive = false;
-      this.formElement = null
-    }
-  }
-
-  #closeForm() {
-    if (this.formElement && this.formIsActive) {
-      let x = this.formElement["start"]
-      let y = this.formElement["end"]
-      this.#removeFormHighlights(`${x}-${y}`)
-      this.#removeForm()
-    }
-  }
-
-
-  // #region Utility
   #addEventListeners() {
     window.addEventListener("resize", this.#handleResizeOrScroll);
     window.addEventListener("scroll", this.#handleResizeOrScroll);
 
     document.addEventListener('keydown', (event) => {
       if (event.key === 'g') {
-        this.printOutWordStats()
+        this.#printOutWordStats()
       }
     });
     document.addEventListener("mousemove", this.#handleMouseMove);
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
-  #cleanSelectionIndexes() {
-    let startIndex = Number.parseInt(this.startLetterIndex)
-    let endIndex = Number.parseInt(this.endLetterIndex)
-    if (startIndex > endIndex) {
-      [startIndex, endIndex] = [endIndex, startIndex];
-      startIndex++
-    }
-
-    if (this.contentTextCleaned[startIndex] === " ") startIndex++;
-    if (this.contentTextCleaned[endIndex] === " ") endIndex--;
-    return [startIndex, endIndex]
-  }
-  #createHighlight() {
-    let [startIndex, endIndex] = this.#cleanSelectionIndexes()
-
-    // add example spans below
-
-    const rawUniqueId = `${startIndex}-${endIndex}`;
-
-    if (!this.floatingDivsSplit.has(rawUniqueId)) {
-      // Initialize with an array containing the first object
-      // two comments wont have the same UniqueId, so we should always make it here
-      // unique id is gen by mouse down letter index  and mouse up letter index
-      this.floatingDivsSplit.set(rawUniqueId, {
-        comment: {
-          elem: null,
-          start: null,
-          end: null,
-          type: 1
-        },
-        splits: [],
-        start: startIndex,
-        end: endIndex,
-        colorId: 1
-      });
-
-      this.#repositionItems()
-    }
-  }
 
   #liveItems() {
     this.#handleMouseHoveringComment()
     this.#updateFormTransparency()
+  }
+
+  // Positioning
+
+  // Updates offsets and other positioning values
+  #handleResizeOrScroll = () => {
+    this.#updateOffsetsAndBounds();
+    this.#repositionItems();
+
+    if (this.formElement) {
+      this.#positionCommentForm()
+    }
+  };
+
+  // Updates offsets, along with the current word data structure
+  #updateOffsetsAndBounds() {
+    this.mouseTopOffset = window.scrollY;
+    // 🤓 Horizontal scroll 👆
+    this.mouseLeftOffset = window.scrollX;
+    this.divRect = this.highlightedDiv.getBoundingClientRect();
+    this.wordStats = this.#calcWordPositions();
   }
 
   // Updates items that depend on window size or related
@@ -727,6 +547,21 @@ export class TextHighlighter {
 
       this.#positionCommentContent(divArray["comment"])
     });
+  }
+
+  // Gets the vertical sections based on the length of the word data structure
+  #getTextContentVerticalSectionCount() {
+    return this.divRect.height / (this.wordStats.length);
+  }
+
+  // Gets the word col count
+  #getWordColCount() {
+    return this.wordStats.length - 1
+  }
+
+  // there will always be at least one column
+  #calcColsInRange(startIndex, endIndex) {
+    return (this.#getIndexColumnNumber(endIndex) - this.#getIndexColumnNumber(startIndex)) + 1
   }
 
   // Creates an array that corresponds to the text on screen
@@ -782,6 +617,71 @@ export class TextHighlighter {
 
     return widthCache;
   }
+
+  // gets the max width of the highlight area
+  #getHighlightAreaMaxWidth() {
+    return this.divRect.width
+  }
+
+  // gets the value of the padding to the left of the highlight area
+  #getHighlightAreaLeftPadding() {
+    return this.divRect.left
+  }
+
+  // gets the value of the distance of the highlight area
+  #getHighlightAreaTopPadding() {
+    return this.divRect.top
+  }
+
+  // positions the given comment object for the highlight
+  // makes sure the comment doesn't go offscreen
+  // TODO handle long comments
+  #positionCommentContent(commentObj) {
+    const element = commentObj.elem
+    if (element) {
+      const startId = commentObj.start;
+      const endId = commentObj.end
+      const startIndex = this.#getStartIndexForIndex(startId)
+      const wordWidth = this.#getWordWidth(element.textContent);
+      const maxWidth = this.#getHighlightAreaMaxWidth();
+      const isOutOfBounds = this.#getPaddingForIndex(startId) + wordWidth > maxWidth;
+      const endLineStartIndex = this.#getStartIndexForIndex(endId)
+      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
+      const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
+      const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
+
+      let xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId)
+
+      // make sure comment doesn't go off screen
+      if (isOutOfBounds || isMultiLine) {
+        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (element.textContent.length - 1));
+      }
+
+      // make sure its not offscreen on the left
+      if (xOffset < 0) {
+        xOffset = 0
+      }
+
+      element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+    }
+  }
+
+  // positions the highlight based on the provided ids
+  #positionHighlight(element, startId, endId) {
+    if (element != null) {
+      const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
+      const yOffset = this.#getTopPaddingForIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
+
+      // Seems that some browsers discard the real width of elements
+      element.style.width = `${Math.ceil(this.#getWordWidth(selectedText))}px`;
+
+      let startIndex = this.#getStartIndexForIndex(startId)
+      element.style.transform = `translate(${this.#getCumulativeWidthForIndexRange(startIndex, startId)}px, ${yOffset}px)`;
+    } else {
+      console.log("bad element")
+    }
+  }
+
 
   #getCumulativeWidthInsideIndexRange(startIndex, yColIndex) {
     if (startIndex < 0 || yColIndex < 0) return null
@@ -881,108 +781,6 @@ export class TextHighlighter {
     return null;
   }
 
-  #updateDivValues() {
-    this.divRect = this.highlightedDiv.getBoundingClientRect();
-    this.wordStats = this.#calcWordPositions();
-  }
-
-  #handleResizeOrScroll = () => {
-    this.mouseTopOffset = window.scrollY;
-    // 🤓 Horizontal scroll 👆
-    this.mouseLeftOffset = window.scrollX;
-    this.#updateDivValues();
-    this.#repositionItems();
-
-    if (this.formElement) {
-      this.#positionCommentForm()
-    }
-  };
-
-  #calcCols(startIndex, endIndex) {
-    // there is always one col
-    return (this.#getIndexColumnNumber(endIndex) - this.#getIndexColumnNumber(startIndex)) + 1
-  }
-
-  #buildComment(content, colorId) {
-    const selectedId = parseInt(colorId);
-    const color = this.#getColor(selectedId);
-    const floatingComment = document.createElement("div");
-
-    floatingComment.className = "highlightComment";
-    floatingComment.textContent = content
-    floatingComment.style.width = `${this.#getWordWidth(content)}px`;
-    floatingComment.style.backgroundColor = color;
-    document.body.appendChild(floatingComment);
-
-    return floatingComment
-  }
-
-  createTextHighlight(startIndex, endIndex, textContent, comment, colorId) {
-    if (startIndex > endIndex) {
-      [startIndex, endIndex] = [endIndex, startIndex];
-      startIndex++
-    }
-
-    if (textContent[startIndex] === " ") startIndex++;
-    if (textContent[endIndex] === " ") endIndex--;
-
-    const rawUniqueId = `${startIndex}-${endIndex}`;
-    const selectedId = parseInt(colorId);
-
-    if (!this.floatingDivsSplit.has(rawUniqueId)) {
-      const floatingComment = this.#buildComment(comment, selectedId)
-      document.body.appendChild(floatingComment);
-      let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
-
-      if (!floatingDivSplit) {
-        // Initialize with an array containing the first object
-        // two comments wont have the same sawUniqueId so we should awlays make it here
-        // unique id is gen by mouse down letter index  and mouse up letter index
-        this.floatingDivsSplit.set(rawUniqueId, {
-          comment: {
-            elem: floatingComment,
-            start: startIndex,
-            end: endIndex
-          },
-          splits: [],
-          start: startIndex,
-          end: endIndex,
-          colorId: colorId
-        });
-      }
-      this.#repositionItems()
-    }
-  }
-
-  printOutWordStats() {
-    let printString = ""
-    for (let i = 0; i < this.#getWordColCount(); i++) {
-      const start = this.wordStats[i][1];
-      const end = this.wordStats[i + 1][1];
-      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.#getCumulativeWidthInsideIndexRange(start, end)}\n`;
-    }
-    // Print last line
-    const lastIndex = this.wordStats[this.#getWordColCount()];
-    printString += `${this.#getWordColCount()} ${this.contentTextCleaned.slice(lastIndex[1])}`;
-    console.log(printString)
-    console.log(this.wordStats)
-    console.log(this.floatingDivsSplit)
-  }
-
-  #getColor(id) {
-    const colorId = parseInt(id);
-    return this.highlightColors[colorId] || this.highlightColors.default;
-  }
-
-  #removeFormHighlights(formId) {
-    // This also removes the relevant comment, hmmm
-    this.floatingDivsSplit.get(formId)["splits"].map((item) => {
-      let element = item["elem"]
-      element.remove()
-    })
-    this.floatingDivsSplit.delete(formId)
-  }
-
   // Binary search for letter index based on width
   #getLetterIndexByWidth(start, end, targetWidth) {
     let low = start;
@@ -1033,62 +831,321 @@ export class TextHighlighter {
     return this.#widthSums.get(key);
   }
 
-  #updateHighlightColorsId(rawId, colorId) {
-    let items = this.floatingDivsSplit.get(rawId).splits
 
-    if (items) {
-      const selectedId = parseInt(colorId);
-      this.floatingDivsSplit.get(rawId).comment.type = selectedId;
-      this.floatingDivsSplit.get(rawId).colorId = selectedId;
-      const color = this.#getColor(selectedId);
 
-      items.map((item) => {
-        item["elem"].style.backgroundColor = color
-      })
+  #getColor(id) {
+    const colorId = parseInt(id);
+    return this.highlightColors[colorId] || this.highlightColors.default;
+  }
+
+  #printOutWordStats() {
+    let printString = ""
+    for (let i = 0; i < this.#getWordColCount(); i++) {
+      const start = this.wordStats[i][1];
+      const end = this.wordStats[i + 1][1];
+      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.#getCumulativeWidthInsideIndexRange(start, end)}\n`;
+    }
+    // Print last line
+    const lastIndex = this.wordStats[this.#getWordColCount()];
+    printString += `${this.#getWordColCount()} ${this.contentTextCleaned.slice(lastIndex[1])}`;
+    console.log(printString)
+    console.log(this.wordStats)
+    console.log(this.floatingDivsSplit)
+  }
+
+  // #endregion
+
+
+
+  // Dubious
+  #removeFormHighlights(formId) {
+    // This also removes the relevant comment, hmmm
+    this.floatingDivsSplit.get(formId)["splits"].map((item) => {
+      let element = item["elem"]
+      element.remove()
+    })
+    this.floatingDivsSplit.delete(formId)
+  }
+  #buildComment(content, colorId) {
+    const selectedId = parseInt(colorId);
+    const color = this.#getColor(selectedId);
+    const floatingComment = document.createElement("div");
+
+    floatingComment.className = "highlightComment";
+    floatingComment.textContent = content
+    floatingComment.style.width = `${this.#getWordWidth(content)}px`;
+    floatingComment.style.backgroundColor = color;
+    document.body.appendChild(floatingComment);
+
+    return floatingComment
+  }
+
+  #positionCommentForm() {
+    if (this.formElement["elem"]) {
+      const startId = this.formElement["start"]
+      const endId = this.formElement["end"]
+      const elem = this.formElement["elem"]
+      const maxWidth = this.#getHighlightAreaMaxWidth();
+      const yColStartIndex = this.#getPaddingForIndex(endId);
+      const formWidth = this.formElement["elem"].getBoundingClientRect().width
+      const isOutOfBounds = yColStartIndex + formWidth > maxWidth
+      console.log(` ${yColStartIndex} ${formWidth} ${yColStartIndex + formWidth}  ${maxWidth}`)
+      const endLineStartIndex = this.#getStartIndexForIndex(endId)
+      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
+      const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
+      let endIndex = this.#getStartIndexForIndex(endId)
+      let xOffset = this.#getCumulativeWidthForIndexRange(endIndex, endId)
+      let yOffset = top + this.mouseTopOffset
+
+      if (isOutOfBounds) {
+        // make sure form doesnt go off screen
+        yOffset += Number.parseFloat(this.fontSize)
+        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (formWidth));
+      }
+
+      elem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
 
-  #getCurrentMouseIndex() {
-    return this.#getLetterIndexByWidth(this.wordStats[this.mouseColSafe][1], this.mouseColSafe === this.#getWordColCount()
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1], this.relativeX)
+
+
+
+  #formCommentSubmission(submission) {
+    const form = submission.target;
+    const startIndex = this.formElement["start"];
+    const endIndex = this.formElement["end"];
+    const comment = form.comment.value;
+
+    // Get the value from the hidden input instead of radio
+    const commentTypeInput = form.querySelector('input[name="commentType"]');
+    if (!commentTypeInput) {
+      console.error('No comment type input found');
+      return;
+    }
+    const commentTypeId = parseInt(commentTypeInput.value);
+
+    // Add some debugging
+    console.log('Form values:', {
+      startIndex,
+      endIndex,
+      comment,
+      commentTypeId,
+      formElements: form.elements // see all form elements
+    });
+
+    submission.preventDefault();
+
+    const builtComment = {
+      elem: this.#buildComment(comment, commentTypeId),
+      start: startIndex,
+      end: endIndex
+    }
+
+    if (this.highlightSubmissionAPI != null) {
+      this.postDataFetch(this.highlightSubmissionAPI,
+        {
+          ...builtComment,
+          // TODO user ids? is this our problem, or should the end user be handling this themselves?
+          id: crypto.randomUUID()
+        }
+      )
+    }
+    this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = builtComment
+    this.#positionCommentContent(builtComment)
+
+    // Remove the form after submission
+    this.#removeForm(this.formElement["elem"].id);
   }
 
-  #getHighlightAreaMaxWidth() {
-    return this.divRect.width
+
+
+  #createForm(startIndex, endIndex) {
+    const rawId = `${startIndex}-${endIndex}`;
+    const id = rawId;
+    const elementString = this.defaultFormHTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(elementString, 'text/html');
+    const floatingDivForm = doc.body.firstElementChild;
+    try {
+      const formElement = floatingDivForm.querySelector('form');
+      const closeButton = floatingDivForm.querySelector('.close-btn');
+
+      closeButton.addEventListener('click', () => this.#closeForm());
+
+      floatingDivForm.id = id;
+      floatingDivForm.className = "floatingForm";
+
+      // Add event listener for form submission
+      const formHoveringIndicator = formElement.querySelector('small');
+
+      this.formElement = {
+        elem: floatingDivForm,
+        start: startIndex,
+        end: endIndex,
+        mouseInfo: formHoveringIndicator
+      }
+
+      const hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.name = 'commentType';
+      hiddenInput.value = '1';
+      formElement.appendChild(hiddenInput);
+      const colorSquaresContainer = document.createElement('div');
+      colorSquaresContainer.className = 'color-squares';
+
+      // Create squares dynamically from the colors object
+      Object.entries(this.highlightColors).forEach(([value, color]) => {
+        // Skip the default color
+        if (value !== 'default') {
+          const square = document.createElement('button');
+          square.type = 'button';
+          square.className = 'color-square';
+          square.dataset.value = value;
+          square.style.backgroundColor = color;
+
+          square.addEventListener('click', () => {
+            // Remove selected class from all squares
+            hiddenInput.value = value;
+
+            colorSquaresContainer.querySelectorAll('.color-square')
+              .forEach(s => s.classList.remove('selected'));
+            square.classList.add('selected');
+            window.getSelection().removeAllRanges();
+
+            if (this.floatingDivsSplit.has(rawId)) {
+              this.#updateHighlightColorsId(rawId, value);
+            }
+          });
+
+          colorSquaresContainer.appendChild(square);
+        }
+      });
+
+      formElement.addEventListener('submit', (event) => this.#formCommentSubmission(event));
+
+      const commentType = floatingDivForm.querySelector('#commentType');
+      commentType.appendChild(colorSquaresContainer);
+      this.formIsActive = true;
+
+      document.body.appendChild(floatingDivForm);
+      this.#positionCommentForm();
+
+
+    } catch {
+
+      console.log("its null")
+    }
   }
 
-  #getTextContentVerticalSectionCount() {
-    return this.divRect.height / (this.wordStats.length);
+  // Sets the forms opacity based on the distance from the mouse
+  #updateFormTransparency() {
+    if (this.formElement && this.formTransparency) {
+      const indicator = this.formElement["mouseInfo"]
+      const formRect = this.formElement["elem"].getBoundingClientRect()
+      const leftBound = formRect.left
+      const rightBound = formRect.right
+      const topBound = formRect.top
+      const bottomBound = formRect.bottom
+
+      // Check if inside bounds
+      const isInsideForm = event.clientX <= rightBound && event.clientX >= leftBound
+        && event.clientY >= topBound && event.clientY <= bottomBound
+
+      if (isInsideForm) {
+        this.formElement["elem"].style.opacity = 1
+      } else {
+        // Calculate horizontal and vertical distances
+        let dx = 0
+        let dy = 0
+
+        // Horizontal distance
+        if (event.clientX < leftBound) dx = leftBound - event.clientX
+        else if (event.clientX > rightBound) dx = event.clientX - rightBound
+
+        // Vertical distance
+        if (event.clientY < topBound) dy = topBound - event.clientY
+        else if (event.clientY > bottomBound) dy = event.clientY - bottomBound
+
+        // Calculate actual distance using Pythagorean theorem
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        const maxDistance = Math.sqrt(
+          window.innerWidth * window.innerWidth +
+          window.innerHeight * window.innerHeight
+        ) / this.MAX_DISTANCE_FORM_DIVISOR
+
+        const opacity = Math.max(this.MIN_FORM_OPACITY, 1 - Math.pow(distance / maxDistance, this.DISTANCE_FORM_POWER))
+        this.formElement["elem"].style.opacity = opacity
+      }
+
+      let letterIndex = this.#getCurrentHoveredLetter()
+      if (indicator) {
+        indicator.textContent = `Last Hovered: (${this.contentTextCleaned[letterIndex]},${this.mouseColSafe}) - ${letterIndex}`
+      }
+    }
   }
 
-  #getHighlightAreaLeftPadding() {
-    return this.divRect.left
+  #removeForm() {
+    let form = this.formElement["elem"]
+
+    if (form) {
+      let x = this.formElement["start"]
+      let y = this.formElement["end"]
+
+      let highlights = this.floatingDivsSplit.get(`${x}-${y}`)
+      if (highlights) {
+        const splits = highlights["splits"]
+        splits.forEach(item => {
+          item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
+        });
+      }
+
+      window.getSelection().removeAllRanges();
+      form.remove()
+      this.formIsActive = false;
+      this.formElement = null
+    }
   }
 
-  #getWordColCount() {
-    return this.wordStats.length - 1
+  #closeForm() {
+    if (this.formElement && this.formIsActive) {
+      let x = this.formElement["start"]
+      let y = this.formElement["end"]
+      this.#removeFormHighlights(`${x}-${y}`)
+      this.#removeForm()
+    }
   }
 
-  #getHighlightAreaTopPadding() {
-    return this.divRect.top
+
+
+  defaultFormAction() {
+    this.#createHighlight();
+    this.#createForm(this.startLetterIndex, this.endLetterIndex)
+    this.#repositionItems()
   }
 
-  #getCurrentHoveredLetter() {
-    const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === this.#getWordColCount()
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1];
 
-    // Use binary search to find letter index
-    return this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
-  }
+  async postDataFetch(url, data) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add any other headers like authorization
+          'Authorization': 'Bearer your-token-here'
+        },
+        body: JSON.stringify(data)
+      });
 
-  // Check if the mouse is over the last index of a row.
-  #isMouseLastIndex() {
-    return this.wordStats
-      .slice(1)
-      .some(stat => (stat[1] - 1) === this.#getCurrentMouseIndex());
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
   }
-  // #endregion
 }
