@@ -153,8 +153,8 @@ export class TextHighlighter {
     this.#updateOffsetsAndBounds()
     const spanningColCount = this.#calcColsInRange(startId, endId);
     const elementsRawUniqueId = key;
-    let yCol1 = this.#getIndexColumnNumber(startId);
-    let yCol2 = this.#getIndexColumnNumber(endId);
+    let yCol1 = this.#getColumnForIndex(startId);
+    let yCol2 = this.#getColumnForIndex(endId);
     let highlightSplits = this.floatingDivsSplit.get(key).splits
     let colorId = this.floatingDivsSplit.get(key).colorId
 
@@ -541,7 +541,8 @@ export class TextHighlighter {
 
       if (highlightSplits) {
         highlightSplits.forEach((split) => {
-          this.#positionHighlight(split.elem, split.start, split.end)
+          console.log(split)
+          this.#positionHighlight(split)
         })
       }
 
@@ -561,7 +562,7 @@ export class TextHighlighter {
 
   // there will always be at least one column
   #calcColsInRange(startIndex, endIndex) {
-    return (this.#getIndexColumnNumber(endIndex) - this.#getIndexColumnNumber(startIndex)) + 1
+    return (this.#getColumnForIndex(endIndex) - this.#getColumnForIndex(startIndex)) + 1
   }
 
   // Creates an array that corresponds to the text on screen
@@ -646,7 +647,7 @@ export class TextHighlighter {
       const maxWidth = this.#getHighlightAreaMaxWidth();
       const isOutOfBounds = this.#getPaddingForIndex(startId) + wordWidth > maxWidth;
       const endLineStartIndex = this.#getStartIndexForIndex(endId)
-      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
+      const isMultiLine = this.#getColumnForIndex(endId) - this.#getColumnForIndex(startId) >= 1
       const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
       const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
 
@@ -666,50 +667,54 @@ export class TextHighlighter {
     }
   }
 
-  // positions the highlight based on the provided ids
-  #positionHighlight(element, startId, endId) {
+  // positions the highlight based on its start and end id, along with updating the width
+  #positionHighlight(highlight) {
+    const element = highlight.elem
+    const startId = highlight.start
+    const endId = highlight.end
     if (element != null) {
       const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
       const yOffset = this.#getTopPaddingForIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
+      const startIndex = this.#getStartIndexForIndex(startId)
 
-      // Seems that some browsers discard the real width of elements
       element.style.width = `${Math.ceil(this.#getWordWidth(selectedText))}px`;
-
-      let startIndex = this.#getStartIndexForIndex(startId)
       element.style.transform = `translate(${this.#getCumulativeWidthForIndexRange(startIndex, startId)}px, ${yOffset}px)`;
     } else {
       console.log("bad element")
     }
   }
 
-
-  #getCumulativeWidthInsideIndexRange(startIndex, yColIndex) {
-    if (startIndex < 0 || yColIndex < 0) return null
+  // gets the total width between two indexes, this value is inline (so you could add the values across multiple rows)
+  #getCumulativeWidthInsideIndexRange(startIndex, endIndex) {
+    if (startIndex < 0 || endIndex < 0) return null
     let cumulativeWidth = 0;
     for (let i = startIndex; i < this.contentTextCleaned.length; i++) {
-      if (i == yColIndex) {
+      if (i == endIndex) {
         return cumulativeWidth;
       }
       cumulativeWidth += this.#getCharacterWidth(this.contentTextCleaned[i]);
     }
   }
 
-  #getPaddingForIndex(startIndex) {
-    if (startIndex < 0) return null
+  // Gets the padding from the left for the given index
+  // TODO we should make sure to only check the row the includes the index
+  #getPaddingForIndex(index) {
+    if (index < 0) return null
 
-    let colStartIndex = this.#getStartIndexForIndex(startIndex);
+    let colStartIndex = this.#getStartIndexForIndex(index);
 
     if (colStartIndex < 0) return null
 
     let cumulativeWidth = 0;
     for (let i = colStartIndex; i < this.contentTextCleaned.length; i++) {
-      if (i == startIndex) {
+      if (i == index) {
         return cumulativeWidth;
       }
       cumulativeWidth += this.#getCharacterWidth(this.contentTextCleaned[i]);
     }
   }
 
+  // Gets the width of a single character. this can cause positioning issues if its incorrect
   #getCharacterWidth(char) {
     if (this.widthCache[char] === undefined) {
       this.widthCache[char] = Number.parseFloat(Number.parseFloat(this.context.measureText(char).width).toFixed(0));
@@ -717,10 +722,12 @@ export class TextHighlighter {
     return this.widthCache[char];
   }
 
+  // Gets the cumulative width of the given word
   #getWordWidth(word) {
     return [...word].reduce((total, char) => total + this.#getCharacterWidth(char), 0);
   }
 
+  // Gets the start index of the row that includes the provided index
   #getStartIndexForIndex(index) {
     let previousValue = null;
     let lastSize = this.wordStats[this.#getWordColCount()][1]
@@ -743,7 +750,8 @@ export class TextHighlighter {
     return null;
   }
 
-  #getIndexColumnNumber(index) {
+  // Gets the column for the given index
+  #getColumnForIndex(index) {
     let previousValue = null;
     let lastSize = this.wordStats[this.#getWordColCount()][1]
 
@@ -761,6 +769,7 @@ export class TextHighlighter {
     return null;
   }
 
+  // gets the padding for the top of and index, this would technically be index -1 since we don't include the font size here
   #getTopPaddingForIndex(index) {
     let previousValue = null;
     let lastColIndex = this.wordStats[this.#getWordColCount()][1]
@@ -782,20 +791,20 @@ export class TextHighlighter {
   }
 
   // Binary search for letter index based on width
-  #getLetterIndexByWidth(start, end, targetWidth) {
-    let low = start;
-    let high = end;
+  #getLetterIndexByWidth(startIndex, endIndex, targetWidth) {
+    let low = startIndex;
+    let high = endIndex;
     let cumulativeWidth = 0;
 
     // First check if we're beyond the total width
-    const totalWidth = this.#getCumulativeWidthForIndexRange(start, end);
+    const totalWidth = this.#getCumulativeWidthForIndexRange(startIndex, endIndex);
     if (targetWidth >= totalWidth) {
-      return end - 1;
+      return endIndex - 1;
     }
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
-      cumulativeWidth = this.#getCumulativeWidthForIndexRange(start, mid + 1);
+      cumulativeWidth = this.#getCumulativeWidthForIndexRange(startIndex, mid + 1);
 
       if (cumulativeWidth === targetWidth) {
         return mid;
@@ -803,13 +812,13 @@ export class TextHighlighter {
 
       if (cumulativeWidth < targetWidth) {
         if (mid + 1 <= high &&
-          this.#getCumulativeWidthForIndexRange(start, mid + 2) > targetWidth) {
+          this.#getCumulativeWidthForIndexRange(startIndex, mid + 2) > targetWidth) {
           return mid + 1;
         }
         low = mid + 1;
       } else {
         if (mid - 1 >= low &&
-          this.#getCumulativeWidthForIndexRange(start, mid) < targetWidth) {
+          this.#getCumulativeWidthForIndexRange(startIndex, mid) < targetWidth) {
           return mid;
         }
         high = mid - 1;
@@ -833,9 +842,8 @@ export class TextHighlighter {
 
 
 
-  #getColor(id) {
-    const colorId = parseInt(id);
-    return this.highlightColors[colorId] || this.highlightColors.default;
+  #getColor(colorId) {
+    return this.highlightColors[parseInt(colorId)] || this.highlightColors.default;
   }
 
   #printOutWordStats() {
@@ -891,7 +899,7 @@ export class TextHighlighter {
       const isOutOfBounds = yColStartIndex + formWidth > maxWidth
       console.log(` ${yColStartIndex} ${formWidth} ${yColStartIndex + formWidth}  ${maxWidth}`)
       const endLineStartIndex = this.#getStartIndexForIndex(endId)
-      const isMultiLine = this.#getIndexColumnNumber(endId) - this.#getIndexColumnNumber(startId) >= 1
+      const isMultiLine = this.#getColumnForIndex(endId) - this.#getColumnForIndex(startId) >= 1
       const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
       let endIndex = this.#getStartIndexForIndex(endId)
       let xOffset = this.#getCumulativeWidthForIndexRange(endIndex, endId)
