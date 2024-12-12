@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
   highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
   highlighter2.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
   highlighter3.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
-  console.log(highlighter3.printOutWordStats())
+  // TODO margin should be applied directly on highlight areas
 
   // const highlighter3 = new TextHighlighter("highlightedDivMoving", "outputHover");
   // highlighter1.setFormHTML(exampleForm)

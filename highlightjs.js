@@ -73,6 +73,8 @@ export class TextHighlighter {
 
     this.highlightedDiv = document.getElementById(highlightedDiv);
     this.outputHover = document.getElementById(outputHoverId);
+    this.exactTextAreaWidth = this.#getTotalAreaWidth()
+
 
     const computedStyle = getComputedStyle(this.highlightedDiv);
     this.fontSize = computedStyle.fontSize;
@@ -100,9 +102,22 @@ export class TextHighlighter {
     this.#addEventListeners();
     // this.createTextHighlight(739, 752, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
 
+
+
+
     this.formElement = null;
   }
-
+  #getTotalAreaWidth() {
+    const textNode = this.highlightedDiv.firstChild; // Assuming the text node is the first child
+    let exactWidth = 0
+    if (textNode.nodeType === Node.TEXT_NODE) {
+      const range = document.createRange();
+      range.selectNodeContents(textNode);
+      const { width } = range.getBoundingClientRect();
+      exactWidth = width
+    }
+    return exactWidth
+  }
   setFormHTML(htmlContent) {
     // TODO verify elements
 
@@ -567,17 +582,9 @@ export class TextHighlighter {
   // Creates an array that corresponds to the text on screen
   #calcWordPositions() {
     const widthCache = [[0, 0]];
-    let maxWidth = Math.ceil(this.#getHighlightAreaMaxWidth());
-    let window_size_remainder = Math.round(maxWidth) - maxWidth
+    const maxWidth = Math.ceil(this.#getHighlightAreaMaxWidth());
+    const bufferWidth = maxWidth + this.spaceSize
 
-    let window_size_odd = Math.round(maxWidth) - Math.floor(maxWidth)
-    let window_ratio_offset = window_size_odd + window_size_remainder
-
-    if (maxWidth % 2 != 0) {
-      maxWidth += window_ratio_offset
-    }
-
-    let otherOff = Number.parseFloat(this.fontSize) / 10
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
@@ -586,26 +593,17 @@ export class TextHighlighter {
     this.wordArray.forEach((word) => {
       const currentWordWidth = this.#getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
+      const extra = word.endsWith(" ") ? 0 : this.spaceSize * -1;
 
       // The last word can be found by assuming it doesnt end with a space
       // a non issue if it doesnt as the browser will display correct behavior
       // assumed behav = that the last word ends with a space
-      let extra = word.endsWith(" ") ? 0 : this.spaceSize * -1;
       // First test: does word fit on current line with space?
-      if (testWidth <= maxWidth + this.spaceSize + extra) {
+      if (testWidth <= bufferWidth + extra) {
         currentWidth = testWidth;
       } else {
-        // If it doesn't fit, test without trailing space
-        // Only subtract space if not last word and word has a space
-        const endTest = Math.ceil(testWidth);
-
-        if (endTest <= maxWidth + otherOff) {
-          currentWidth = endTest;
-        } else if (endTest >= maxWidth + otherOff) {
-          // Word doesn't fit, wrap to new lin
-          widthCache.push([wordColumnIndex, currentStringIndex]);
-          wordColumnIndex++;
-          currentWidth = currentWordWidth;
+        if (testWidth <= maxWidth) {
+          currentWidth = testWidth;
         } else {
           widthCache.push([wordColumnIndex, currentStringIndex]);
           wordColumnIndex++;
@@ -620,7 +618,7 @@ export class TextHighlighter {
 
   // gets the max width of the highlight area
   #getHighlightAreaMaxWidth() {
-    return this.divRect.width
+    return this.#getTotalAreaWidth()
   }
 
   // gets the value of the padding to the left of the highlight area
@@ -852,6 +850,21 @@ export class TextHighlighter {
   }
 
   #printOutWordStats() {
+    let printString = ""
+    for (let i = 0; i < this.#getWordColCount(); i++) {
+      const start = this.wordStats[i][1];
+      const end = this.wordStats[i + 1][1];
+      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.#getCumulativeWidthInsideIndexRange(start, end)}\n`;
+    }
+    // Print last line
+    const lastIndex = this.wordStats[this.#getWordColCount()];
+    printString += `${this.#getWordColCount()} ${this.contentTextCleaned.slice(lastIndex[1])}`;
+    console.log(printString)
+    console.log(this.wordStats)
+    console.log(this.floatingDivsSplit)
+  }
+
+  printOutWordStats() {
     let printString = ""
     for (let i = 0; i < this.#getWordColCount(); i++) {
       const start = this.wordStats[i][1];

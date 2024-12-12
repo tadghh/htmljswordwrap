@@ -21,10 +21,14 @@ body {
 #cont {
 	background-color: var(--main-bg-color);
 }
+#test-container > div {
+	margin: 20px;
+}
+
 #test-container {
 	display: flex;
 	flex-direction: row;
-	margin: 20px;
+	/* padding: 20px; */
 	justify-content: space-between;
 }
 #moving-test {
