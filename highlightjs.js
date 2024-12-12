@@ -713,21 +713,21 @@ export class TextHighlighter {
   }
 
   // Gets the padding from the left for the given index
-  // TODO we should make sure to only check the row the includes the index
   #getPaddingForIndex(index) {
-    if (index < 0) return null
+    if (index < 0) return null;
 
-    let colStartIndex = this.#getStartIndexForIndex(index);
+    const colStartIndex = this.#getStartIndexForIndex(index);
+    if (colStartIndex < 0) return null;
 
-    if (colStartIndex < 0) return null
+    // Early return if the index is the start of the column
+    if (index === colStartIndex) return 0;
 
     let cumulativeWidth = 0;
-    for (let i = colStartIndex; i < this.contentTextCleaned.length; i++) {
-      if (i == index) {
-        return cumulativeWidth;
-      }
+    // Direct iteration avoids memory allocation from slice()
+    for (let i = colStartIndex; i < index; i++) {
       cumulativeWidth += this.#getCharacterWidth(this.contentTextCleaned[i]);
     }
+    return cumulativeWidth;
   }
 
   // Gets the width of a single character. this can cause positioning issues if its incorrect
@@ -745,22 +745,46 @@ export class TextHighlighter {
 
   // Gets the start index of the row that includes the provided index
   #getStartIndexForIndex(index) {
-    let previousValue = null;
-    let lastSize = this.wordStats[this.#getWordColCount()][1]
-    if (index == 0) {
-      return 0
+    // Handle edge cases
+    if (index === 0) {
+      return 0;
     }
+
+    let lastSize = this.wordStats[this.#getWordColCount()][1];
     if (lastSize <= index) {
-      return lastSize
+      return lastSize;
     }
-    for (const value of Object.values(this.wordStats)) {
-      if (index === value[1]) {
-        return value[1];  // Exact match on boundary
+
+    // Convert wordStats to array for binary search
+    const entries = Object.values(this.wordStats);
+    let left = 0;
+    let right = entries.length - 1;
+
+    // If index is less than first entry's size, return 0
+    if (index < entries[0][1]) {
+      return 0;
+    }
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const currentSize = entries[mid][1];
+
+      // Exact match on boundary
+      if (index === currentSize) {
+        return currentSize;
       }
-      if (index < value[1]) {
-        return previousValue ? previousValue[1] : 0;  // Return previous boundary
+
+      // Check if index falls between current and previous size
+      const prevSize = mid > 0 ? entries[mid - 1][1] : 0;
+      if (prevSize < index && index < currentSize) {
+        return prevSize;
       }
-      previousValue = value;
+
+      if (currentSize > index) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
     }
 
     return null;
@@ -768,18 +792,37 @@ export class TextHighlighter {
 
   // Gets the column for the given index
   #getColumnForIndex(index) {
-    let previousValue = null;
-    let lastSize = this.wordStats[this.#getWordColCount()][1]
-
+    // Handle case where index is beyond the last size
+    let lastSize = this.wordStats[this.#getWordColCount()][1];
     if (lastSize <= index) {
-      return this.wordStats[this.#getWordColCount()][0]
+      return this.wordStats[this.#getWordColCount()][0];
     }
-    for (const value of Object.values(this.wordStats)) {
-      if (index < value[1]) {
 
-        return previousValue ? previousValue[0] : null;
+    // Convert wordStats to array for binary search
+    const entries = Object.values(this.wordStats);
+    let left = 0;
+    let right = entries.length - 1;
+
+    // If index is less than first entry's size, return null
+    if (index < entries[0][1]) {
+      return null;
+    }
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const currentSize = entries[mid][1];
+      const nextSize = mid + 1 < entries.length ? entries[mid + 1][1] : Infinity;
+
+      // Check if index falls between current and next size
+      if (currentSize <= index && index < nextSize) {
+        return entries[mid][0];
       }
-      previousValue = value;
+
+      if (currentSize > index) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
     }
 
     return null;
@@ -787,23 +830,33 @@ export class TextHighlighter {
 
   // gets the padding for the top of and index, this would technically be index -1 since we don't include the font size here
   #getTopPaddingForIndex(index) {
-    let previousValue = null;
-    let lastColIndex = this.wordStats[this.#getWordColCount()][1]
-
+    // First check if index is beyond the last column
+    let lastColIndex = this.wordStats[this.#getWordColCount()][1];
     if (lastColIndex <= index) {
-      return (this.#getWordColCount() * this.#getTextContentVerticalSectionCount()) + this.#getHighlightAreaTopPadding();
+      return (this.#getWordColCount() * this.#getTextContentVerticalSectionCount()) +
+        this.#getHighlightAreaTopPadding();
     }
 
-    for (const value of Object.values(this.wordStats)) {
-      let yPx = (value[0] * this.#getTextContentVerticalSectionCount()) + this.#getHighlightAreaTopPadding();
+    // Binary search to find the correct column
+    let left = 0;
+    let right = this.#getWordColCount();
 
-      if (index < value[1]) {
-        return previousValue !== null ? previousValue : yPx;
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const colStats = this.wordStats[mid];
+
+      if (!colStats) break;
+
+      if (index < colStats[1]) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
       }
-      previousValue = yPx;
     }
 
-    return null;
+    // Calculate y position using the found column
+    return (left - 1) * this.#getTextContentVerticalSectionCount() +
+      this.#getHighlightAreaTopPadding();
   }
 
   // Binary search for letter index based on width
