@@ -828,6 +828,7 @@ export class TextHighlighter {
     return low;
   }
 
+  // gets the width between two indexes
   #getCumulativeWidthForIndexRange(startIndex, endIndex) {
     const key = `${startIndex}-${endIndex}`;
     if (!this.#widthSums.has(key)) {
@@ -841,7 +842,7 @@ export class TextHighlighter {
   }
 
 
-
+  // gets the color for the given id
   #getColor(colorId) {
     return this.highlightColors[parseInt(colorId)] || this.highlightColors.default;
   }
@@ -866,14 +867,18 @@ export class TextHighlighter {
 
 
   // Dubious
-  #removeFormHighlights(formId) {
-    // This also removes the relevant comment, hmmm
-    this.floatingDivsSplit.get(formId)["splits"].map((item) => {
+
+  // removes the highlights for the given uniqueId
+  #removeFormHighlights(uniqueId) {
+    // This also removes the related comment, hmmm
+    this.floatingDivsSplit.get(uniqueId)["splits"].map((item) => {
       let element = item["elem"]
       element.remove()
     })
-    this.floatingDivsSplit.delete(formId)
+    this.floatingDivsSplit.delete(uniqueId)
   }
+
+  // Creates a comment element with the provided text content and colorId
   #buildComment(content, colorId) {
     const selectedId = parseInt(colorId);
     const color = this.#getColor(selectedId);
@@ -888,6 +893,7 @@ export class TextHighlighter {
     return floatingComment
   }
 
+  // positions the location of the comment form
   #positionCommentForm() {
     if (this.formElement["elem"]) {
       const startId = this.formElement["start"]
@@ -897,16 +903,16 @@ export class TextHighlighter {
       const yColStartIndex = this.#getPaddingForIndex(endId);
       const formWidth = this.formElement["elem"].getBoundingClientRect().width
       const isOutOfBounds = yColStartIndex + formWidth > maxWidth
-      console.log(` ${yColStartIndex} ${formWidth} ${yColStartIndex + formWidth}  ${maxWidth}`)
       const endLineStartIndex = this.#getStartIndexForIndex(endId)
       const isMultiLine = this.#getColumnForIndex(endId) - this.#getColumnForIndex(startId) >= 1
       const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
+
       let endIndex = this.#getStartIndexForIndex(endId)
       let xOffset = this.#getCumulativeWidthForIndexRange(endIndex, endId)
       let yOffset = top + this.mouseTopOffset
 
       if (isOutOfBounds) {
-        // make sure form doesnt go off screen
+        // make sure form doesn't go off screen
         yOffset += Number.parseFloat(this.fontSize)
         xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (formWidth));
       }
@@ -917,7 +923,7 @@ export class TextHighlighter {
 
 
 
-
+  // Handles form/comment submission
   #formCommentSubmission(submission) {
     const form = submission.target;
     const startIndex = this.formElement["start"];
@@ -966,7 +972,8 @@ export class TextHighlighter {
   }
 
 
-
+  // creates a form element based on the start and end index of the highlight being created
+  // these are used for positioning it
   #createForm(startIndex, endIndex) {
     const rawId = `${startIndex}-${endIndex}`;
     const id = rawId;
@@ -1037,15 +1044,13 @@ export class TextHighlighter {
 
       document.body.appendChild(floatingDivForm);
       this.#positionCommentForm();
-
-
     } catch {
 
-      console.log("its null")
+      console.log("its null, issue creating comment form")
     }
   }
 
-  // Sets the forms opacity based on the distance from the mouse
+  // Sets the forms opacity based on its distance from the mouse
   #updateFormTransparency() {
     if (this.formElement && this.formTransparency) {
       const indicator = this.formElement["mouseInfo"]
@@ -1093,6 +1098,7 @@ export class TextHighlighter {
     }
   }
 
+  // removes the form element and resets it
   #removeForm() {
     let form = this.formElement["elem"]
 
@@ -1115,6 +1121,8 @@ export class TextHighlighter {
     }
   }
 
+  // resets the form and clears the current highlights
+  // this path is used when closing instead of submitting a comment
   #closeForm() {
     if (this.formElement && this.formIsActive) {
       let x = this.formElement["start"]
