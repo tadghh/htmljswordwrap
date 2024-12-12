@@ -563,6 +563,20 @@ export class TextHighlighter {
       this.#positionCommentContent(divArray["comment"])
     });
   }
+  repositionItems() {
+    this.floatingDivsSplit.forEach((divArray, key) => {
+      const highlightSplits = divArray["splits"]
+      this.#updateHighlightElements(key, divArray.start, divArray.end);
+
+      if (highlightSplits) {
+        highlightSplits.forEach((split) => {
+          this.#positionHighlight(split)
+        })
+      }
+
+      this.#positionCommentContent(divArray["comment"])
+    });
+  }
 
   // Gets the vertical sections based on the length of the word data structure
   #getTextContentVerticalSectionCount() {
@@ -633,7 +647,7 @@ export class TextHighlighter {
 
   // gets the value of the distance of the highlight area
   #getHighlightAreaTopPadding() {
-    return this.divRect.top
+    return this.divRect.top;
   }
 
   // positions the given comment object for the highlight
