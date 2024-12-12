@@ -4,17 +4,44 @@ body {
 	background-color: var(--main-bg-color);
 	margin: 0px;
 }
+
+#example-cont {
+	display: flex;
+	margin-inline: 20px;
+	justify-content: space-between;
+}
+
+#moving-example {
+	margin-left: auto;
+	margin-top: 40px;
+	margin-right: 40px;
+	width: 40%;
+	height: 20%;
+}
 #cont {
 	background-color: var(--main-bg-color);
 }
+#test-container {
+	display: flex;
+	flex-direction: row;
+	margin: 20px;
+	justify-content: space-between;
+}
+#moving-test {
+	margin: 50px;
+	width: 500px;
+	margin-left: auto;
+}
 
 #highlightedDiv,
+.highlightedDiv,
 .highlightedText,
 .split,
 .highlightComment {
 	font-size: 20px;
 }
 
+.highlightedDiv,
 #highlightedDiv {
 	z-index: 15;
 	position: relative;

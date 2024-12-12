@@ -1,6 +1,6 @@
 // TODO function to enable ids on highlight elements
 // Or just return array of elements for "search"
-
+// TODO set text color for background
 
 export class TextHighlighter {
   static FORM_HTML = `
@@ -83,7 +83,7 @@ export class TextHighlighter {
     this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
 
     this.divRect = this.highlightedDiv.getBoundingClientRect();
-
+    console.log(this.fontSize)
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
 
     this.contentTextCleaned = this.highlightedDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
@@ -98,7 +98,7 @@ export class TextHighlighter {
     this.charHoverPaddingMouse = this.charHoverPadding / (parseFloat(this.fontSize) / 10);
     this.formIsActive = false
     this.#addEventListeners();
-    this.createTextHighlight(739, 752, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
+    // this.createTextHighlight(739, 752, this.contentTextCleaned, "Woah this is going somewhere woo hoo", 2)
 
     this.formElement = null;
   }
@@ -315,14 +315,14 @@ export class TextHighlighter {
   }
 
   // Creates a highlight and comment based on the below params
-  createTextHighlight(startIndex, endIndex, textContent, comment, colorId) {
+  createTextHighlight(startIndex, endIndex, comment, colorId) {
     if (startIndex > endIndex) {
       [startIndex, endIndex] = [endIndex, startIndex];
       startIndex++
     }
 
-    if (textContent[startIndex] === " ") startIndex++;
-    if (textContent[endIndex] === " ") endIndex--;
+    if (this.contentTextCleaned[startIndex] === " ") startIndex++;
+    if (this.contentTextCleaned[endIndex] === " ") endIndex--;
 
     const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedId = parseInt(colorId);
@@ -541,7 +541,6 @@ export class TextHighlighter {
 
       if (highlightSplits) {
         highlightSplits.forEach((split) => {
-          console.log(split)
           this.#positionHighlight(split)
         })
       }
@@ -626,6 +625,11 @@ export class TextHighlighter {
 
   // gets the value of the padding to the left of the highlight area
   #getHighlightAreaLeftPadding() {
+
+    return this.divRect.left
+  }
+  getHighlightAreaLeftPadding() {
+
     return this.divRect.left
   }
 
@@ -676,9 +680,9 @@ export class TextHighlighter {
       const selectedText = this.contentTextCleaned.substring(startId, endId + 1).trim();
       const yOffset = this.#getTopPaddingForIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
       const startIndex = this.#getStartIndexForIndex(startId)
-
+      const xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId) + this.#getHighlightAreaLeftPadding()
       element.style.width = `${Math.ceil(this.#getWordWidth(selectedText))}px`;
-      element.style.transform = `translate(${this.#getCumulativeWidthForIndexRange(startIndex, startId)}px, ${yOffset}px)`;
+      element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     } else {
       console.log("bad element")
     }
