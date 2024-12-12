@@ -933,7 +933,7 @@ export class TextHighlighter {
         yOffset += Number.parseFloat(this.fontSize)
         xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (formWidth));
       }
-
+      xOffset += this.#getHighlightAreaLeftPadding()
       elem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
