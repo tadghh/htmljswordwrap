@@ -664,7 +664,7 @@ export class TextHighlighter {
       if (xOffset < 0) {
         xOffset = 0
       }
-
+      xOffset += this.#getHighlightAreaLeftPadding()
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
