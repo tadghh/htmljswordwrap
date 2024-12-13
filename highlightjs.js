@@ -29,35 +29,74 @@ export class TextHighlighter {
 
   // Cache cumulative widths
   #widthSums = new Map();
-  constructor(highlightedDiv,
-    outputHoverId,
-    submissionAPI = null,
-    mouseUpFunction = null,
-    highlightColors = null) {
-    this.MIN_FORM_OPACITY = 0.10
-    this.DISTANCE_FORM_POWER = 0.8
-    this.MAX_DISTANCE_FORM_DIVISOR = 6
-    this.HOVER_TRANSITION_DURATION = 150;
-    this.UNFOCUSED_OPACITY = 0.2;
+  constructor(highlightedDiv, outputHoverId) {
+    if (!highlightedDiv || !outputHoverId) {
+      throw new Error('highlightedDiv and outputHoverId are required');
+    }
 
-    this.mouseUpFunction = mouseUpFunction || this.defaultFormAction.bind(this);
-    this.highlightSubmissionAPI = submissionAPI ? submissionAPI : null
-    this.highlightColors = highlightColors ? highlightColors : {
+    this.highlightedDivId = highlightedDiv;
+    this.outputHoverId = outputHoverId;
+
+    // Set default values
+    this._mouseUpFunction = this.defaultFormAction.bind(this);
+    this._highlightSubmissionAPI = null;
+    this._highlightColors = {
       1: 'black',     // Misc comments
       2: 'pink',      // Incorrect info
       3: 'lightblue', // Sources?
       4: 'skyblue',   // Question
       default: 'lightgreen' // Default color
-    }
+    };
+  }
 
-    // TODO this should be left up to the dev
+  setSubmissionAPI(api) {
+    this._highlightSubmissionAPI = api;
+    return this;
+  }
+
+  setMouseUpFunction(fn) {
+    this._mouseUpFunction = fn || this.defaultFormAction.bind(this);
+    return this;
+  }
+
+  setHighlightColors(colors) {
+    this._highlightColors = colors;
+    return this;
+  }
+
+  setFormHTML(html) {
+    this._defaultFormHTML = html;
+    return this;
+  }
+
+  setFormTransparency(isTransparent) {
+    this._formTransparency = isTransparent;
+    return this;
+  }
+
+  #initializeConstants() {
+    this.MIN_FORM_OPACITY = 0.10;
+    this.DISTANCE_FORM_POWER = 0.8;
+    this.MAX_DISTANCE_FORM_DIVISOR = 6;
+    this.HOVER_TRANSITION_DURATION = 150;
+    this.UNFOCUSED_OPACITY = 0.2;
+    return this;
+  }
+
+  #initializeStyleSheet() {
     document.styleSheets[0].insertRule(`::selection {
-      background: ${this.#getColor(1)};
-      color: white;
+        background: ${this.#getColor(1)};
+        color: white;
     }`, 0);
+    return this;
+  }
 
-    this.defaultFormHTML = TextHighlighter.FORM_HTML
-    this.formTransparency = true
+  #initializeState() {
+    this.mouseUpFunction = this._mouseUpFunction;
+    this.highlightSubmissionAPI = this._highlightSubmissionAPI;
+    this.highlightColors = this._highlightColors;
+    this.defaultFormHTML = this._defaultFormHTML || TextHighlighter.FORM_HTML;
+    this.formTransparency = this._formTransparency || false;
     this.widthCache = {};
     this.startLetterIndex = -1;
     this.endLetterIndex = -1;
@@ -65,43 +104,66 @@ export class TextHighlighter {
     this.mouseColSafe = 0;
     this.relativeY = 0;
     this.relativeX = 0;
-
     this.floatingDivsSplit = new Map();
+    this.formIsActive = false;
+    this.formElement = null;
+    return this;
+  }
+
+  #initializeDOMElements() {
+    this.highlightedDiv = document.getElementById(this.highlightedDivId);
+    this.outputHover = document.getElementById(this.outputHoverId);
+
+    if (!this.highlightedDiv || !this.outputHover) {
+      throw new Error('Could not find required DOM elements');
+    }
 
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
     this.context = document.createElement("canvas").getContext("2d");
+    return this;
+  }
 
-    this.highlightedDiv = document.getElementById(highlightedDiv);
-    this.outputHover = document.getElementById(outputHoverId);
-    this.exactTextAreaWidth = this.#getTotalAreaWidth()
-
+  #initializeTextProcessing() {
     const computedStyle = getComputedStyle(this.highlightedDiv);
     this.fontSize = computedStyle.fontSize;
-    this.fontSizeRaw = Number.parseFloat(this.fontSize)
+    this.fontSizeRaw = Number.parseFloat(this.fontSize);
     this.fontFamily = computedStyle.fontFamily;
-
-    // 1.2 is 'default' line height
     this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
-
     this.divRect = this.highlightedDiv.getBoundingClientRect();
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
-    this.contentTextCleaned = this.highlightedDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
-    this.wordArray = this.contentTextCleaned.split(" ").map((word, i, arr) =>
-      i < arr.length - 1 ? word + " " : word
-    );
 
+    this.exactTextAreaWidth = this.#getTotalAreaWidth();
+    this.contentTextCleaned = this.highlightedDiv.textContent
+      .trim()
+      .replace(/\t/g, "")
+      .replace(/\n/g, " ");
+
+    this.wordArray = this.contentTextCleaned
+      .split(" ")
+      .map((word, i, arr) => i < arr.length - 1 ? word + " " : word);
 
     this.characterWidth = this.#getCharacterWidth(" ");
-    const offsetSpace = (this.characterWidth / (this.fontSizeRaw / 10))
-    this.SELECTION_OFFSET = this.characterWidth + offsetSpace
-    this.SELECTION_OFFSET_NEGATIVE = this.characterWidth - offsetSpace
-
+    const offsetSpace = (this.characterWidth / (this.fontSizeRaw / 10));
+    this.SELECTION_OFFSET = this.characterWidth + offsetSpace;
+    this.SELECTION_OFFSET_NEGATIVE = this.characterWidth - offsetSpace;
     this.wordStats = this.#calcWordPositions();
+    return this;
+  }
 
-    this.formIsActive = false
-    this.formElement = null;
-    this.#addEventListeners();
+  initialize() {
+    try {
+      this.#initializeConstants()
+        .#initializeState()
+        .#initializeDOMElements()
+        .#initializeTextProcessing()
+        .#initializeStyleSheet();
+
+      this.#addEventListeners();
+      return this;
+    } catch (error) {
+      throw new Error(`Initialization failed: ${error.message}`);
+    }
   }
 
   #getTotalAreaWidth() {
@@ -114,12 +176,6 @@ export class TextHighlighter {
       exactWidth = width
     }
     return exactWidth
-  }
-
-  setFormHTML(htmlContent) {
-    // TODO verify elements
-
-    this.defaultFormHTML = htmlContent
   }
 
   // enables the submission form transparency
@@ -1079,9 +1135,11 @@ export class TextHighlighter {
 
       document.body.appendChild(floatingDivForm);
       this.#positionCommentForm();
-    } catch {
+    } catch (e) {
 
-      console.log("its null, issue creating comment form")
+      console.log(`its null, issue creating comment form
+          The following classes need to be included
+        ${e}`)
     }
   }
 

@@ -4,7 +4,13 @@ body {
 	background-color: var(--main-bg-color);
 	margin: 0px;
 }
-
+h1,
+#outputHover3,
+#outputHover2,
+#outputHover1 {
+	color: white;
+	font-weight: bold;
+}
 #moving-example {
 	margin-left: auto;
 	margin-top: 40px;
@@ -28,10 +34,23 @@ body {
 	justify-content: space-between;
 }
 
+#moving-holder h1,
+#outputHover3,
+#outputHover2,
+#outputHover1 {
+	margin: 50px;
+
+	width: 500px;
+}
+#moving-holder {
+	margin: 50px;
+}
+#moving-holder h1,
+#outputHover3,
 #moving-test {
 	margin: 50px;
-	width: 500px;
 	margin-left: auto;
+	width: 500px;
 }
 
 #highlightedDiv,

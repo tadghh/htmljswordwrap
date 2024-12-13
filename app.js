@@ -1,33 +1,19 @@
 import { TextHighlighter } from "./highlightjs.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  //   let exampleForm = `
-  //   <div class="floatingForm">
-  //       <form action="">
-  //           <div id="commentFormHeader">
-  //               <label for="text">ConteWEEEEEEEEEEnt</label>
-  //               <div id="selectionRange">
-  //                   <div id="startIndexForm"></div>
-  //                   <div id="endIndexForm"></div>
-  //                   <small id="formHoverIndicator"></small>
-  //               </div>
-  //           </div>
 
-  //           <textarea id="text" name="comment"></textarea>
 
-  //           <div id="commentType">
+  // This is the default highlighter
+  const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1").initialize();
 
-  //           </div>
+  // This one will showcase custom function/behavior and using a custom form
+  const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover2")
+    .setFormHTML(customForm)
+    .setHighlightColors(customHighlightColors)
+    .initialize();
 
-  //           <button type="submit">Comment</button>
-  //       </form>
-  //       <button type="button" class="n">X</button>
-  //   </div>
-  // `;
-  // const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover");
-  const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1");
-  const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover2");
-  const highlighter3 = new TextHighlighter("highlightedDivMoving", "outputHover3");
+  // This one will demo dynamic/moving content
+  const highlighter3 = new TextHighlighter("highlightedDivMoving", "outputHover3").initialize();;
 
   highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
   highlighter2.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
@@ -57,3 +43,34 @@ document.addEventListener("DOMContentLoaded", () => {
   animate();
 
 });
+
+const customHighlightColors = {
+  1: '#FFB5E8',  // Soft pink
+  2: '#B28DFF',  // Lavender
+  3: '#BFFCC6',  // Mint
+  4: '#FFC9DE',  // Salmon pink
+  default: '#C5A3FF'  // Light purple
+}
+const customForm = `
+<div class="floatingForm">
+    <form action="">
+        <div id="commentFormHeader">
+            <label for="text">Custom Form Content</label>
+            <div id="selectionRange">
+                <div id="startIndexForm"></div>
+                <div id="endIndexForm"></div>
+                <small id="formHoverIndicator"></small>
+            </div>
+        </div>
+
+        <textarea id="text" name="comment"></textarea>
+
+        <div id="commentType">
+
+        </div>
+
+        <button type="submit">Comment</button>
+    </form>
+    <button type="button" class="close-btn">X</button>
+</div>
+`;
