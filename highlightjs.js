@@ -89,6 +89,8 @@ export class TextHighlighter {
 
     this.contentTextCleaned = this.highlightedDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
     this.spaceSize = this.#getWordWidth(" ");
+    this.SELECTION_OFFSET = this.spaceSize + (this.spaceSize / 2)
+    this.SELECTION_OFFSET_NEGATIVE = this.spaceSize - (this.spaceSize / 2)
     this.wordArray = this.contentTextCleaned.split(" ").map((word, i, arr) =>
       i < arr.length - 1 ? word + " " : word
     );
@@ -419,7 +421,7 @@ export class TextHighlighter {
 
 
   #handleMouseMove = (event) => {
-    this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.spaceSize;
+    this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
     this.relativeY = event.clientY - this.#getHighlightAreaTopPadding();
 
     // Single division operation
@@ -447,18 +449,13 @@ export class TextHighlighter {
   };
 
   // handles mouse up, behaviour depends on the current form being inactive
-  #handleMouseUp = (event) => {
-    // need the mouse to be over the whole char so consider it selected
-
-
-    // deals with fussy highlight behavior on word bounds
-
-
+  #handleMouseUp = () => {
     // Determine start and end indices once
+    this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
     const startIndex = this.wordStats[this.mouseColSafe][1];
     const endIndex = this.mouseColSafe === this.#getWordColCount()
       ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1];
+      : this.wordStats[this.mouseColSafe + 1][1] - 1;
 
     if (!this.formIsActive) {
       this.endLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
@@ -472,8 +469,7 @@ export class TextHighlighter {
     }
   };
 
-  #handleMouseDown = (event) => {
-
+  #handleMouseDown = () => {
     this.mouseCol = Math.floor(this.relativeY / this.#getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
 
@@ -481,7 +477,7 @@ export class TextHighlighter {
       const startIndex = this.wordStats[this.mouseColSafe][1];
       const endIndex = this.mouseColSafe === this.#getWordColCount()
         ? this.contentTextCleaned.length
-        : this.wordStats[this.mouseColSafe + 1][1];
+        : this.wordStats[this.mouseColSafe + 1][1] - 1;
 
       this.startLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
     }

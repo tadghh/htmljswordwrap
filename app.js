@@ -1,29 +1,29 @@
 import { TextHighlighter } from "./highlightjs.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  let exampleForm = `
-  <div class="floatingForm">
-      <form action="">
-          <div id="commentFormHeader">
-              <label for="text">ConteWEEEEEEEEEEnt</label>
-              <div id="selectionRange">
-                  <div id="startIndexForm"></div>
-                  <div id="endIndexForm"></div>
-                  <small id="formHoverIndicator"></small>
-              </div>
-          </div>
+  //   let exampleForm = `
+  //   <div class="floatingForm">
+  //       <form action="">
+  //           <div id="commentFormHeader">
+  //               <label for="text">ConteWEEEEEEEEEEnt</label>
+  //               <div id="selectionRange">
+  //                   <div id="startIndexForm"></div>
+  //                   <div id="endIndexForm"></div>
+  //                   <small id="formHoverIndicator"></small>
+  //               </div>
+  //           </div>
 
-          <textarea id="text" name="comment"></textarea>
+  //           <textarea id="text" name="comment"></textarea>
 
-          <div id="commentType">
+  //           <div id="commentType">
 
-          </div>
+  //           </div>
 
-          <button type="submit">Comment</button>
-      </form>
-      <button type="button" class="n">X</button>
-  </div>
-`;
+  //           <button type="submit">Comment</button>
+  //       </form>
+  //       <button type="button" class="n">X</button>
+  //   </div>
+  // `;
   // const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover");
   const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1");
   const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover2");
