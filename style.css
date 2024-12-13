@@ -84,8 +84,8 @@ body {
 	position: absolute;
 	z-index: 10;
 	/* TODO this needs to be font size + 1 */
-	height: 21px;
-	margin-top: 6px;
+	height: 20px;
+
 	border-radius: 2px;
 }
 

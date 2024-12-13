@@ -43,16 +43,17 @@ export class TextHighlighter {
     this.mouseUpFunction = mouseUpFunction || this.defaultFormAction.bind(this);
     this.highlightSubmissionAPI = submissionAPI ? submissionAPI : null
     this.highlightColors = highlightColors ? highlightColors : {
-      1: 'white',     // Misc comments
+      1: 'black',     // Misc comments
       2: 'pink',      // Incorrect info
       3: 'lightblue', // Sources?
       4: 'skyblue',   // Question
       default: 'lightgreen' // Default color
     }
 
+    // TODO this should be left up to the dev
     document.styleSheets[0].insertRule(`::selection {
       background: ${this.#getColor(1)};
-      color: black;
+      color: white;
     }`, 0);
 
     this.defaultFormHTML = TextHighlighter.FORM_HTML
@@ -75,34 +76,32 @@ export class TextHighlighter {
     this.outputHover = document.getElementById(outputHoverId);
     this.exactTextAreaWidth = this.#getTotalAreaWidth()
 
-
     const computedStyle = getComputedStyle(this.highlightedDiv);
     this.fontSize = computedStyle.fontSize;
     this.fontSizeRaw = Number.parseFloat(this.fontSize)
-
     this.fontFamily = computedStyle.fontFamily;
+
     // 1.2 is 'default' line height
     this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
 
     this.divRect = this.highlightedDiv.getBoundingClientRect();
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
-
     this.contentTextCleaned = this.highlightedDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
-    this.spaceSize = this.#getWordWidth(" ");
-    this.SELECTION_OFFSET = this.spaceSize + (this.spaceSize / 2)
-    this.SELECTION_OFFSET_NEGATIVE = this.spaceSize - (this.spaceSize / 2)
     this.wordArray = this.contentTextCleaned.split(" ").map((word, i, arr) =>
       i < arr.length - 1 ? word + " " : word
     );
 
+
+    this.characterWidth = this.#getCharacterWidth(" ");
+    const offsetSpace = (this.characterWidth / (this.fontSizeRaw / 10))
+    this.SELECTION_OFFSET = this.characterWidth + offsetSpace
+    this.SELECTION_OFFSET_NEGATIVE = this.characterWidth - offsetSpace
+
     this.wordStats = this.#calcWordPositions();
 
-    this.charHoverPadding = this.#getCharacterWidth("m")
-    this.charHoverPaddingMouse = this.charHoverPadding / (parseFloat(this.fontSize) / 10);
     this.formIsActive = false
-    this.#addEventListeners();
-
     this.formElement = null;
+    this.#addEventListeners();
   }
 
   #getTotalAreaWidth() {
@@ -448,7 +447,7 @@ export class TextHighlighter {
     }
   };
 
-  // handles mouse up, behaviour depends on the current form being inactive
+  // handles mouse up, behavior depends on the current form being inactive
   #handleMouseUp = () => {
     // Determine start and end indices once
     this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
@@ -559,7 +558,7 @@ export class TextHighlighter {
     // Preallocate array with reasonable size to avoid resizing
     const widthCache = [[0, 0]];
     const maxWidth = Math.ceil(this.#getHighlightAreaMaxWidth());
-    const bufferWidth = maxWidth + this.spaceSize;
+    const bufferWidth = maxWidth + this.characterWidth;
 
     // Local variables for better performance
     let wordColumnIndex = 1;
@@ -571,7 +570,7 @@ export class TextHighlighter {
       const currentWordWidth = this.#getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
       // Avoid the endsWith check if possible by doing arithmetic
-      const extra = word[word.length - 1] === ' ' ? 0 : -this.spaceSize;
+      const extra = word[word.length - 1] === ' ' ? 0 : -this.characterWidth;
 
       if (testWidth <= bufferWidth + extra) {
         currentWidth = testWidth;
@@ -638,7 +637,7 @@ export class TextHighlighter {
   #positionHighlight(highlight) {
     const { elem: element, start: startIndexHighlight, end: endIndexHighlight } = highlight
     if (element) {
-      const yOffset = this.#getTopPaddingForIndex(startIndexHighlight) - this.charHoverPaddingMouse + this.mouseTopOffset
+      const yOffset = this.#getTopPaddingForIndex(startIndexHighlight) + this.mouseTopOffset
       const xOffset = this.#getPaddingForIndex(startIndexHighlight) + this.#getHighlightAreaLeftPadding()
       element.style.width = `${this.#getCumulativeWidthForIndexRange(startIndexHighlight, endIndexHighlight)}px`;
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
