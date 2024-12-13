@@ -5,12 +5,6 @@ body {
 	margin: 0px;
 }
 
-#example-cont {
-	display: flex;
-	margin-inline: 20px;
-	justify-content: space-between;
-}
-
 #moving-example {
 	margin-left: auto;
 	margin-top: 40px;
@@ -18,9 +12,11 @@ body {
 	width: 40%;
 	height: 20%;
 }
+
 #cont {
 	background-color: var(--main-bg-color);
 }
+
 #test-container > div {
 	margin: 20px;
 }
@@ -31,6 +27,7 @@ body {
 	/* padding: 20px; */
 	justify-content: space-between;
 }
+
 #moving-test {
 	margin: 50px;
 	width: 500px;
@@ -43,7 +40,6 @@ body {
 .split,
 .highlightComment {
 	font-size: 20px;
-	will-change: transform;
 }
 
 .highlightedDiv,
@@ -77,15 +73,14 @@ body {
 .split,
 .highlightComment,
 .highlightedText {
+	will-change: opacity, transform;
 	transition: opacity 0.3s cubic-bezier(0.62, 0.16, 0.13, 1.01);
 }
 
 .highlightedText {
 	position: absolute;
 	z-index: 10;
-	/* TODO this needs to be font size + 1 */
 	height: 20px;
-
 	border-radius: 2px;
 }
 
@@ -132,8 +127,8 @@ body {
 	z-index: 40;
 	padding-inline: 6px;
 	padding-bottom: 4px;
-	margin-inline: 12px;
-	margin-bottom: 4px;
+	/* margin-top: 2px; */
+	/* margin-bottom: 4px; */
 	border-top-width: 0px;
 	border-color: white;
 }

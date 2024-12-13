@@ -57,7 +57,7 @@ export class TextHighlighter {
     }`, 0);
 
     this.defaultFormHTML = TextHighlighter.FORM_HTML
-    this.formTransparency = false
+    this.formTransparency = true
     this.widthCache = {};
     this.startLetterIndex = -1;
     this.endLetterIndex = -1;
@@ -509,10 +509,6 @@ export class TextHighlighter {
   // Updates offsets and other positioning values
   #handleResizeOrScroll = () => {
     this.#repositionItems();
-
-    if (this.formElement) {
-      this.#positionCommentForm()
-    }
   };
 
   // Updates offsets, along with the current word data structure
@@ -521,7 +517,6 @@ export class TextHighlighter {
     // 🤓 Horizontal scroll 👆
     this.mouseLeftOffset = window.scrollX;
     this.divRect = this.highlightedDiv.getBoundingClientRect();
-
   }
 
   // Updates items that depend on window size or related
@@ -530,12 +525,19 @@ export class TextHighlighter {
       this.#updateHighlightElements(key);
       this.#positionCommentContent(divArray["comment"])
     });
+    if (this.formElement) {
+      this.#positionCommentForm()
+    }
   }
+
   repositionItems() {
     this.floatingDivsSplit.forEach((divArray, key) => {
       this.#updateHighlightElements(key);
       this.#positionCommentContent(divArray["comment"])
     });
+    if (this.formElement) {
+      this.#positionCommentForm()
+    }
   }
 
   // Gets the vertical sections based on the length of the word data structure
@@ -930,29 +932,27 @@ export class TextHighlighter {
 
   // positions the location of the comment form
   #positionCommentForm() {
-    if (this.formElement["elem"]) {
-      const startId = this.formElement["start"]
-      const endId = this.formElement["end"]
-      const elem = this.formElement["elem"]
+    const { elem: element, start: formStartIndex, end: formEndIndex } = this.formElement
+    if (element) {
       const maxWidth = this.#getHighlightAreaMaxWidth();
-      const yColStartIndex = this.#getPaddingForIndex(endId);
-      const formWidth = this.formElement["elem"].getBoundingClientRect().width
+      const yColStartIndex = this.#getPaddingForIndex(formEndIndex);
+      const formWidth = element.getBoundingClientRect().width
       const isOutOfBounds = yColStartIndex + formWidth > maxWidth
-      const endLineStartIndex = this.#getStartIndexForIndex(endId)
-      const isMultiLine = this.#getColumnForIndex(endId) - this.#getColumnForIndex(startId) >= 1
-      const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
+      const endStartIndex = this.#getStartIndexForIndex(formStartIndex)
+      const isMultiLine = this.#calcColsInRange(formStartIndex, formEndIndex) >= 1
 
-      let endIndex = this.#getStartIndexForIndex(endId)
-      let xOffset = this.#getCumulativeWidthForIndexRange(endIndex, endId)
+      const top = this.#getTopPaddingForIndex(isMultiLine ? formEndIndex : formStartIndex);
+
+      let xOffset = this.#getPaddingForIndex(formEndIndex + 1)
       let yOffset = top + this.mouseTopOffset
 
       if (isOutOfBounds) {
         // make sure form doesn't go off screen
-        yOffset += Number.parseFloat(this.fontSize)
-        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (formWidth));
+        yOffset += this.fontSizeRaw
+        xOffset = this.#getPaddingForIndex(endStartIndex)
       }
       xOffset += this.#getHighlightAreaLeftPadding()
-      elem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+      element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
 
