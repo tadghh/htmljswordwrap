@@ -85,7 +85,6 @@ export class TextHighlighter {
     this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
 
     this.divRect = this.highlightedDiv.getBoundingClientRect();
-    console.log(this.fontSize)
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
 
     this.contentTextCleaned = this.highlightedDiv.textContent.trim().replace(/\t/g, "").replace(/\n/g, " ");
@@ -200,21 +199,28 @@ export class TextHighlighter {
 
       if (currentHighlight && currentHighlight.elem && !currentHighlight.head) {
         // Update existing highlight
+        let cleanedEndIndex = colEndIndex
+        if (this.contentTextCleaned[colEndIndex] === " ") {
+          cleanedEndIndex--
+        }
         floatingDiv = currentHighlight.elem;
         currentHighlight.start = colStartIndex;
-        currentHighlight.end = colEndIndex;
+        currentHighlight.end = cleanedEndIndex;
         currentHighlight.col = c;
       } else {
         // Create new highlight
         floatingDiv = document.createElement("div");
         floatingDiv.className = "highlightedText split";
         document.body.appendChild(floatingDiv);
-
+        let cleanedEndIndex = colEndIndex
+        if (this.contentTextCleaned[colEndIndex] === " ") {
+          cleanedEndIndex--
+        }
         currentHighlight = {
           col: c,
           elem: floatingDiv,
           start: colStartIndex,
-          end: colEndIndex
+          end: cleanedEndIndex
         };
       }
 
@@ -358,7 +364,8 @@ export class TextHighlighter {
     const startIndex = this.wordStats[this.mouseColSafe][1];
     const endIndex = this.mouseColSafe === this.#getWordColCount()
       ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1];
+      : this.wordStats[this.mouseColSafe + 1][1] - 1;
+
 
     // Use binary search to find letter index
     return this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
@@ -412,7 +419,7 @@ export class TextHighlighter {
 
 
   #handleMouseMove = (event) => {
-    this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding();
+    this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.spaceSize;
     this.relativeY = event.clientY - this.#getHighlightAreaTopPadding();
 
     // Single division operation
@@ -433,7 +440,7 @@ export class TextHighlighter {
       this.outputHover.textContent =
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
         `cumWidth: ${this.#getCumulativeWidthForIndexRange(startIndex, letterIndex).toFixed(2)}px, ` +
-        `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}`;
+        `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}  ${event.clientX}  ${this.#getHighlightAreaLeftPadding()}`;
 
       this.#liveItems()
     }
@@ -442,12 +449,10 @@ export class TextHighlighter {
   // handles mouse up, behaviour depends on the current form being inactive
   #handleMouseUp = (event) => {
     // need the mouse to be over the whole char so consider it selected
-    let relativeX = event.clientX - this.#getHighlightAreaLeftPadding();
+
 
     // deals with fussy highlight behavior on word bounds
-    if (relativeX % this.charHoverPadding != 0) {
-      relativeX -= this.charHoverPaddingMouse
-    }
+
 
     // Determine start and end indices once
     const startIndex = this.wordStats[this.mouseColSafe][1];
@@ -456,7 +461,7 @@ export class TextHighlighter {
       : this.wordStats[this.mouseColSafe + 1][1];
 
     if (!this.formIsActive) {
-      this.endLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
+      this.endLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
 
       [this.startLetterIndex, this.endLetterIndex] = this.#cleanSelectionIndexes()
       let totalLength = this.endLetterIndex - this.startLetterIndex;
@@ -468,7 +473,6 @@ export class TextHighlighter {
   };
 
   #handleMouseDown = (event) => {
-    let relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.charHoverPaddingMouse;
 
     this.mouseCol = Math.floor(this.relativeY / this.#getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
@@ -479,12 +483,15 @@ export class TextHighlighter {
         ? this.contentTextCleaned.length
         : this.wordStats[this.mouseColSafe + 1][1];
 
-      this.startLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, relativeX);
+      this.startLetterIndex = this.#getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
     }
   };
 
   #addEventListeners() {
-    window.addEventListener("resize", this.#handleResizeOrScroll);
+    window.addEventListener("resize", () => {
+      this.wordStats = this.#calcWordPositions();
+      this.#handleResizeOrScroll()
+    });
     window.addEventListener("scroll", this.#handleResizeOrScroll);
 
     document.addEventListener('keydown', (event) => {
@@ -492,7 +499,7 @@ export class TextHighlighter {
         this.#printOutWordStats()
       }
     });
-    document.addEventListener("mousemove", this.#handleMouseMove);
+    this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
@@ -519,7 +526,7 @@ export class TextHighlighter {
     // 🤓 Horizontal scroll 👆
     this.mouseLeftOffset = window.scrollX;
     this.divRect = this.highlightedDiv.getBoundingClientRect();
-    this.wordStats = this.#calcWordPositions();
+
   }
 
   // Updates items that depend on window size or related
@@ -553,37 +560,35 @@ export class TextHighlighter {
 
   // Creates an array that corresponds to the text on screen
   #calcWordPositions() {
+    // Preallocate array with reasonable size to avoid resizing
     const widthCache = [[0, 0]];
     const maxWidth = Math.ceil(this.#getHighlightAreaMaxWidth());
-    const bufferWidth = maxWidth + this.spaceSize
+    const bufferWidth = maxWidth + this.spaceSize;
 
+    // Local variables for better performance
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
 
-    // Remember the text content is just one long string
-    this.wordArray.forEach((word) => {
+
+    for (const word of this.wordArray) {
       const currentWordWidth = this.#getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
-      const extra = word.endsWith(" ") ? 0 : this.spaceSize * -1;
+      // Avoid the endsWith check if possible by doing arithmetic
+      const extra = word[word.length - 1] === ' ' ? 0 : -this.spaceSize;
 
-      // The last word can be found by assuming it doesnt end with a space
-      // a non issue if it doesnt as the browser will display correct behavior
-      // assumed behav = that the last word ends with a space
-      // First test: does word fit on current line with space?
       if (testWidth <= bufferWidth + extra) {
         currentWidth = testWidth;
+      } else if (testWidth <= maxWidth) {
+        currentWidth = testWidth;
       } else {
-        if (testWidth <= maxWidth) {
-          currentWidth = testWidth;
-        } else {
-          widthCache.push([wordColumnIndex, currentStringIndex]);
-          wordColumnIndex++;
-          currentWidth = currentWordWidth;
-        }
+        widthCache.push([wordColumnIndex, currentStringIndex]);
+        wordColumnIndex++;
+        currentWidth = currentWordWidth;
       }
+
       currentStringIndex += word.length;
-    });
+    }
 
     return widthCache;
   }
@@ -607,23 +612,21 @@ export class TextHighlighter {
   // makes sure the comment doesn't go offscreen
   // TODO handle long comments
   #positionCommentContent(commentObj) {
-    const element = commentObj.elem
+    const { start: startIndexComment, end: endIndexComment, elem: element } = commentObj;
     if (element) {
-      const { start: startId, end: endId } = commentObj;
-      const startIndex = this.#getStartIndexForIndex(startId)
       const wordWidth = this.#getWordWidth(element.textContent);
       const maxWidth = this.#getHighlightAreaMaxWidth();
-      const isOutOfBounds = this.#getPaddingForIndex(startId) + wordWidth > maxWidth;
-      const endLineStartIndex = this.#getStartIndexForIndex(endId)
-      const isMultiLine = this.#getColumnForIndex(endId) - this.#getColumnForIndex(startId) >= 1
-      const top = this.#getTopPaddingForIndex(isMultiLine ? endId : startId);
+      const isOutOfBounds = this.#getPaddingForIndex(startIndexComment) + wordWidth > maxWidth;
+      const endLineStartIndex = this.#getStartIndexForIndex(endIndexComment)
+      const isMultiLine = this.#calcColsInRange(startIndexComment, endIndexComment) > 1
+      const top = this.#getTopPaddingForIndex(isMultiLine ? endIndexComment : startIndexComment);
       const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
 
-      let xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId)
+      let xOffset = this.#getPaddingForIndex(startIndexComment)
 
       // make sure comment doesn't go off screen
       if (isOutOfBounds || isMultiLine) {
-        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endId - (element.textContent.length - 1));
+        xOffset = this.#getCumulativeWidthForIndexRange(endLineStartIndex, endIndexComment - (element.textContent.length));
       }
 
       // make sure its not offscreen on the left
@@ -637,12 +640,11 @@ export class TextHighlighter {
 
   // positions the highlight based on its start and end id, along with updating the width
   #positionHighlight(highlight) {
-    const { elem: element, start: startId, end: endId } = highlight
+    const { elem: element, start: startIndexHighlight, end: endIndexHighlight } = highlight
     if (element) {
-      const yOffset = this.#getTopPaddingForIndex(startId) - this.charHoverPaddingMouse + this.mouseTopOffset
-      const startIndex = this.#getStartIndexForIndex(startId)
-      const xOffset = this.#getCumulativeWidthForIndexRange(startIndex, startId) + this.#getHighlightAreaLeftPadding()
-      element.style.width = `${this.#getCumulativeWidthForIndexRange(startId, endId + 1)}px`;
+      const yOffset = this.#getTopPaddingForIndex(startIndexHighlight) - this.charHoverPaddingMouse + this.mouseTopOffset
+      const xOffset = this.#getPaddingForIndex(startIndexHighlight) + this.#getHighlightAreaLeftPadding()
+      element.style.width = `${this.#getCumulativeWidthForIndexRange(startIndexHighlight, endIndexHighlight)}px`;
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     } else {
       console.log("bad element")
@@ -809,10 +811,11 @@ export class TextHighlighter {
   }
 
   // Binary search for letter index based on width
+
+  // Binary search for letter index based on width
   #getLetterIndexByWidth(startIndex, endIndex, targetWidth) {
     let low = startIndex;
     let high = endIndex;
-    let cumulativeWidth = 0;
 
     // First check if we're beyond the total width
     const totalWidth = this.#getCumulativeWidthForIndexRange(startIndex, endIndex);
@@ -821,22 +824,26 @@ export class TextHighlighter {
     }
 
     while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      cumulativeWidth = this.#getCumulativeWidthForIndexRange(startIndex, mid + 1);
+      const mid = Math.ceil((low + high) / 2);
 
-      if (cumulativeWidth === targetWidth) {
+      // Get width up to mid (exclusive)
+      const widthToMid = this.#getCumulativeWidthForIndexRange(startIndex, mid + 1);
+
+      if (widthToMid === targetWidth) {
         return mid;
       }
 
-      if (cumulativeWidth < targetWidth) {
-        if (mid + 1 <= high &&
-          this.#getCumulativeWidthForIndexRange(startIndex, mid + 2) > targetWidth) {
+      if (widthToMid < targetWidth) {
+        // Check if adding the next character would exceed target
+        const widthToNext = this.#getCumulativeWidthForIndexRange(startIndex, mid + 2);
+        if (mid + 1 <= high && widthToNext > targetWidth) {
           return mid + 1;
         }
         low = mid + 1;
       } else {
-        if (mid - 1 >= low &&
-          this.#getCumulativeWidthForIndexRange(startIndex, mid) < targetWidth) {
+        // Check if removing the current character would be less than target
+        const widthToPrev = this.#getCumulativeWidthForIndexRange(startIndex, mid);
+        if (mid - 1 >= low && widthToPrev < targetWidth) {
           return mid;
         }
         high = mid - 1;
@@ -851,7 +858,7 @@ export class TextHighlighter {
     const key = `${startIndex}-${endIndex}`;
     if (!this.#widthSums.has(key)) {
       let sum = 0;
-      for (let i = startIndex; i < endIndex; i++) {
+      for (let i = startIndex; i <= endIndex; i++) {
         sum += this.#getCharacterWidth(this.contentTextCleaned[i]);
       }
       this.#widthSums.set(key, sum);

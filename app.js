@@ -25,9 +25,9 @@ document.addEventListener("DOMContentLoaded", () => {
   </div>
 `;
   // const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover");
-  const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover");
-  const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover");
-  const highlighter3 = new TextHighlighter("highlightedDivMoving", "outputHover");
+  const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1");
+  const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover2");
+  const highlighter3 = new TextHighlighter("highlightedDivMoving", "outputHover3");
 
   highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
   highlighter2.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
