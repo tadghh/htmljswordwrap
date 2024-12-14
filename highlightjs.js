@@ -107,6 +107,7 @@ export class TextHighlighter {
     this.floatingDivsSplit = new Map();
     this.formIsActive = false;
     this.formElement = null;
+    this.lastHoveredId = null
     return this;
   }
 
@@ -438,6 +439,8 @@ export class TextHighlighter {
   // Changes the opacity of the given highlight and comment depending on if the mouse is within the indexes a highlight
   #handleMouseHoveringComment() {
     this.floatingDivsSplit.forEach((div) => {
+      // console.log(div)
+
       const startId = div.start;
       const endId = div.end;
       const currentMouseIndex = this.#getCurrentMouseIndex();
@@ -455,6 +458,7 @@ export class TextHighlighter {
           splits.forEach(item => {
             item["elem"].style.opacity = 1;
           });
+          this.lastHoveredId = `${startId}-${endId}`
         } else {
           splits.forEach(item => {
             item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
@@ -469,6 +473,7 @@ export class TextHighlighter {
               }
             }, this.HOVER_TRANSITION_DURATION);
           }
+          this.lastHoveredId = null
         }
       }
     });
@@ -538,6 +543,30 @@ export class TextHighlighter {
     }
   };
 
+
+  #handleMouseOutOpacity = () => {
+    if (this.lastHoveredId) {
+      const hoverSplitObject = this.floatingDivsSplit.get(this.lastHoveredId)
+      const comment = hoverSplitObject.comment.elem
+
+      if (comment) {
+        hoverSplitObject.splits.forEach(item => {
+          item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
+        });
+
+        comment.style.opacity = 0
+
+        setTimeout(() => {
+          if (comment.style.opacity == 0) {
+            comment.style.zIndex = 15;
+          }
+        }, this.HOVER_TRANSITION_DURATION);
+
+      }
+      this.lastHoveredId = null
+    }
+  }
+
   #addEventListeners() {
     window.addEventListener("resize", () => {
       this.wordStats = this.#calcWordPositions();
@@ -550,10 +579,13 @@ export class TextHighlighter {
         this.#printOutWordStats()
       }
     });
+
+    this.highlightedDiv.addEventListener("mouseout", this.#handleMouseOutOpacity);
     this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
+
 
   #liveItems() {
     this.#handleMouseHoveringComment()
