@@ -586,9 +586,7 @@ export class TextHighlighter {
     });
 
     this.highlightedDiv.addEventListener("mouseout", this.#handleMouseOutOpacity);
-
     this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
-    document.addEventListener("mousemove", this.#handleMouseMove);
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
@@ -625,25 +623,17 @@ export class TextHighlighter {
     }
   }
 
+  // Used to force update positioning even if the mouse or other events haven't triggered
   repositionItems() {
-
-
-
-
+    // Use the last mouse x and y as the mouse may not be moving
     this.relativeX = this.relativeXRaw - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
     this.relativeY = this.relativeYRaw - this.#getHighlightAreaTopPadding();
 
     this.mouseCol = Math.floor(this.relativeY / this.#getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
-    this.#handleMouseHoveringComment()
-    this.#handleResizeOrScroll()
-    this.floatingDivsSplit.forEach((divArray, key) => {
-      this.#updateHighlightElements(key);
-      this.#positionCommentContent(divArray["comment"])
-    });
-    if (this.formElement) {
-      this.#positionCommentForm()
-    }
+
+    this.#liveItems()
+    this.#repositionItems()
   }
 
   // Gets the vertical sections based on the length of the word data structure
