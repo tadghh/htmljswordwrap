@@ -718,7 +718,7 @@ export class TextHighlighter {
       if (xOffset < 0) {
         xOffset = 0
       }
-      xOffset += this.#getHighlightAreaLeftPadding()
+      xOffset += this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
@@ -728,7 +728,7 @@ export class TextHighlighter {
     const { elem: element, start: startIndexHighlight, end: endIndexHighlight } = highlight
     if (element) {
       const yOffset = this.#getTopPaddingForIndex(startIndexHighlight) + this.mouseTopOffset
-      const xOffset = this.#getPaddingForIndex(startIndexHighlight) + this.#getHighlightAreaLeftPadding()
+      const xOffset = this.#getPaddingForIndex(startIndexHighlight) + this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset
       element.style.width = `${this.#getCumulativeWidthForIndexRange(startIndexHighlight, endIndexHighlight)}px`;
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     } else {
@@ -1039,7 +1039,7 @@ export class TextHighlighter {
         yOffset += this.fontSizeRaw
         xOffset = this.#getPaddingForIndex(endStartIndex)
       }
-      xOffset += this.#getHighlightAreaLeftPadding()
+      xOffset += this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
