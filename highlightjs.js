@@ -104,6 +104,8 @@ export class TextHighlighter {
     this.mouseColSafe = 0;
     this.relativeY = 0;
     this.relativeX = 0;
+    this.relativeYRaw = 0;
+    this.relativeXRaw = 0;
     this.floatingDivsSplit = new Map();
     this.formIsActive = false;
     this.formElement = null;
@@ -439,8 +441,6 @@ export class TextHighlighter {
   // Changes the opacity of the given highlight and comment depending on if the mouse is within the indexes a highlight
   #handleMouseHoveringComment() {
     this.floatingDivsSplit.forEach((div) => {
-      // console.log(div)
-
       const startId = div.start;
       const endId = div.end;
       const currentMouseIndex = this.#getCurrentMouseIndex();
@@ -480,9 +480,14 @@ export class TextHighlighter {
   }
 
 
+
   #handleMouseMove = (event) => {
+    // make other vars to store last unmodified version
+    // updated by recalling padding methdos
     this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
     this.relativeY = event.clientY - this.#getHighlightAreaTopPadding();
+    this.relativeXRaw = event.clientX
+    this.relativeYRaw = event.clientY
 
     // Single division operation
     this.mouseCol = Math.floor(this.relativeY / this.#getTextContentVerticalSectionCount());
@@ -581,7 +586,9 @@ export class TextHighlighter {
     });
 
     this.highlightedDiv.addEventListener("mouseout", this.#handleMouseOutOpacity);
+
     this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
+    document.addEventListener("mousemove", this.#handleMouseMove);
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
@@ -619,6 +626,17 @@ export class TextHighlighter {
   }
 
   repositionItems() {
+
+
+
+
+    this.relativeX = this.relativeXRaw - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
+    this.relativeY = this.relativeYRaw - this.#getHighlightAreaTopPadding();
+
+    this.mouseCol = Math.floor(this.relativeY / this.#getTextContentVerticalSectionCount());
+    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.#getWordColCount()));
+    this.#handleMouseHoveringComment()
+    this.#handleResizeOrScroll()
     this.floatingDivsSplit.forEach((divArray, key) => {
       this.#updateHighlightElements(key);
       this.#positionCommentContent(divArray["comment"])

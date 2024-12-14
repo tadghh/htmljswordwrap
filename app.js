@@ -4,24 +4,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // This is the default highlighter
-  const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1").initialize();
+  // const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1").initialize();
 
-  // This one will showcase custom function/behavior and using a custom form
-  const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover2")
-    .setFormHTML(customForm)
-    .setHighlightColors(customHighlightColors)
-    .initialize();
+  // // This one will showcase custom function/behavior and using a custom form
+  // const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover2")
+  //   .setFormHTML(customForm)
+  //   .setHighlightColors(customHighlightColors)
+  //   .initialize();
 
   // This one will demo dynamic/moving content
-  const highlighter3 = new TextHighlighter("highlightedDivMoving", "outputHover3").initialize();;
+  const highlighter3 = new TextHighlighter("highlightedDivMoving", "outputHover3").initialize();
 
-  highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
-  highlighter2.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
+  // highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
+  // highlighter2.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
   highlighter3.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
-  const movingDiv = document.getElementById("moving-test");
+  const movingDiv = document.getElementById("highlightedDivMoving");
   let angle = 0;
   const radius = 20; // Size of the circle
   const speed = 0.05; // Speed of rotation
+
 
   function animate() {
     // Calculate x and y position using trigonometry
@@ -30,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Apply the transform
     movingDiv.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+
 
     // Increment the angle
     angle += speed;

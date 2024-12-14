@@ -63,7 +63,7 @@ h1,
 
 .highlightedDiv,
 #highlightedDiv {
-	z-index: 15;
+	z-index: 20;
 	position: relative;
 	/* font-family: Nunito; */
 	/* font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; */
