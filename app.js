@@ -14,10 +14,76 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 function customHighlight() {
+  const formContainer = document.getElementById("customForm")
+
+  function textFunction() {
+    const startIndex = highlighter2.getStartLetterIndex()
+    const endIndex = highlighter2.getEndLetterIndex()
+    highlighter2.createHighlight()
+
+    const rawId = highlighter2.getRawId()
+    const parser = new DOMParser();
+
+    const doc = parser.parseFromString(customForm, 'text/html');
+    const floatingDivForm = doc.body.firstElementChild;
+    floatingDivForm.style.height = "200px"
+    floatingDivForm.style.position = "relative"
+    formContainer.appendChild(floatingDivForm)
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'commentType';
+    hiddenInput.value = '1';
+    floatingDivForm.firstElementChild.appendChild(hiddenInput);
+    const colorSquaresContainer = document.createElement('div');
+    colorSquaresContainer.className = 'color-squares';
+
+    Object.entries(this.highlightColors).forEach(([value, color]) => {
+      // Skip the default color
+      if (value !== 'default') {
+        const square = document.createElement('button');
+        square.type = 'button';
+        square.className = 'color-square';
+        square.dataset.value = value;
+        square.style.backgroundColor = color;
+
+        square.addEventListener('click', () => {
+          // Remove selected class from all squares
+          hiddenInput.value = value;
+
+          colorSquaresContainer.querySelectorAll('.color-square')
+            .forEach(s => s.classList.remove('selected'));
+          square.classList.add('selected');
+          window.getSelection().removeAllRanges();
+
+          if (this.floatingDivsSplit.has(rawId)) {
+            highlighter2.updateHighlightColorsId(rawId, value);
+          }
+        });
+
+        colorSquaresContainer.appendChild(square);
+      }
+    });
+    floatingDivForm.appendChild(colorSquaresContainer);
+
+    floatingDivForm.addEventListener('submit', (event) => {
+      const form = event.target;
+      const commentContent = form.comment.value
+      const commentType = form.commentType.value
+
+      event.preventDefault();
+      highlighter2.setHighlightComment(commentContent, commentType)
+    });
+
+    console.log(startIndex)
+    console.log(endIndex)
+
+  };
   const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover2")
     .setFormHTML(customForm)
+    .setMouseUpFunction(textFunction)
     .setHighlightColors(customHighlightColors)
     .initialize();
+
   highlighter2.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
 }
 

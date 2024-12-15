@@ -218,8 +218,19 @@ export class TextHighlighter {
     return items
   }
 
-  // Highlights
+  setHighlightComment(comment, typeId) {
+    console.log(typeId)
+    const [startIndex, endIndex] = this.#cleanSelectionIndexes()
+    const builtComment = {
+      elem: this.#buildComment(comment, typeId),
+      start: startIndex,
+      end: endIndex
+    }
+    this.floatingDivsSplit.get(this.getRawId()).comment = builtComment
+  }
 
+  // Highlights
+  // TODO fix comment not appearing unless scrolled
   // Updates the highlight elements, adjusting for screen size
   #updateHighlightElements(key) {
     this.#updateOffsetsAndBounds();
@@ -324,6 +335,21 @@ export class TextHighlighter {
       })
     }
   }
+  // Updates the color of the highlights for the given ID and color ID
+  updateHighlightColorsId(rawId, colorId) {
+    let items = this.floatingDivsSplit.get(rawId).splits
+
+    if (items) {
+      const selectedId = parseInt(colorId);
+      this.floatingDivsSplit.get(rawId).comment.type = selectedId;
+      this.floatingDivsSplit.get(rawId).colorId = selectedId;
+      const color = this.#getColor(selectedId);
+
+      items.map((item) => {
+        item["elem"].style.backgroundColor = color
+      })
+    }
+  }
 
   // Returns a tuple of the start and end indexes. Corrects the indexes during a 'reverse selection' additionally adjusts to not include trailing spaces
   #cleanSelectionIndexes() {
@@ -341,10 +367,32 @@ export class TextHighlighter {
 
   // Creates a highlight
   #createHighlight() {
-    let [startIndex, endIndex] = this.#cleanSelectionIndexes()
+    const [startIndex, endIndex] = this.#cleanSelectionIndexes()
+    const rawUniqueId = `${startIndex}-${endIndex}`;
 
-    // add example spans below
+    if (!this.floatingDivsSplit.has(rawUniqueId)) {
+      // Initialize with an array containing the first object
+      // two comments wont have the same UniqueId, so we should always make it here
+      // unique id is gen by mouse down letter index  and mouse up letter index
+      this.floatingDivsSplit.set(rawUniqueId, {
+        comment: {
+          elem: null,
+          start: null,
+          end: null,
+          type: 1
+        },
+        splits: [],
+        start: startIndex,
+        end: endIndex,
+        colorId: 1
+      });
 
+      this.#repositionItems()
+    }
+  }
+
+  createHighlight() {
+    const [startIndex, endIndex] = this.#cleanSelectionIndexes()
     const rawUniqueId = `${startIndex}-${endIndex}`;
 
     if (!this.floatingDivsSplit.has(rawUniqueId)) {
@@ -579,18 +627,18 @@ export class TextHighlighter {
     });
     window.addEventListener("scroll", this.#handleResizeOrScroll);
 
+    this.highlightedDiv.addEventListener("mouseout", this.#handleMouseOutOpacity);
+    this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
+    this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
+    this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
+
+    // Debug function
     document.addEventListener('keydown', (event) => {
       if (event.key === 'g') {
         this.#printOutWordStats()
       }
     });
-
-    this.highlightedDiv.addEventListener("mouseout", this.#handleMouseOutOpacity);
-    this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
-    this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
-    this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
   }
-
 
   #liveItems() {
     this.#handleMouseHoveringComment()
@@ -1060,14 +1108,11 @@ export class TextHighlighter {
     const startIndex = this.formElement["start"];
     const endIndex = this.formElement["end"];
     const comment = form.comment.value;
+    const commentType = form.commentType.value;
 
     // Get the value from the hidden input instead of radio
-    const commentTypeInput = form.querySelector('input[name="commentType"]');
-    if (!commentTypeInput) {
-      console.error('No comment type input found');
-      return;
-    }
-    const commentTypeId = parseInt(commentTypeInput.value);
+
+    const commentTypeId = parseInt(commentType);
 
     // Add some debugging
     console.log('Form values:', {
@@ -1135,7 +1180,7 @@ export class TextHighlighter {
       hiddenInput.type = 'hidden';
       hiddenInput.name = 'commentType';
       hiddenInput.value = '1';
-      formElement.appendChild(hiddenInput);
+      formElement.firstElementChild.appendChild(hiddenInput);
       const colorSquaresContainer = document.createElement('div');
       colorSquaresContainer.className = 'color-squares';
 
@@ -1265,7 +1310,10 @@ export class TextHighlighter {
     }
   }
 
-
+  getRawId() {
+    const [startIndex, endIndex] = this.#cleanSelectionIndexes()
+    return `${startIndex}-${endIndex}`
+  }
 
   defaultFormAction() {
     this.#createHighlight();
