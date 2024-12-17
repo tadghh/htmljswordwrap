@@ -63,7 +63,7 @@ h1,
 
 #ex2,
 #highlightedDiv2 {
-	font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+	font-family: "Franklin Gothic Medium";
 }
 
 .highlightedDiv,
@@ -72,13 +72,12 @@ h1,
 	position: relative;
 	/* font-family: Nunito; */
 	/* font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; */
-
 	cursor: pointer;
 	overflow-wrap: break-word;
 	white-space: normal;
 	display: inline;
 	color: rgb(255, 255, 255);
-	/* line-height: 2.5; */
+	/* line-height: 1.5; */
 }
 
 .highlightedText,

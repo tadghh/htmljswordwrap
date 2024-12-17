@@ -21,7 +21,7 @@ export class TextCalibrator {
     this.divRect = this.highlightedDiv.getBoundingClientRect();
     this.context.font = `${this.fontSize} ${this.fontFamily}`;
 
-    this.characterWidth = this.#getCharacterWidth(" ");
+    this.spaceWidth = this.#getCharacterWidth(" ");
     this.wordStats = this.calcWordPositions();
   }
   getHighlightAreaLeftPadding() {
@@ -240,21 +240,20 @@ export class TextCalibrator {
   calcWordPositions() {
     // Preallocate array with reasonable size to avoid resizing
     const widthCache = [[0, 0]];
-    const maxWidth = Math.ceil(this.#getHighlightAreaMaxWidth());
-    const bufferWidth = maxWidth + this.characterWidth;
+    const maxWidth = Math.ceil(this.#getHighlightAreaMaxWidth())
 
-    // Local variables for better performance
+    const bufferWidth = maxWidth + this.spaceWidth;
+
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
     let currentWidth = 0;
 
-
     for (const word of this.wordArray) {
       const currentWordWidth = this.#getWordWidth(word);
       const testWidth = currentWidth + currentWordWidth;
-      // Avoid the endsWith check if possible by doing arithmetic
-      const extra = word[word.length - 1] === ' ' ? 0 : -this.characterWidth;
 
+      // word wrapping can change the end behaviour so we need to remove the trailing space
+      const extra = word[word.length - 1] === ' ' ? 0 : -this.spaceWidth;
       if (testWidth <= bufferWidth + extra) {
         currentWidth = testWidth;
       } else if (testWidth <= maxWidth) {
@@ -264,10 +263,8 @@ export class TextCalibrator {
         wordColumnIndex++;
         currentWidth = currentWordWidth;
       }
-
       currentStringIndex += word.length;
     }
-
     return widthCache;
   }
 
@@ -285,6 +282,7 @@ export class TextCalibrator {
 
   #getTotalAreaWidth() {
     const textNode = this.highlightedDiv.firstChild; // Assuming the text node is the first child
+
     let exactWidth = 0
     if (textNode.nodeType === Node.TEXT_NODE) {
       const range = document.createRange();
