@@ -95,8 +95,6 @@ function movingHighlight() {
   highlighter3.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
   const movingDiv = document.getElementById("highlightedDivMoving");
 
-
-
   function animate() {
     // Calculate x and y position using trigonometry
     const xOffset = Math.cos(angle) * radius;

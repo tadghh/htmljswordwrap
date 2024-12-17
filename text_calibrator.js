@@ -106,6 +106,72 @@ export class TextCalibrator {
     return null;
   }
 
+  getHighlighOffsets(startIndexHighlight) {
+    const yOffset = this.getTopPaddingForIndex(startIndexHighlight) + this.mouseTopOffset
+    const xOffset = this.getPaddingForIndex(startIndexHighlight) + this.getHighlightAreaLeftPadding() + this.mouseLeftOffset
+    return [xOffset, yOffset]
+  }
+
+  getCommentOffsets(commentObj) {
+    const { start: startIndexComment, end: endIndexComment, elem: element } = commentObj;
+    const wordWidth = this.getWordWidth(element.textContent);
+    const maxWidth = this.getTotalAreaWidth();
+    const isOutOfBounds = this.getPaddingForIndex(startIndexComment) + wordWidth > maxWidth;
+    const endLineStartIndex = this.getStartIndexForIndex(endIndexComment)
+    const isMultiLine = this.calcColsInRange(startIndexComment, endIndexComment) > 1
+    const top = this.getTopPaddingForIndex(isMultiLine ? endIndexComment : startIndexComment);
+    const yOffset = top + this.fontSizeRaw + this.mouseTopOffset
+
+    let xOffset = this.getPaddingForIndex(startIndexComment)
+
+    // make sure comment doesn't go off screen
+    if (isOutOfBounds || isMultiLine) {
+      xOffset = this.getCumulativeWidthForIndexRange(endLineStartIndex, endIndexComment - (element.textContent.length));
+    }
+
+    // make sure its not offscreen on the left
+    if (xOffset < 0) {
+      xOffset = 0
+    }
+
+    xOffset += this.getHighlightAreaLeftPadding() + this.mouseLeftOffset
+
+    return [xOffset, yOffset]
+  }
+
+  // gets the padding for the top of and index, this would technically be index -1 since we don't include the font size here
+  getTopPaddingForIndex(index) {
+    // First check if index is beyond the last column
+    let lastColIndex = this.wordStats[this.getWordColCount()][1];
+    if (lastColIndex <= index) {
+      return (this.getWordColCount() * this.getTextContentVerticalSectionCount()) +
+        this.getHighlightAreaTopPadding();
+    }
+
+    // Binary search to find the correct column
+    let left = 0;
+    let right = this.getWordColCount();
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const colStats = this.wordStats[mid];
+
+      if (!colStats) break;
+
+      if (index < colStats[1]) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+
+    // Calculate y position using the found column
+    return (left - 1) * this.getTextContentVerticalSectionCount() +
+      this.getHighlightAreaTopPadding();
+  }
+
+
+
   getCumulativeWidthInsideIndexRange(startIndex, endIndex) {
     if (startIndex < 0 || endIndex < 0) return null
     let cumulativeWidth = 0;
@@ -309,6 +375,9 @@ export class TextCalibrator {
   }
 
   recalibrate() {
+    this.mouseLeftOffset = window.scrollX;
+    this.mouseTopOffset = window.scrollY;
+
     this.wordStats = this.calcWordPositions();
     this.divRect = this.highlightedDiv.getBoundingClientRect();
   }

@@ -633,74 +633,23 @@ export class TextHighlighter {
   // makes sure the comment doesn't go offscreen
   // TODO handle long comments
   #positionCommentContent(commentObj) {
-    const { start: startIndexComment, end: endIndexComment, elem: element } = commentObj;
-    if (element) {
-      const wordWidth = this.TC.getWordWidth(element.textContent);
-      const maxWidth = this.TC.getTotalAreaWidth();
-      const isOutOfBounds = this.TC.getPaddingForIndex(startIndexComment) + wordWidth > maxWidth;
-      const endLineStartIndex = this.TC.getStartIndexForIndex(endIndexComment)
-      const isMultiLine = this.TC.calcColsInRange(startIndexComment, endIndexComment) > 1
-      const top = this.#getTopPaddingForIndex(isMultiLine ? endIndexComment : startIndexComment);
-      const yOffset = top + Number.parseFloat(this.fontSize) + this.mouseTopOffset
-
-      let xOffset = this.TC.getPaddingForIndex(startIndexComment)
-
-      // make sure comment doesn't go off screen
-      if (isOutOfBounds || isMultiLine) {
-        xOffset = this.TC.getCumulativeWidthForIndexRange(endLineStartIndex, endIndexComment - (element.textContent.length));
-      }
-
-      // make sure its not offscreen on the left
-      if (xOffset < 0) {
-        xOffset = 0
-      }
-      xOffset += this.TC.getHighlightAreaLeftPadding() + this.mouseLeftOffset
-      element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+    if (commentObj.elem) {
+      const [xOffset, yOffset] = this.TC.getCommentOffsets(commentObj)
+      commentObj.elem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
+
   }
 
   // positions the highlight based on its start and end id, along with updating the width
   #positionHighlight(highlight) {
     const { elem: element, start: startIndexHighlight, end: endIndexHighlight } = highlight
     if (element) {
-      const yOffset = this.#getTopPaddingForIndex(startIndexHighlight) + this.mouseTopOffset
-      const xOffset = this.TC.getPaddingForIndex(startIndexHighlight) + this.TC.getHighlightAreaLeftPadding() + this.mouseLeftOffset
+      const [xOffset, yOffset] = this.TC.getHighlighOffsets(startIndexHighlight)
       element.style.width = `${this.TC.getCumulativeWidthForIndexRange(startIndexHighlight, endIndexHighlight)}px`;
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     } else {
       console.log("bad element")
     }
-  }
-
-  // gets the padding for the top of and index, this would technically be index -1 since we don't include the font size here
-  #getTopPaddingForIndex(index) {
-    // First check if index is beyond the last column
-    let lastColIndex = this.wordStats[this.TC.getWordColCount()][1];
-    if (lastColIndex <= index) {
-      return (this.TC.getWordColCount() * this.TC.getTextContentVerticalSectionCount()) +
-        this.TC.getHighlightAreaTopPadding();
-    }
-
-    // Binary search to find the correct column
-    let left = 0;
-    let right = this.TC.getWordColCount();
-
-    while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
-      const colStats = this.wordStats[mid];
-
-      if (!colStats) break;
-
-      if (index < colStats[1]) {
-        right = mid - 1;
-      } else {
-        left = mid + 1;
-      }
-    }
-
-    // Calculate y position using the found column
-    return (left - 1) * this.TC.getTextContentVerticalSectionCount() +
-      this.TC.getHighlightAreaTopPadding();
   }
 
   // gets the color for the given id
@@ -730,9 +679,8 @@ export class TextHighlighter {
   // removes the highlights for the given uniqueId
   #removeFormHighlights(uniqueId) {
     // This also removes the related comment, hmmm
-    this.floatingDivsSplit.get(uniqueId)["splits"].map((item) => {
-      let element = item["elem"]
-      element.remove()
+    this.floatingDivsSplit.get(uniqueId).splits.map((item) => {
+      item.elem.remove()
     })
     this.floatingDivsSplit.delete(uniqueId)
   }
@@ -763,7 +711,7 @@ export class TextHighlighter {
       const endStartIndex = this.TC.getStartIndexForIndex(formStartIndex)
       const isMultiLine = this.TC.calcColsInRange(formStartIndex, formEndIndex) >= 1
 
-      const top = this.#getTopPaddingForIndex(isMultiLine ? formEndIndex : formStartIndex);
+      const top = this.TC.getTopPaddingForIndex(isMultiLine ? formEndIndex : formStartIndex);
 
       let xOffset = this.TC.getPaddingForIndex(formEndIndex + 1)
       let yOffset = top + this.mouseTopOffset
