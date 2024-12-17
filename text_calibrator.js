@@ -24,6 +24,9 @@ export class TextCalibrator {
     this.characterWidth = this.#getCharacterWidth(" ");
     this.wordStats = this.calcWordPositions();
   }
+  getHighlightAreaLeftPadding() {
+    return this.divRect.left
+  }
 
   getHighlightAreaTopPadding() {
     return this.divRect.top;

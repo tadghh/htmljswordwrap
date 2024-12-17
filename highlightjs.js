@@ -474,8 +474,8 @@ export class TextHighlighter {
   #handleMouseMove = (event) => {
     // make other vars to store last unmodified version
     // updated by recalling padding methdos
-    this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
-    this.relativeY = event.clientY - this.#getHighlightAreaTopPadding();
+    this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
+    this.relativeY = event.clientY - this.TC.getHighlightAreaTopPadding();
     this.relativeXRaw = event.clientX
     this.relativeYRaw = event.clientY
 
@@ -497,7 +497,7 @@ export class TextHighlighter {
       this.outputHover.textContent =
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
         `cumWidth: ${this.TC.getCumulativeWidthForIndexRange(startIndex, letterIndex).toFixed(2)}px, ` +
-        `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}  ${event.clientX}  ${this.#getHighlightAreaLeftPadding()}`;
+        `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}  ${event.clientX}  ${this.TC.getHighlightAreaLeftPadding()}`;
 
       this.#liveItems()
     }
@@ -506,7 +506,7 @@ export class TextHighlighter {
   // handles mouse up, behavior depends on the current form being inactive
   #handleMouseUp = () => {
     // Determine start and end indices once
-    this.relativeX = event.clientX - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
+    this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
     const startIndex = this.wordStats[this.mouseColSafe][1];
     const endIndex = this.mouseColSafe === this.TC.getWordColCount()
       ? this.contentTextCleaned.length
@@ -606,6 +606,7 @@ export class TextHighlighter {
 
   // Updates items that depend on window size or related
   #repositionItems() {
+    this.TC.recalibrate();
     this.floatingDivsSplit.forEach((divArray, key) => {
       this.#updateHighlightElements(key);
       this.#positionCommentContent(divArray["comment"])
@@ -618,29 +619,14 @@ export class TextHighlighter {
   // Used to force update positioning even if the mouse or other events haven't triggered
   repositionItems() {
     // Use the last mouse x and y as the mouse may not be moving
-    this.relativeX = this.relativeXRaw - this.#getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
-    this.relativeY = this.relativeYRaw - this.#getHighlightAreaTopPadding();
+    this.relativeX = this.relativeXRaw - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
+    this.relativeY = this.relativeYRaw - this.TC.getHighlightAreaTopPadding();
 
     this.mouseCol = Math.floor(this.relativeY / this.TC.getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
 
     this.#liveItems()
     this.#repositionItems()
-  }
-
-  // gets the max width of the highlight area
-  #getHighlightAreaMaxWidth() {
-    return this.TC.getTotalAreaWidth()
-  }
-
-  // gets the value of the padding to the left of the highlight area
-  #getHighlightAreaLeftPadding() {
-    return this.divRect.left
-  }
-
-  // gets the value of the distance of the highlight area
-  #getHighlightAreaTopPadding() {
-    return this.divRect.top;
   }
 
   // positions the given comment object for the highlight
@@ -650,7 +636,7 @@ export class TextHighlighter {
     const { start: startIndexComment, end: endIndexComment, elem: element } = commentObj;
     if (element) {
       const wordWidth = this.TC.getWordWidth(element.textContent);
-      const maxWidth = this.#getHighlightAreaMaxWidth();
+      const maxWidth = this.TC.getTotalAreaWidth();
       const isOutOfBounds = this.TC.getPaddingForIndex(startIndexComment) + wordWidth > maxWidth;
       const endLineStartIndex = this.TC.getStartIndexForIndex(endIndexComment)
       const isMultiLine = this.TC.calcColsInRange(startIndexComment, endIndexComment) > 1
@@ -668,7 +654,7 @@ export class TextHighlighter {
       if (xOffset < 0) {
         xOffset = 0
       }
-      xOffset += this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset
+      xOffset += this.TC.getHighlightAreaLeftPadding() + this.mouseLeftOffset
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
@@ -678,7 +664,7 @@ export class TextHighlighter {
     const { elem: element, start: startIndexHighlight, end: endIndexHighlight } = highlight
     if (element) {
       const yOffset = this.#getTopPaddingForIndex(startIndexHighlight) + this.mouseTopOffset
-      const xOffset = this.TC.getPaddingForIndex(startIndexHighlight) + this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset
+      const xOffset = this.TC.getPaddingForIndex(startIndexHighlight) + this.TC.getHighlightAreaLeftPadding() + this.mouseLeftOffset
       element.style.width = `${this.TC.getCumulativeWidthForIndexRange(startIndexHighlight, endIndexHighlight)}px`;
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     } else {
@@ -692,7 +678,7 @@ export class TextHighlighter {
     let lastColIndex = this.wordStats[this.TC.getWordColCount()][1];
     if (lastColIndex <= index) {
       return (this.TC.getWordColCount() * this.TC.getTextContentVerticalSectionCount()) +
-        this.#getHighlightAreaTopPadding();
+        this.TC.getHighlightAreaTopPadding();
     }
 
     // Binary search to find the correct column
@@ -714,7 +700,7 @@ export class TextHighlighter {
 
     // Calculate y position using the found column
     return (left - 1) * this.TC.getTextContentVerticalSectionCount() +
-      this.#getHighlightAreaTopPadding();
+      this.TC.getHighlightAreaTopPadding();
   }
 
   // gets the color for the given id
@@ -770,7 +756,7 @@ export class TextHighlighter {
   #positionCommentForm() {
     const { elem: element, start: formStartIndex, end: formEndIndex } = this.formElement
     if (element) {
-      const maxWidth = this.#getHighlightAreaMaxWidth();
+      const maxWidth = this.TC.getTotalAreaWidth();
       const yColStartIndex = this.TC.getPaddingForIndex(formEndIndex);
       const formWidth = element.getBoundingClientRect().width
       const isOutOfBounds = yColStartIndex + formWidth > maxWidth
@@ -787,7 +773,7 @@ export class TextHighlighter {
         yOffset += this.fontSizeRaw
         xOffset = this.TC.getPaddingForIndex(endStartIndex)
       }
-      xOffset += this.#getHighlightAreaLeftPadding() + this.mouseLeftOffset
+      xOffset += this.TC.getHighlightAreaLeftPadding() + this.mouseLeftOffset
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
