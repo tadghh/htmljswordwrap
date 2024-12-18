@@ -444,9 +444,12 @@ export class TextHighlighter {
       let timeoutId;
 
       if (comment) {
+
+
         const splits = div.splits
 
         if (isInside) {
+          this.#positionCommentContent(div.comment)
           clearTimeout(timeoutId);
           comment.style.opacity = 1
           comment.style.zIndex = 25
@@ -612,7 +615,6 @@ export class TextHighlighter {
     this.TC.recalibrate();
     this.floatingDivsSplit.forEach((divArray, key) => {
       this.#updateHighlightElements(key);
-      this.#positionCommentContent(divArray["comment"])
     });
     if (this.formElement) {
       this.#positionCommentForm()
