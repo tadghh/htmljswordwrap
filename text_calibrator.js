@@ -54,6 +54,7 @@ export class TextCalibrator {
       ? this.contentTextCleaned.length
       : this.wordStats[mouseColSafe + 1][1] - 1;
   }
+
   getStartIndex(mouseColSafe) {
     return this.wordStats[mouseColSafe][1]
   }
@@ -63,12 +64,15 @@ export class TextCalibrator {
       ? this.contentTextCleaned.length
       : this.wordStats[mouseColSafe + 1][1], relativeX)
   }
+
   // Check if the mouse is over the last index of a row.
   isRangeLastIndex(relativeX, mouseColSafe) {
     return this.wordStats
       .slice(1)
       .some(stat => (stat[1] - 1) === this.getIndexFromMouse(relativeX, mouseColSafe));
   }
+
+  // returns the content thats withing bounds for the given index
   getIndexOnBounds(index) {
     return (this.wordStats[index + 1] ? this.wordStats[index + 1][1] - 1 : this.wordStats[index][1] - 1)
   }

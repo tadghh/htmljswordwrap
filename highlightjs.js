@@ -59,6 +59,7 @@ export class TextHighlighter {
     this._mouseUpFunction = fn || this.defaultFormAction.bind(this);
     return this;
   }
+
   setCalibratorWidthSensitivity(newInt) {
     this.TC.setTextWidthSensitivity(newInt);
   }
@@ -101,7 +102,6 @@ export class TextHighlighter {
     this.highlightColors = this._highlightColors;
     this.defaultFormHTML = this._defaultFormHTML || TextHighlighter.FORM_HTML;
     this.formTransparency = this._formTransparency || false;
-    this.widthCache = {};
     this.startLetterIndex = -1;
     this.endLetterIndex = -1;
     this.mouseCol = 0;
@@ -110,7 +110,7 @@ export class TextHighlighter {
     this.relativeX = 0;
     this.relativeYRaw = 0;
     this.relativeXRaw = 0;
-    this.floatingDivsSplit = new Map();
+    this.highlightElements = new Map();
     this.formIsActive = false;
     this.formElement = null;
     this.lastHoveredId = null
@@ -127,30 +127,25 @@ export class TextHighlighter {
 
     this.mouseTopOffset = window.scrollY;
     this.mouseLeftOffset = window.scrollX;
-    this.context = document.createElement("canvas").getContext("2d");
+
     return this;
   }
 
   #initializeTextProcessing() {
     const computedStyle = getComputedStyle(this.highlightedDiv);
     this.fontSize = computedStyle.fontSize;
-    this.fontSizeRaw = Number.parseFloat(this.fontSize);
     this.fontFamily = computedStyle.fontFamily;
-    this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
+    this.fontSizeRaw = Number.parseFloat(this.fontSize);
     this.divRect = this.highlightedDiv.getBoundingClientRect();
-    this.context.font = `${this.fontSize} ${this.fontFamily}`;
 
-    this.exactTextAreaWidth = this.TC.getTotalAreaWidth();
     this.contentTextCleaned = this.highlightedDiv.textContent
       .trim()
       .replace(/\t/g, "")
       .replace(/\n/g, " ");
 
-    this.wordArray = this.contentTextCleaned
-      .split(" ")
-      .map((word, i, arr) => i < arr.length - 1 ? word + " " : word);
-
     this.characterWidth = this.TC.getCharacterWidth(" ");
+
+    // Makes the cursor click in the 'correct' spot visually
     const offsetSpace = (this.characterWidth / (this.fontSizeRaw / 10));
     this.SELECTION_OFFSET = this.characterWidth + offsetSpace;
     this.SELECTION_OFFSET_NEGATIVE = this.characterWidth - offsetSpace;
@@ -200,7 +195,7 @@ export class TextHighlighter {
   // Returns the highlight objects containing 'word'
   getWordHighlights(word) {
     let items = []
-    this.floatingDivsSplit.forEach(highlightObj => {
+    this.highlightElements.forEach(highlightObj => {
       let section = this.contentTextCleaned.slice(highlightObj.start, highlightObj.end)
       if (section.includes(word)) {
         items.push(highlightObj)
@@ -217,16 +212,16 @@ export class TextHighlighter {
       start: startIndex,
       end: endIndex
     }
-    this.floatingDivsSplit.get(this.getRawId()).comment = builtComment
+    this.highlightElements.get(this.getRawId()).comment = builtComment
   }
 
   // Highlights
-  // TODO fix comment not appearing unless scrolled
   // Updates the highlight elements, adjusting for screen size
   #updateHighlightElements(key) {
     this.#updateOffsetsAndBounds();
-    const splitData = this.floatingDivsSplit.get(key);
+    const splitData = this.highlightElements.get(key);
     const { splits: highlightSplits, colorId, start: startId, end: endId } = splitData;
+
     const spanningColCount = this.TC.calcColsInRange(startId, endId);
 
     if (spanningColCount < 1) return;
@@ -274,6 +269,8 @@ export class TextHighlighter {
         floatingDiv = document.createElement("div");
         floatingDiv.className = "highlightedText split";
         document.body.appendChild(floatingDiv);
+
+        // Dont need to include trailing spaces in the selection
         let cleanedEndIndex = colEndIndex
         if (this.contentTextCleaned[colEndIndex] === " ") {
           cleanedEndIndex--
@@ -303,7 +300,7 @@ export class TextHighlighter {
     }
 
     // Update the stored data
-    this.floatingDivsSplit.set(key, {
+    this.highlightElements.set(key, {
       ...splitData,
       splits: newSplits,
       start: startId,
@@ -313,12 +310,12 @@ export class TextHighlighter {
 
   // Updates the color of the highlights for the given ID and color ID
   updateHighlightColorsId(rawId, colorId) {
-    let items = this.floatingDivsSplit.get(rawId).splits
+    let items = this.highlightElements.get(rawId).splits
 
     if (items) {
       const selectedId = parseInt(colorId);
-      this.floatingDivsSplit.get(rawId).comment.type = selectedId;
-      this.floatingDivsSplit.get(rawId).colorId = selectedId;
+      this.highlightElements.get(rawId).comment.type = selectedId;
+      this.highlightElements.get(rawId).colorId = selectedId;
       const color = this.#getColor(selectedId);
 
       items.map((item) => {
@@ -346,11 +343,11 @@ export class TextHighlighter {
     const [startIndex, endIndex] = this.#cleanSelectionIndexes()
     const rawUniqueId = `${startIndex}-${endIndex}`;
 
-    if (!this.floatingDivsSplit.has(rawUniqueId)) {
+    if (!this.highlightElements.has(rawUniqueId)) {
       // Initialize with an array containing the first object
       // two comments wont have the same UniqueId, so we should always make it here
       // unique id is gen by mouse down letter index  and mouse up letter index
-      this.floatingDivsSplit.set(rawUniqueId, {
+      this.highlightElements.set(rawUniqueId, {
         comment: {
           elem: null,
           start: null,
@@ -380,16 +377,16 @@ export class TextHighlighter {
     const rawUniqueId = `${startIndex}-${endIndex}`;
     const selectedId = parseInt(colorId);
 
-    if (!this.floatingDivsSplit.has(rawUniqueId)) {
+    if (!this.highlightElements.has(rawUniqueId)) {
       const floatingComment = this.#buildComment(comment, selectedId)
       document.body.appendChild(floatingComment);
-      let floatingDivSplit = this.floatingDivsSplit.get(rawUniqueId);
+      let floatingDivSplit = this.highlightElements.get(rawUniqueId);
 
       if (!floatingDivSplit) {
         // Initialize with an array containing the first object
         // two comments wont have the same sawUniqueId so we should awlays make it here
         // unique id is gen by mouse down letter index  and mouse up letter index
-        this.floatingDivsSplit.set(rawUniqueId, {
+        this.highlightElements.set(rawUniqueId, {
           comment: {
             elem: floatingComment,
             start: startIndex,
@@ -428,7 +425,7 @@ export class TextHighlighter {
 
   // Changes the opacity of the given hovered highlight and comment depending on if the mouse is within the indexes a highlight
   #handleMouseHoveringHighlight() {
-    this.floatingDivsSplit.forEach((div) => {
+    this.highlightElements.forEach((div) => {
       const startId = div.start;
       const endId = div.end;
       const currentMouseIndex = this.#getCurrentMouseIndex();
@@ -494,7 +491,11 @@ export class TextHighlighter {
       this.outputHover.textContent =
         `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
         `cumWidth: ${this.TC.getCumulativeWidthForIndexRange(startIndex, letterIndex).toFixed(2)}px, ` +
-        `relX: ${this.relativeX.toFixed(2)}px) ${this.mouseCol} ${this.mouseColSafe}  ${event.clientX}  ${this.TC.getHighlightAreaLeftPadding()}`;
+        `relX: ${this.relativeX.toFixed(2)}px) ` +
+        `mouseCol: ${this.mouseCol} ` +
+        `mouseColSafe: ${this.mouseColSafe} ` +
+        `mouseX: ${event.clientX} ` +
+        `highlight left padding: ${this.TC.getHighlightAreaLeftPadding()}`;
 
       this.#liveItems()
     }
@@ -506,7 +507,6 @@ export class TextHighlighter {
     this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
     const startIndex = this.TC.getStartIndex(this.mouseColSafe);
     const endIndex = this.TC.getEndIndex(this.mouseColSafe)
-
 
     if (!this.formIsActive) {
       this.endLetterIndex = this.TC.getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
@@ -535,7 +535,7 @@ export class TextHighlighter {
 
   #handleMouseOutOpacity = () => {
     if (this.lastHoveredId) {
-      const hoverSplitObject = this.floatingDivsSplit.get(this.lastHoveredId)
+      const hoverSplitObject = this.highlightElements.get(this.lastHoveredId)
       const comment = hoverSplitObject.comment.elem
 
       if (comment) {
@@ -599,7 +599,7 @@ export class TextHighlighter {
   // Updates items that depend on window size or related
   #repositionItems() {
     this.TC.recalibrate();
-    this.floatingDivsSplit.forEach((divArray, key) => {
+    this.highlightElements.forEach((divArray, key) => {
       this.#updateHighlightElements(key);
     });
     if (this.formElement) {
@@ -651,7 +651,7 @@ export class TextHighlighter {
   printOutWordStats() {
 
     this.TC.printOutWordStats()
-    console.log(this.floatingDivsSplit)
+    console.log(this.highlightElements)
   }
 
   // #endregion
@@ -661,10 +661,10 @@ export class TextHighlighter {
   // removes the highlights for the given uniqueId
   #removeFormHighlights(uniqueId) {
     // This also removes the related comment, hmmm
-    this.floatingDivsSplit.get(uniqueId).splits.map((item) => {
+    this.highlightElements.get(uniqueId).splits.map((item) => {
       item.elem.remove()
     })
-    this.floatingDivsSplit.delete(uniqueId)
+    this.highlightElements.delete(uniqueId)
   }
 
   // Creates a comment element with the provided text content and colorId
@@ -746,7 +746,7 @@ export class TextHighlighter {
         }
       )
     }
-    this.floatingDivsSplit.get(`${startIndex}-${endIndex}`)["comment"] = builtComment
+    this.highlightElements.get(`${startIndex}-${endIndex}`)["comment"] = builtComment
     this.#positionCommentContent(builtComment)
 
     // Remove the form after submission
@@ -808,7 +808,7 @@ export class TextHighlighter {
             square.classList.add('selected');
             window.getSelection().removeAllRanges();
 
-            if (this.floatingDivsSplit.has(rawId)) {
+            if (this.highlightElements.has(rawId)) {
               this.updateHighlightColorsId(rawId, value);
             }
           });
@@ -889,7 +889,7 @@ export class TextHighlighter {
       let x = this.formElement["start"]
       let y = this.formElement["end"]
 
-      let highlights = this.floatingDivsSplit.get(`${x}-${y}`)
+      let highlights = this.highlightElements.get(`${x}-${y}`)
       if (highlights) {
         const splits = highlights["splits"]
         splits.forEach(item => {
