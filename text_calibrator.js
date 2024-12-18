@@ -1,3 +1,6 @@
+
+
+// Used to determine how text appears on the page
 export class TextCalibrator {
   constructor(highlightedDivId) {
     this.widthSums = new Map();
@@ -35,8 +38,6 @@ export class TextCalibrator {
     // Letter spacing needs to be accounted for
     this.letterSpacing = parseFloat(computedStyle.letterSpacing) || 0;
 
-
-
     this.divRect = this.highlightedDiv.getBoundingClientRect();
     this.spaceWidth = this.getCharacterWidth(" ");
     this.wordStats = this.calcWordPositions();
@@ -48,15 +49,16 @@ export class TextCalibrator {
     this.textWidthSensitivity = newSensitivity
   }
 
-
-  getEndIndex(mouseColSafe) {
-    return mouseColSafe === this.getWordColCount()
+  // gets the end text index for the provided col
+  getEndIndex(col) {
+    return col === this.getWordColCount()
       ? this.contentTextCleaned.length
-      : this.wordStats[mouseColSafe + 1][1] - 1;
+      : this.wordStats[col + 1][1] - 1;
   }
 
-  getStartIndex(mouseColSafe) {
-    return this.wordStats[mouseColSafe][1]
+  // gets the start text index for the provided col
+  getStartIndex(col) {
+    return this.wordStats[col][1]
   }
 
   getIndexFromMouse(relativeX, mouseColSafe) {
@@ -76,6 +78,7 @@ export class TextCalibrator {
   getIndexOnBounds(index) {
     return (this.wordStats[index + 1] ? this.wordStats[index + 1][1] - 1 : this.wordStats[index][1] - 1)
   }
+
   // gets the exact size of the text node
   getTotalAreaWidth() {
     const textNode = this.highlightedDiv.firstChild; // Assuming the text node is the first child
@@ -89,6 +92,7 @@ export class TextCalibrator {
     return exactWidth
   }
 
+  // gets the width of a word, this includes kerning and other nonsense
   getWordWidth(word) {
     // Measure the whole word at once instead of character by character
     if (this.widthCache[word] === undefined) {
@@ -254,7 +258,7 @@ export class TextCalibrator {
     let currentStringIndex = 0;
     let currentLineString = "";
     // This a margin before the browser considers wrapping a word (testing in firefox)
-    let endBuffer = this.spaceWidth - (this.fontSizeRaw / 10)
+    let endBuffer = this.spaceWidth + (this.spaceWidth / 10)
     for (const word of this.wordArray) {
       // Add space between words if not first word in line
       const testString = currentLineString.length > 0 ?
@@ -262,7 +266,6 @@ export class TextCalibrator {
       const lineWidth = this.getWordWidth(testString);
 
       let bad = word.endsWith(" ")
-
       if (lineWidth <= maxWidth + (!bad ? 0 : endBuffer)) { // small tolerance
         currentLineString = testString;
       }
@@ -281,13 +284,10 @@ export class TextCalibrator {
           wordColumnIndex++;
         }
       }
-
       currentStringIndex += word.length;
     }
-
     return widthCache;
   }
-
 
   // gets the width of char given the context. font size and type
   getCharacterWidth(char) {
@@ -303,13 +303,6 @@ export class TextCalibrator {
     }
     return this.widthCache[cacheKey];
   }
-
-
-
-
-
-  // gets the width of a specific char
-
 
   // gets the amount of columns between two indexes
   calcColsInRange(startIndex, endIndex) {
@@ -372,7 +365,7 @@ export class TextCalibrator {
     return cumulativeWidth;
   }
 
-
+  // Gets the start index for a given index
   getStartIndexForIndex(index) {
     // Handle edge cases
     if (index === 0) {
@@ -435,10 +428,10 @@ export class TextCalibrator {
     return this.wordStats.length - 1
   }
 
+  // updates values
   recalibrate() {
     this.mouseLeftOffset = window.scrollX;
     this.mouseTopOffset = window.scrollY;
-
     this.wordStats = this.calcWordPositions();
     this.divRect = this.highlightedDiv.getBoundingClientRect();
   }
