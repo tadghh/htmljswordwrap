@@ -154,7 +154,6 @@ export class TextHighlighter {
     const offsetSpace = (this.characterWidth / (this.fontSizeRaw / 10));
     this.SELECTION_OFFSET = this.characterWidth + offsetSpace;
     this.SELECTION_OFFSET_NEGATIVE = this.characterWidth - offsetSpace;
-    this.wordStats = this.TC.calcWordPositions();
     return this;
   }
 
@@ -256,9 +255,9 @@ export class TextHighlighter {
       let floatingDiv;
 
       // Calculate column bounds once
-      const colStartIndex = c === yCol1 ? startId : this.wordStats[c][1];
+      const colStartIndex = c === yCol1 ? startId : this.TC.getStartIndex(c);
       const colEndIndex = c === yCol2 ? endId :
-        (this.wordStats[c + 1] ? this.wordStats[c + 1][1] - 1 : this.wordStats[c][1] - 1);
+        this.TC.getIndexOnBounds(c);
 
       if (currentHighlight && currentHighlight.elem && !currentHighlight.head) {
         // Update existing highlight
@@ -419,33 +418,25 @@ export class TextHighlighter {
 
   // Get the current letter the mouse is hovering over
   #getCurrentHoveredLetter() {
-    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const startIndex = this.TC.getStartIndex(this.mouseColSafe);
     const endIndex = this.TC.getEndIndex(this.mouseColSafe)
 
     // Use binary search to find letter index
     return this.TC.getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
   }
 
-  // Check if the mouse is over the last index of a row.
-  #isMouseLastIndex() {
-    return this.wordStats
-      .slice(1)
-      .some(stat => (stat[1] - 1) === this.#getCurrentMouseIndex());
-  }
 
-  // Changes the opacity of the given highlight and comment depending on if the mouse is within the indexes a highlight
-  #handleMouseHoveringComment() {
+  // Changes the opacity of the given hovered highlight and comment depending on if the mouse is within the indexes a highlight
+  #handleMouseHoveringHighlight() {
     this.floatingDivsSplit.forEach((div) => {
       const startId = div.start;
       const endId = div.end;
       const currentMouseIndex = this.#getCurrentMouseIndex();
-      const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.#isMouseLastIndex()
+      const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.TC.isRangeLastIndex(this.relativeX, this.mouseColSafe)
       const comment = div.comment.elem
       let timeoutId;
 
       if (comment) {
-
-
         const splits = div.splits
 
         if (isInside) {
@@ -490,7 +481,7 @@ export class TextHighlighter {
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
 
     // Determine start and end indices once
-    const startIndex = this.wordStats[this.mouseColSafe][1];
+    const startIndex = this.TC.getStartIndex(this.mouseColSafe);
 
     // Use binary search to find letter index
     const letterIndex = this.#getCurrentHoveredLetter()
@@ -513,10 +504,9 @@ export class TextHighlighter {
   #handleMouseUp = () => {
     // Determine start and end indices once
     this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
-    const startIndex = this.wordStats[this.mouseColSafe][1];
-    const endIndex = this.mouseColSafe === this.TC.getWordColCount()
-      ? this.contentTextCleaned.length
-      : this.wordStats[this.mouseColSafe + 1][1] - 1;
+    const startIndex = this.TC.getStartIndex(this.mouseColSafe);
+    const endIndex = this.TC.getEndIndex(this.mouseColSafe)
+
 
     if (!this.formIsActive) {
       this.endLetterIndex = this.TC.getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
@@ -535,10 +525,8 @@ export class TextHighlighter {
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
 
     if (!this.formIsActive) {
-      const startIndex = this.wordStats[this.mouseColSafe][1];
-      const endIndex = this.mouseColSafe === this.TC.getWordColCount()
-        ? this.contentTextCleaned.length
-        : this.wordStats[this.mouseColSafe + 1][1] - 1;
+      const startIndex = this.TC.getStartIndex(this.mouseColSafe);
+      const endIndex = this.TC.getEndIndex(this.mouseColSafe)
 
       this.startLetterIndex = this.TC.getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
     }
@@ -571,8 +559,6 @@ export class TextHighlighter {
   #addEventListeners() {
     window.addEventListener("resize", () => {
       this.TC.recalibrate();
-      this.wordStats = this.TC.calcWordPositions();
-
       this.#handleResizeOrScroll()
     });
     window.addEventListener("scroll", this.#handleResizeOrScroll);
@@ -591,7 +577,7 @@ export class TextHighlighter {
   }
 
   #liveItems() {
-    this.#handleMouseHoveringComment()
+    this.#handleMouseHoveringHighlight()
     this.#updateFormTransparency()
   }
 
@@ -663,17 +649,8 @@ export class TextHighlighter {
   }
 
   printOutWordStats() {
-    let printString = ""
-    for (let i = 0; i < this.TC.getWordColCount(); i++) {
-      const start = this.wordStats[i][1];
-      const end = this.wordStats[i + 1][1];
-      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.TC.getWordWidth(this.contentTextCleaned.slice(start, end))}\n`;
-    }
-    // Print last line
-    const lastIndex = this.wordStats[this.TC.getWordColCount()];
-    printString += `${this.TC.getWordColCount()} ${this.contentTextCleaned.slice(lastIndex[1])}`;
-    console.log(printString)
-    console.log(this.wordStats)
+
+    this.TC.printOutWordStats()
     console.log(this.floatingDivsSplit)
   }
 

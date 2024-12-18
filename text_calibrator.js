@@ -54,13 +54,24 @@ export class TextCalibrator {
       ? this.contentTextCleaned.length
       : this.wordStats[mouseColSafe + 1][1] - 1;
   }
+  getStartIndex(mouseColSafe) {
+    return this.wordStats[mouseColSafe][1]
+  }
 
   getIndexFromMouse(relativeX, mouseColSafe) {
     return this.getLetterIndexByWidth(this.wordStats[mouseColSafe][1], mouseColSafe === this.getWordColCount()
       ? this.contentTextCleaned.length
       : this.wordStats[mouseColSafe + 1][1], relativeX)
   }
-
+  // Check if the mouse is over the last index of a row.
+  isRangeLastIndex(relativeX, mouseColSafe) {
+    return this.wordStats
+      .slice(1)
+      .some(stat => (stat[1] - 1) === this.getIndexFromMouse(relativeX, mouseColSafe));
+  }
+  getIndexOnBounds(index) {
+    return (this.wordStats[index + 1] ? this.wordStats[index + 1][1] - 1 : this.wordStats[index][1] - 1)
+  }
   // gets the exact size of the text node
   getTotalAreaWidth() {
     const textNode = this.highlightedDiv.firstChild; // Assuming the text node is the first child
@@ -154,7 +165,19 @@ export class TextCalibrator {
       this.getHighlightAreaTopPadding();
   }
 
+  printOutWordStats() {
+    let printString = ""
+    for (let i = 0; i <= this.getWordColCount(); i++) {
+      const start = this.wordStats[i][1];
+      const end = (i === this.getWordColCount())
+        ? this.contentTextCleaned.length
+        : this.wordStats[i + 1][1];
+      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.getWordWidth(this.contentTextCleaned.slice(start, end))}\n`;
+    }
 
+    console.log(printString)
+    console.log(this.wordStats)
+  }
 
   getCumulativeWidthInsideIndexRange(startIndex, endIndex) {
     if (startIndex < 0 || endIndex < 0) return null
