@@ -59,6 +59,9 @@ export class TextHighlighter {
     this._mouseUpFunction = fn || this.defaultFormAction.bind(this);
     return this;
   }
+  setCalibratorWidthSensitivity(newInt) {
+    this.TC.setTextWidthSensitivity(newInt);
+  }
 
   setHighlightColors(colors) {
     this._highlightColors = colors;
@@ -662,7 +665,7 @@ export class TextHighlighter {
     for (let i = 0; i < this.TC.getWordColCount(); i++) {
       const start = this.wordStats[i][1];
       const end = this.wordStats[i + 1][1];
-      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.TC.getCumulativeWidthInsideIndexRange(start, end)}\n`;
+      printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.TC.getWordWidth(this.contentTextCleaned.slice(start, end))}\n`;
     }
     // Print last line
     const lastIndex = this.wordStats[this.TC.getWordColCount()];

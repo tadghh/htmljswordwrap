@@ -14,23 +14,40 @@ export class TextCalibrator {
 
     this.context = document.createElement("canvas").getContext("2d");
     const computedStyle = getComputedStyle(this.highlightedDiv);
+
+    // Get complete font string including weight, style, etc.
+    const fontWeight = computedStyle.fontWeight;
+    const fontStyle = computedStyle.fontStyle;
     this.fontSize = computedStyle.fontSize;
     this.fontSizeRaw = Number.parseFloat(this.fontSize);
     this.fontFamily = computedStyle.fontFamily;
-    this.lineHeight = parseFloat(computedStyle.fontSize) * 1.2;
+    this.context.textBaseline = 'alphabetic';
+    this.context.textAlign = 'left';
+    // Optional: force subpixel rendering
+    this.context.imageSmoothingEnabled = false;
+    // Construct complete font string in correct order
+    this.context.font = `${fontStyle} ${fontWeight} ${this.fontSize} ${this.fontFamily}`;
+
+    // Get actual line height from computed style instead of assuming 1.2
+    this.lineHeight = parseFloat(computedStyle.lineHeight) ||
+      parseFloat(this.fontSize) * 1.2; // fallback if lineHeight is 'normal'
+
+    // Letter spacing needs to be accounted for
+    this.letterSpacing = parseFloat(computedStyle.letterSpacing) || 0;
+
+
+
     this.divRect = this.highlightedDiv.getBoundingClientRect();
-    this.context.font = `${this.fontSize} ${this.fontFamily}`;
-
-    this.spaceWidth = this.#getCharacterWidth(" ");
+    this.spaceWidth = this.getCharacterWidth(" ");
     this.wordStats = this.calcWordPositions();
-  }
-  getHighlightAreaLeftPadding() {
-    return this.divRect.left
+    this.textWidthSensitivity = 0
   }
 
-  getHighlightAreaTopPadding() {
-    return this.divRect.top;
+  // non monospaced fonts are more sensitive. use this if there are graphical glitches
+  setTextWidthSensitivity(newSensitivity) {
+    this.textWidthSensitivity = newSensitivity
   }
+
 
   getEndIndex(mouseColSafe) {
     return mouseColSafe === this.getWordColCount()
@@ -44,6 +61,7 @@ export class TextCalibrator {
       : this.wordStats[mouseColSafe + 1][1], relativeX)
   }
 
+  // gets the exact size of the text node
   getTotalAreaWidth() {
     const textNode = this.highlightedDiv.firstChild; // Assuming the text node is the first child
     let exactWidth = 0
@@ -57,61 +75,27 @@ export class TextCalibrator {
   }
 
   getWordWidth(word) {
-    return [...word].reduce((total, char) => total + this.getCharacterWidth(char), 0);
+    // Measure the whole word at once instead of character by character
+    if (this.widthCache[word] === undefined) {
+      const width = Number.parseFloat(
+        this.context.measureText(word).width.toFixed(this.textWidthSensitivity)
+      );
+      // Add letter spacing for each character except the last one
+      const letterSpacingTotal = this.letterSpacing * (word.length - 1);
+      this.widthCache[word] = width + letterSpacingTotal;
+    }
+    return this.widthCache[word];
   }
 
-  getStartIndexForIndex(index) {
-    // Handle edge cases
-    if (index === 0) {
-      return 0;
-    }
 
-    let lastSize = this.wordStats[this.getWordColCount()][1];
-    if (lastSize <= index) {
-      return lastSize;
-    }
-
-    // Convert wordStats to array for binary search
-    const entries = Object.values(this.wordStats);
-    let left = 0;
-    let right = entries.length - 1;
-
-    // If index is less than first entry's size, return 0
-    if (index < entries[0][1]) {
-      return 0;
-    }
-
-    while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
-      const currentSize = entries[mid][1];
-
-      // Exact match on boundary
-      if (index === currentSize) {
-        return currentSize;
-      }
-
-      // Check if index falls between current and previous size
-      const prevSize = mid > 0 ? entries[mid - 1][1] : 0;
-      if (prevSize < index && index < currentSize) {
-        return prevSize;
-      }
-
-      if (currentSize > index) {
-        right = mid - 1;
-      } else {
-        left = mid + 1;
-      }
-    }
-
-    return null;
-  }
-
+  // calculates and returns the offsets for a highlight objects start index
   getHighlighOffsets(startIndexHighlight) {
     const yOffset = this.getTopPaddingForIndex(startIndexHighlight) + this.mouseTopOffset
     const xOffset = this.getPaddingForIndex(startIndexHighlight) + this.getHighlightAreaLeftPadding() + this.mouseLeftOffset
     return [xOffset, yOffset]
   }
 
+  // calculates and returns the offsets for a comment object
   getCommentOffsets(commentObj) {
     const { start: startIndexComment, end: endIndexComment, elem: element } = commentObj;
     const wordWidth = this.getWordWidth(element.textContent);
@@ -236,83 +220,71 @@ export class TextCalibrator {
     return this.widthSums.get(key);
   }
 
-  // Creates an array that corresponds to the text on screen
   calcWordPositions() {
-    // Preallocate array with reasonable size to avoid resizing
     const widthCache = [[0, 0]];
-    const maxWidth = Math.ceil(this.#getHighlightAreaMaxWidth())
-
-    const bufferWidth = maxWidth + this.spaceWidth;
-
+    const maxWidth = this.getTotalAreaWidth();
     let wordColumnIndex = 1;
     let currentStringIndex = 0;
-    let currentWidth = 0;
-
+    let currentLineString = "";
+    // This a margin before the browser considers wrapping a word (testing in firefox)
+    let endBuffer = this.spaceWidth - (this.fontSizeRaw / 10)
     for (const word of this.wordArray) {
-      const currentWordWidth = this.#getWordWidth(word);
-      const testWidth = currentWidth + currentWordWidth;
+      // Add space between words if not first word in line
+      const testString = currentLineString.length > 0 ?
+        currentLineString + word : word;
+      const lineWidth = this.getWordWidth(testString);
 
-      // word wrapping can change the end behaviour so we need to remove the trailing space
-      const extra = word[word.length - 1] === ' ' ? 0 : -this.spaceWidth;
-      if (testWidth <= bufferWidth + extra) {
-        currentWidth = testWidth;
-      } else if (testWidth <= maxWidth) {
-        currentWidth = testWidth;
-      } else {
-        widthCache.push([wordColumnIndex, currentStringIndex]);
-        wordColumnIndex++;
-        currentWidth = currentWordWidth;
+      let bad = word.endsWith(" ")
+
+      if (lineWidth <= maxWidth + (!bad ? 0 : endBuffer)) { // small tolerance
+        currentLineString = testString;
       }
+      // Line is too long, wrap
+      else {
+        // Don't push empty lines
+        if (currentLineString.length > 0) {
+          widthCache.push([wordColumnIndex, currentStringIndex]);
+          wordColumnIndex++;
+          // Start new line with current word
+          currentLineString = word;
+        } else {
+          // Handle case where single word is wider than max width
+          currentLineString = word;
+          widthCache.push([wordColumnIndex, currentStringIndex]);
+          wordColumnIndex++;
+        }
+      }
+
       currentStringIndex += word.length;
     }
+
     return widthCache;
   }
 
-  // Gets the cumulative width of the given word
-  #getWordWidth(word) {
-    return [...word].reduce((total, char) => total + this.#getCharacterWidth(char), 0);
-  }
 
-  #getCharacterWidth(char) {
-    if (this.widthCache[char] === undefined) {
-      this.widthCache[char] = Number.parseFloat(Number.parseFloat(this.context.measureText(char).width).toFixed(0));
-    }
-    return this.widthCache[char];
-  }
-
-  #getTotalAreaWidth() {
-    const textNode = this.highlightedDiv.firstChild; // Assuming the text node is the first child
-
-    let exactWidth = 0
-    if (textNode.nodeType === Node.TEXT_NODE) {
-      const range = document.createRange();
-      range.selectNodeContents(textNode);
-      const { width } = range.getBoundingClientRect();
-      exactWidth = width
-    }
-    return exactWidth
-  }
-
-  // gets the max width of the highlight area
-  #getHighlightAreaMaxWidth() {
-    return this.#getTotalAreaWidth()
-  }
-
-  getTextContentVerticalSectionCount() {
-    return this.divRect.height / (this.wordStats.length);
-  }
-
-  getWordColCount() {
-    return this.wordStats.length - 1
-  }
-
+  // gets the width of char given the context. font size and type
   getCharacterWidth(char) {
-    if (this.widthCache[char] === undefined) {
-      this.widthCache[char] = Number.parseFloat(Number.parseFloat(this.context.measureText(char).width).toFixed(0));
+    const cacheKey = char;
+    if (this.widthCache[cacheKey] === undefined) {
+      // Get the precise width including letter spacing
+      let width = this.context.measureText(char).width;
+      // Add letter spacing if it exists
+      width += this.letterSpacing;
+      // Round to specified precision
+      width = Number.parseFloat(width.toFixed(this.textWidthSensitivity));
+      this.widthCache[cacheKey] = width;
     }
-    return this.widthCache[char];
+    return this.widthCache[cacheKey];
   }
 
+
+
+
+
+  // gets the width of a specific char
+
+
+  // gets the amount of columns between two indexes
   calcColsInRange(startIndex, endIndex) {
     return (this.getColumnForIndex(endIndex) - this.getColumnForIndex(startIndex)) + 1
   }
@@ -355,6 +327,7 @@ export class TextCalibrator {
     return null;
   }
 
+  // gets the left padding for the index
   getPaddingForIndex(index) {
     if (index < 0) return null;
 
@@ -370,6 +343,69 @@ export class TextCalibrator {
       cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
     }
     return cumulativeWidth;
+  }
+
+
+  getStartIndexForIndex(index) {
+    // Handle edge cases
+    if (index === 0) {
+      return 0;
+    }
+
+    let lastSize = this.wordStats[this.getWordColCount()][1];
+    if (lastSize <= index) {
+      return lastSize;
+    }
+
+    // Convert wordStats to array for binary search
+    const entries = Object.values(this.wordStats);
+    let left = 0;
+    let right = entries.length - 1;
+
+    // If index is less than first entry's size, return 0
+    if (index < entries[0][1]) {
+      return 0;
+    }
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const currentSize = entries[mid][1];
+
+      // Exact match on boundary
+      if (index === currentSize) {
+        return currentSize;
+      }
+
+      // Check if index falls between current and previous size
+      const prevSize = mid > 0 ? entries[mid - 1][1] : 0;
+      if (prevSize < index && index < currentSize) {
+        return prevSize;
+      }
+
+      if (currentSize > index) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+
+    return null;
+  }
+
+  getHighlightAreaLeftPadding() {
+    return this.divRect.left
+  }
+
+  getHighlightAreaTopPadding() {
+    return this.divRect.top;
+  }
+
+  getTextContentVerticalSectionCount() {
+    return this.divRect.height / (this.wordStats.length);
+  }
+
+  getWordColCount() {
+    return this.wordStats.length - 1
   }
 
   recalibrate() {

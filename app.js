@@ -1,15 +1,16 @@
 import { TextHighlighter } from "./highlightjs.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  // This is the default highlighter
+  // // This is the default highlighter
   const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1").initialize();
   highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
+  // highlighter1.setCalibratorWidthSensitivity(2)
 
   // This one will showcase custom function/behavior and using a custom form
   customHighlight();
 
   // This one will demo dynamic/moving content
-  movingHighlight();
+  // movingHighlight();
 });
 
 
@@ -83,7 +84,7 @@ function customHighlight() {
     .setMouseUpFunction(textFunction)
     .setHighlightColors(customHighlightColors)
     .initialize();
-
+  highlighter2.setCalibratorWidthSensitivity(2)
   highlighter2.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
 }
 
