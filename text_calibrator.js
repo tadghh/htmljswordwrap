@@ -62,9 +62,7 @@ export class TextCalibrator {
   }
 
   getIndexFromMouse(relativeX, mouseColSafe) {
-    return this.getLetterIndexByWidth(this.wordStats[mouseColSafe][1], mouseColSafe === this.getWordColCount()
-      ? this.contentTextCleaned.length - 1
-      : this.wordStats[mouseColSafe + 1][1], relativeX)
+    return this.getLetterIndexByWidth(this.getStartIndex(mouseColSafe), this.getEndIndex(mouseColSafe), relativeX)
   }
 
   // Check if the mouse is over the last index of a row.

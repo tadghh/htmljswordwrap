@@ -1,6 +1,3 @@
-// TODO function to enable ids on highlight elements
-// Or just return array of elements for "search"
-// TODO set text color for background
 
 import { TextCalibrator } from "./text_calibrator.js";
 
@@ -58,10 +55,6 @@ export class TextHighlighter {
   setMouseUpFunction(fn) {
     this._mouseUpFunction = fn || this.defaultFormAction.bind(this);
     return this;
-  }
-
-  setCalibratorWidthSensitivity(newInt) {
-    this.TC.setTextWidthSensitivity(newInt);
   }
 
   setHighlightColors(colors) {
@@ -136,7 +129,7 @@ export class TextHighlighter {
     this.fontSize = computedStyle.fontSize;
     this.fontFamily = computedStyle.fontFamily;
     this.fontSizeRaw = Number.parseFloat(this.fontSize);
-    this.divRect = this.highlightedDiv.getBoundingClientRect();
+    // this.divRect = this.highlightedDiv.getBoundingClientRect();
 
     this.contentTextCleaned = this.highlightedDiv.textContent
       .trim()
@@ -165,6 +158,10 @@ export class TextHighlighter {
     } catch (error) {
       throw new Error(`Initialization failed: ${error.message}`);
     }
+  }
+
+  setCalibratorWidthSensitivity(newInt) {
+    this.TC.setTextWidthSensitivity(newInt);
   }
 
   // enables the submission form transparency
@@ -196,7 +193,7 @@ export class TextHighlighter {
   getWordHighlights(word) {
     let items = []
     this.highlightElements.forEach(highlightObj => {
-      let section = this.contentTextCleaned.slice(highlightObj.start, highlightObj.end)
+      let section = this.contentTextCleaned.slice(highlightObj.start, highlightObj.end + 1)
       if (section.includes(word)) {
         items.push(highlightObj)
       }
@@ -257,7 +254,7 @@ export class TextHighlighter {
       if (currentHighlight && currentHighlight.elem && !currentHighlight.head) {
         // Update existing highlight
         let cleanedEndIndex = colEndIndex
-        if (this.contentTextCleaned[colEndIndex] === " ") {
+        if (this.contentTextCleaned[cleanedEndIndex] === " ") {
           cleanedEndIndex--
         }
         floatingDiv = currentHighlight.elem;
@@ -272,7 +269,7 @@ export class TextHighlighter {
 
         // Dont need to include trailing spaces in the selection
         let cleanedEndIndex = colEndIndex
-        if (this.contentTextCleaned[colEndIndex] === " ") {
+        if (this.contentTextCleaned[cleanedEndIndex] === " ") {
           cleanedEndIndex--
         }
         currentHighlight = {
@@ -330,7 +327,7 @@ export class TextHighlighter {
     let endIndex = Number.parseInt(this.endLetterIndex)
     if (startIndex > endIndex) {
       [startIndex, endIndex] = [endIndex, startIndex];
-      startIndex++
+      // startIndex++
     }
 
     if (this.contentTextCleaned[startIndex] === " ") startIndex++;
@@ -491,11 +488,10 @@ export class TextHighlighter {
   #handleMouseUp = () => {
     // Determine start and end indices once
     this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
-    const startIndex = this.TC.getStartIndex(this.mouseColSafe);
-    const endIndex = this.TC.getEndIndex(this.mouseColSafe)
+
 
     if (!this.formIsActive) {
-      this.endLetterIndex = this.TC.getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
+      this.endLetterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe);
 
       [this.startLetterIndex, this.endLetterIndex] = this.#cleanSelectionIndexes()
       let totalLength = this.endLetterIndex - this.startLetterIndex;
@@ -511,10 +507,7 @@ export class TextHighlighter {
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
 
     if (!this.formIsActive) {
-      const startIndex = this.TC.getStartIndex(this.mouseColSafe);
-      const endIndex = this.TC.getEndIndex(this.mouseColSafe)
-
-      this.startLetterIndex = this.TC.getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
+      this.startLetterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
     }
   };
 
@@ -579,7 +572,7 @@ export class TextHighlighter {
     this.mouseTopOffset = window.scrollY;
     // 🤓 Horizontal scroll 👆
     this.mouseLeftOffset = window.scrollX;
-    this.divRect = this.highlightedDiv.getBoundingClientRect();
+    // this.divRect = this.highlightedDiv.getBoundingClientRect();
   }
 
   // Updates items that depend on window size or related
