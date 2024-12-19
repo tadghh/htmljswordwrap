@@ -52,7 +52,7 @@ export class TextCalibrator {
   // gets the end text index for the provided col
   getEndIndex(col) {
     return col === this.getWordColCount()
-      ? this.contentTextCleaned.length
+      ? this.contentTextCleaned.length - 1
       : this.wordStats[col + 1][1] - 1;
   }
 
@@ -63,7 +63,7 @@ export class TextCalibrator {
 
   getIndexFromMouse(relativeX, mouseColSafe) {
     return this.getLetterIndexByWidth(this.wordStats[mouseColSafe][1], mouseColSafe === this.getWordColCount()
-      ? this.contentTextCleaned.length
+      ? this.contentTextCleaned.length - 1
       : this.wordStats[mouseColSafe + 1][1], relativeX)
   }
 
@@ -179,7 +179,7 @@ export class TextCalibrator {
     for (let i = 0; i <= this.getWordColCount(); i++) {
       const start = this.wordStats[i][1];
       const end = (i === this.getWordColCount())
-        ? this.contentTextCleaned.length
+        ? this.contentTextCleaned.length - 1
         : this.wordStats[i + 1][1];
       printString += `${this.wordStats[i][0]} ${this.contentTextCleaned.slice(start, end)} ${this.getWordWidth(this.contentTextCleaned.slice(start, end))}\n`;
     }
