@@ -408,27 +408,13 @@ export class TextHighlighter {
   // #region Utility
   // Events
 
-  // Gets the index of the character the mouse is hovering over
-  #getCurrentMouseIndex() {
-    return this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
-  }
-
-  // Get the current letter the mouse is hovering over
-  #getCurrentHoveredLetter() {
-    const startIndex = this.TC.getStartIndex(this.mouseColSafe);
-    const endIndex = this.TC.getEndIndex(this.mouseColSafe)
-
-    // Use binary search to find letter index
-    return this.TC.getLetterIndexByWidth(startIndex, endIndex, this.relativeX);
-  }
-
 
   // Changes the opacity of the given hovered highlight and comment depending on if the mouse is within the indexes a highlight
   #handleMouseHoveringHighlight() {
     this.highlightElements.forEach((div) => {
       const startId = div.start;
       const endId = div.end;
-      const currentMouseIndex = this.#getCurrentMouseIndex();
+      const currentMouseIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
       const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.TC.isRangeLastIndex(this.relativeX, this.mouseColSafe)
       const comment = div.comment.elem
       let timeoutId;
@@ -481,7 +467,7 @@ export class TextHighlighter {
     const startIndex = this.TC.getStartIndex(this.mouseColSafe);
 
     // Use binary search to find letter index
-    const letterIndex = this.#getCurrentHoveredLetter()
+    const letterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
 
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
       const char = this.contentTextCleaned[letterIndex];
@@ -875,7 +861,7 @@ export class TextHighlighter {
         this.formElement["elem"].style.opacity = opacity
       }
 
-      let letterIndex = this.#getCurrentHoveredLetter()
+      let letterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
       if (indicator) {
         indicator.textContent = `Last Hovered: (${this.contentTextCleaned[letterIndex]},${this.mouseColSafe}) - ${letterIndex}`
       }
