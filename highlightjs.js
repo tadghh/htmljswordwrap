@@ -449,7 +449,7 @@ export class TextHighlighter {
   #handleMouseMove = (event) => {
     // make other vars to store last unmodified version
     // updated by recalling padding methdos
-    this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
+    this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding()
     this.relativeY = event.clientY - this.TC.getHighlightAreaTopPadding();
     this.relativeXRaw = event.clientX
     this.relativeYRaw = event.clientY

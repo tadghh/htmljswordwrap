@@ -199,43 +199,14 @@ export class TextCalibrator {
 
   // Binary search for letter index based on width
   getLetterIndexByWidth(startIndex, endIndex, targetWidth) {
-    let low = startIndex;
-    let high = endIndex;
-
-    // First check if we're beyond the total width
-    const totalWidth = this.getCumulativeWidthForIndexRange(startIndex, endIndex);
-    if (targetWidth >= totalWidth) {
-      return endIndex - 1;
-    }
-
-    while (low <= high) {
-      const mid = Math.ceil((low + high) / 2);
-
-      // Get width up to mid (exclusive)
-      const widthToMid = this.getCumulativeWidthForIndexRange(startIndex, mid + 1);
-
-      if (widthToMid === targetWidth) {
-        return mid;
-      }
-
-      if (widthToMid < targetWidth) {
-        // Check if adding the next character would exceed target
-        const widthToNext = this.getCumulativeWidthForIndexRange(startIndex, mid + 2);
-        if (mid + 1 <= high && widthToNext > targetWidth) {
-          return mid + 1;
-        }
-        low = mid + 1;
-      } else {
-        // Check if removing the current character would be less than target
-        const widthToPrev = this.getCumulativeWidthForIndexRange(startIndex, mid);
-        if (mid - 1 >= low && widthToPrev < targetWidth) {
-          return mid;
-        }
-        high = mid - 1;
+    let holderString = ""
+    for (let i = startIndex; i <= endIndex; i++) {
+      holderString += this.contentTextCleaned[i]
+      const currentWidth = this.getWordWidth(holderString);
+      if (currentWidth > targetWidth) {
+        return i
       }
     }
-
-    return low;
   }
 
   getCumulativeWidthForIndexRange(startIndex, endIndex) {
