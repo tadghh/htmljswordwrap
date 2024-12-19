@@ -5,10 +5,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const rainbowTitle = new RainbowText()
   rainbowTitle.rainbow("prjTitle")
 
-  // // This is the default highlighter
-  const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1").initialize();
-  highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
-  highlighter1.setCalibratorWidthSensitivity(2)
+  // This is the default highlighter
+  defaultExample()
 
   // This one will showcase custom function/behavior and using a custom form
   customHighlight();
@@ -17,6 +15,14 @@ document.addEventListener("DOMContentLoaded", () => {
   movingHighlight();
 });
 
+function defaultExample() {
+  const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1")
+    .setFormTransparency(true)
+    .initialize();
+
+  highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
+  highlighter1.setCalibratorWidthSensitivity(2)
+}
 
 function customHighlight() {
   const formContainer = document.getElementById("customForm")
