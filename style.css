@@ -1,8 +1,6 @@
 .rainbowText {
 	font-size: 2.5rem;
 	font-weight: bold;
-
-	background: linear-gradient(-45deg, #eeaa52, #e73c6f, #2394d5, #2af3b7);
 	background-size: 200% 200%;
 	background-clip: text;
 	-webkit-text-stroke: 3px transparent;
@@ -10,6 +8,7 @@
 	text-align: center;
 	transition: background 1s ease; /* Smooth transition */
 }
+
 #githubLink {
 	display: inline-block;
 	text-decoration: none;
@@ -25,10 +24,12 @@
 	background-color: #333;
 	transition: all 0.3s ease;
 }
+
 #prjHeader img {
 	height: 80px;
 	margin-right: 15px;
 }
+
 #prjHeader {
 	display: flex;
 	align-items: center;
@@ -36,6 +37,7 @@
 	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 	color: #f5f5f5;
 }
+
 body,
 #ex3 {
 	--main-bg-color: rgb(32, 32, 32);
@@ -46,6 +48,7 @@ body,
 #ex3 {
 	color: var(--main-bg-color);
 }
+
 h1,
 #outputHover3,
 #outputHover2,
@@ -72,7 +75,6 @@ h1,
 #test-container {
 	display: flex;
 	flex-direction: row;
-	/* padding: 20px; */
 	justify-content: space-between;
 }
 
@@ -87,15 +89,17 @@ h1,
 #moving-holder {
 	margin: 50px;
 }
-#moving-holder h1,
-#outputHover3,
+.outputHover {
+	padding-bottom: 20px;
+	height: 60px;
+}
+
 #moving-test {
 	margin: 50px;
 	margin-left: auto;
 	width: 500px;
 }
 
-#highlightedDiv,
 .highlightedDiv,
 .highlightedText,
 .split,
@@ -119,7 +123,6 @@ h1,
 	white-space: normal;
 	display: inline;
 	color: rgb(255, 255, 255);
-	/* line-height: 1.5; */
 }
 
 .highlightedText,
@@ -192,8 +195,7 @@ h1,
 	z-index: 40;
 	padding-inline: 6px;
 	padding-bottom: 4px;
-	/* margin-top: 2px; */
-	/* margin-bottom: 4px; */
+
 	border-top-width: 0px;
 	border-color: white;
 }

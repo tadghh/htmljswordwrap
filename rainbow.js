@@ -1,24 +1,20 @@
 export class RainbowText {
   rainbow(elementId, customColors = null) {
-    // Convert single colors to gradient pairs
-
     let startColor1 = null
     let startColor2 = null
     let targetColor1 = null
     let targetColor2 = null
     let currentIndex = 0;
     let progress = 0;
-    let animateFunctionAction = () => {
-      return null
-    }
-    let updateElementBackground = () => {
-      return null
-    }
+    let animateFunctionAction = null
+    let updateElementBackground = null
+
     if (customColors == null) {
       startColor1 = this.getRandomRGB();
       startColor2 = this.getRandomRGB();
       targetColor1 = this.getRandomRGB();
       targetColor2 = this.getRandomRGB();
+
       animateFunctionAction = () => {
         startColor1 = targetColor1;
         startColor2 = targetColor2;
@@ -63,7 +59,7 @@ export class RainbowText {
         const color1 = this.interpolateColor(currentGradient[0], nextGradient[0], progress);
         const color2 = this.interpolateColor(currentGradient[1], nextGradient[1], progress);
 
-        element.style.background = `linear-gradient(-45deg, ${color1}, ${color2})`;
+        element.style.background = `linear-gradient(to right, ${color1}, ${color2})`;
       }
     }
 
