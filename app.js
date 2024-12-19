@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   customHighlight();
 
   // This one will demo dynamic/moving content
-  // movingHighlight();
+  movingHighlight();
 });
 
 function defaultExample() {

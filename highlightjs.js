@@ -405,51 +405,89 @@ export class TextHighlighter {
 
   // Changes the opacity of the given hovered highlight and comment depending on if the mouse is within the indexes a highlight
   #handleMouseHoveringHighlight() {
+    // Cache the current mouse position calculation
+    const currentMouseIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe);
+    const isLastIndex = this.TC.isRangeLastIndex(this.relativeX, this.mouseColSafe);
+
+    // Store timeouts in a Map keyed by comment element
+    const timeouts = new Map();
+
+    // Use WeakMap to store event listeners
+    const listeners = new WeakMap();
+
     this.highlightElements.forEach((div) => {
-      const startId = div.start;
-      const endId = div.end;
-      const currentMouseIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
-      const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !this.TC.isRangeLastIndex(this.relativeX, this.mouseColSafe)
-      const comment = div.comment.elem
-      let timeoutId;
+      const { start: startId, end: endId, comment, splits } = div;
+      if (!comment?.elem) return;
 
-      if (comment) {
-        const splits = div.splits
+      const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !isLastIndex;
+      const commentElem = comment.elem;
 
-        if (this.isOnComment && !isInside) {
-          this.isOnComment = false
-        }
-        if (this.isOnComment || isInside) {
-          this.isOnComment = true
-          comment.addEventListener("mouseout", () => {
-            this.isOnComment = false
-          })
+      // Early exit if nothing changed
+      if (this.isOnComment && !isInside) {
+        this.isOnComment = false
+      }
+      if (this.lastHoveredId === `${startId}-${endId}` && this.isOnComment) return;
 
-          this.#positionCommentContent(div.comment)
-          clearTimeout(timeoutId);
-          comment.style.opacity = 1
-          comment.style.zIndex = 25
-          splits.forEach(item => {
-            item["elem"].style.opacity = 1;
-          });
-          this.lastHoveredId = `${startId}-${endId}`
-        } else if (!this.isOnComment) {
-          splits.forEach(item => {
-            item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
-          });
-          if (comment.style.opacity == 1) {
-            comment.style.opacity = 0
+      const handleCommentHover = () => {
+        if (!this.isOnComment && isInside) {
+          this.isOnComment = true;
+
+          // Only add listener if not already added
+          if (!listeners.has(commentElem)) {
+            const mouseoutListener = () => {
+              this.isOnComment = false;
+            };
+            commentElem.addEventListener("mouseout", mouseoutListener);
+            listeners.set(commentElem, mouseoutListener);
           }
-          if (comment.style.opacity == 0) {
-            timeoutId = setTimeout(() => {
-              if (comment.style.opacity == 0) {
-                comment.style.zIndex = 15;
+
+          this.#positionCommentContent(comment);
+
+          // Clear any existing timeout
+          const existingTimeout = timeouts.get(commentElem);
+          if (existingTimeout) {
+            clearTimeout(existingTimeout);
+            timeouts.delete(commentElem);
+          }
+
+          commentElem.style.opacity = '1';
+          commentElem.style.zIndex = '25';
+
+          // Use batch updates for splits
+          requestAnimationFrame(() => {
+            splits.forEach(item => {
+              item.elem.style.opacity = '1';
+            });
+          });
+
+          this.lastHoveredId = `${startId}-${endId}`;
+        } else if (!this.isOnComment) {
+          // Batch update splits opacity
+          requestAnimationFrame(() => {
+            splits.forEach(item => {
+              item.elem.style.opacity = this.UNFOCUSED_OPACITY;
+            });
+          });
+
+          if (commentElem.style.opacity === '1') {
+            commentElem.style.opacity = '0';
+
+            // Set timeout for z-index change
+            const timeoutId = setTimeout(() => {
+              if (commentElem.style.opacity === '0') {
+                commentElem.style.zIndex = '15';
               }
             }, this.HOVER_TRANSITION_DURATION);
+
+            timeouts.set(commentElem, timeoutId);
           }
-          this.lastHoveredId = null
+
+          this.lastHoveredId = null;
         }
-      }
+      };
+
+      // Use requestAnimationFrame for smoother updates
+      requestAnimationFrame(handleCommentHover);
     });
   }
 
