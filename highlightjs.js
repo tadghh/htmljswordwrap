@@ -201,7 +201,6 @@ export class TextHighlighter {
   }
 
   setHighlightComment(comment, typeId) {
-    console.log(typeId)
     const [startIndex, endIndex] = this.#cleanSelectionIndexes()
     const builtComment = {
       elem: this.#buildComment(comment, typeId),
@@ -645,9 +644,10 @@ export class TextHighlighter {
     const selectedId = parseInt(colorId);
     const color = this.#getColor(selectedId);
     const floatingComment = document.createElement("div");
-
     floatingComment.className = "highlightComment";
     floatingComment.textContent = content
+    floatingComment.style.fontFamily = this.fontFamily
+    floatingComment.style.fontSize = this.fontSize
     floatingComment.style.width = `${this.TC.getWordWidth(content)}px`;
     floatingComment.style.backgroundColor = color;
     document.body.appendChild(floatingComment);

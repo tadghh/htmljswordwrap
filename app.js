@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   customHighlight();
 
   // This one will demo dynamic/moving content
-  // movingHighlight();
+  movingHighlight();
 });
 
 function defaultExample() {
@@ -28,8 +28,8 @@ function customHighlight() {
   const formContainer = document.getElementById("customForm")
 
   function textFunction() {
-    const startIndex = highlighter2.getStartLetterIndex()
-    const endIndex = highlighter2.getEndLetterIndex()
+    // const startIndex = highlighter2.getStartLetterIndex()
+    // const endIndex = highlighter2.getEndLetterIndex()
     highlighter2.createHighlight()
 
     const rawId = highlighter2.getRawId()
@@ -65,12 +65,8 @@ function customHighlight() {
             .forEach(s => s.classList.remove('selected'));
           square.classList.add('selected');
           window.getSelection().removeAllRanges();
-
-          if (this.floatingDivsSplit.has(rawId)) {
-            highlighter2.updateHighlightColorsId(rawId, value);
-          }
+          highlighter2.updateHighlightColorsId(rawId, value);
         });
-
         colorSquaresContainer.appendChild(square);
       }
     });
@@ -84,10 +80,6 @@ function customHighlight() {
       event.preventDefault();
       highlighter2.setHighlightComment(commentContent, commentType)
     });
-
-    console.log(startIndex)
-    console.log(endIndex)
-
   };
   const highlighter2 = new TextHighlighter("highlightedDiv2", "outputHover2")
     .setFormHTML(customForm)
