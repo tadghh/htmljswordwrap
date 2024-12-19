@@ -82,13 +82,12 @@ h1,
 #outputHover3,
 #outputHover2,
 #outputHover1 {
-	margin: 50px;
-
 	width: 500px;
 }
 #moving-holder {
 	margin: 50px;
 }
+
 .outputHover {
 	padding-bottom: 20px;
 	height: 60px;
@@ -112,8 +111,7 @@ h1,
 	font-family: "Franklin Gothic Medium";
 }
 
-.highlightedDiv,
-#highlightedDiv {
+.highlightedDiv {
 	z-index: 20;
 	position: relative;
 	/* font-family: Nunito; */
