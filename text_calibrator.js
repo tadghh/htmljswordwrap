@@ -129,7 +129,8 @@ export class TextCalibrator {
 
     // make sure comment doesn't go off screen
     if (isOutOfBounds || isMultiLine) {
-      xOffset = this.getCumulativeWidthForIndexRange(endLineStartIndex, endIndexComment - (element.textContent.length));
+
+      xOffset = this.getCumulativeWidthForIndexRange(endLineStartIndex, endIndexComment) - this.getWordWidth(element.textContent);
     }
 
     // make sure its not offscreen on the left
