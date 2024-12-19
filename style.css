@@ -1,8 +1,50 @@
-body {
+.rainbowText {
+	font-size: 2.5rem;
+	font-weight: bold;
+
+	background: linear-gradient(-45deg, #eeaa52, #e73c6f, #2394d5, #2af3b7);
+	background-size: 200% 200%;
+	background-clip: text;
+	-webkit-text-stroke: 3px transparent;
+	margin: 0;
+	text-align: center;
+	transition: background 1s ease; /* Smooth transition */
+}
+#githubLink {
+	display: inline-block;
+	text-decoration: none;
+	border: 2px solid #ddd;
+	font-weight: bold;
+	padding: 8px 15px;
+	display: flex;
+	width: 275px;
+	justify-content: space-evenly;
+	align-items: center;
+	border-radius: 5px;
+	color: #fff;
+	background-color: #333;
+	transition: all 0.3s ease;
+}
+#prjHeader img {
+	height: 80px;
+	margin-right: 15px;
+}
+#prjHeader {
+	display: flex;
+	align-items: center;
+	margin: 20px;
+	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	color: #f5f5f5;
+}
+body,
+#ex3 {
 	--main-bg-color: rgb(32, 32, 32);
 	--comment-text-color: rgb(7, 7, 7);
 	background-color: var(--main-bg-color);
 	margin: 0px;
+}
+#ex3 {
+	color: var(--main-bg-color);
 }
 h1,
 #outputHover3,

@@ -1,6 +1,10 @@
 import { TextHighlighter } from "./highlightjs.js";
+import { RainbowText } from "./rainbow.js";
 
 document.addEventListener("DOMContentLoaded", () => {
+  const rainbowTitle = new RainbowText()
+  rainbowTitle.rainbow("ex3")
+
   // // This is the default highlighter
   const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1").initialize();
   highlighter1.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
