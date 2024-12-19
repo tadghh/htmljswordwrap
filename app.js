@@ -3,7 +3,7 @@ import { RainbowText } from "./rainbow.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const rainbowTitle = new RainbowText()
-  rainbowTitle.rainbow("ex3")
+  rainbowTitle.rainbow("prjTitle")
 
   // // This is the default highlighter
   const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1").initialize();
