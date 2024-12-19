@@ -129,7 +129,6 @@ export class TextHighlighter {
     this.fontSize = computedStyle.fontSize;
     this.fontFamily = computedStyle.fontFamily;
     this.fontSizeRaw = Number.parseFloat(this.fontSize);
-    // this.divRect = this.highlightedDiv.getBoundingClientRect();
 
     this.contentTextCleaned = this.highlightedDiv.textContent
       .trim()
@@ -311,9 +310,9 @@ export class TextHighlighter {
 
     if (items) {
       const selectedId = parseInt(colorId);
+      const color = this.#getColor(selectedId);
       this.highlightElements.get(rawId).comment.type = selectedId;
       this.highlightElements.get(rawId).colorId = selectedId;
-      const color = this.#getColor(selectedId);
 
       items.map((item) => {
         item["elem"].style.backgroundColor = color
@@ -365,7 +364,7 @@ export class TextHighlighter {
   createTextHighlight(startIndex, endIndex, comment, colorId) {
     if (startIndex > endIndex) {
       [startIndex, endIndex] = [endIndex, startIndex];
-      startIndex++
+      // startIndex++
     }
 
     if (this.contentTextCleaned[startIndex] === " ") startIndex++;
@@ -395,7 +394,6 @@ export class TextHighlighter {
           colorId: colorId
         });
       }
-
     }
 
     this.#repositionItems();
@@ -403,8 +401,8 @@ export class TextHighlighter {
 
 
   // #region Utility
-  // Events
 
+  // Events
 
   // Changes the opacity of the given hovered highlight and comment depending on if the mouse is within the indexes a highlight
   #handleMouseHoveringHighlight() {
@@ -488,8 +486,6 @@ export class TextHighlighter {
   #handleMouseUp = () => {
     // Determine start and end indices once
     this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
-
-
     if (!this.formIsActive) {
       this.endLetterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe);
 
@@ -572,7 +568,6 @@ export class TextHighlighter {
     this.mouseTopOffset = window.scrollY;
     // 🤓 Horizontal scroll 👆
     this.mouseLeftOffset = window.scrollX;
-    // this.divRect = this.highlightedDiv.getBoundingClientRect();
   }
 
   // Updates items that depend on window size or related
@@ -607,7 +602,6 @@ export class TextHighlighter {
       const [xOffset, yOffset] = this.TC.getCommentOffsets(commentObj)
       commentObj.elem.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
-
   }
 
   // positions the highlight based on its start and end id, along with updating the width
@@ -629,7 +623,6 @@ export class TextHighlighter {
   }
 
   printOutWordStats() {
-
     this.TC.printOutWordStats()
     console.log(this.highlightElements)
   }
@@ -671,7 +664,7 @@ export class TextHighlighter {
       const formWidth = element.getBoundingClientRect().width
       const isOutOfBounds = yColStartIndex + formWidth > maxWidth
       const endStartIndex = this.TC.getStartIndexForIndex(formStartIndex)
-      const isMultiLine = this.TC.calcColsInRange(formStartIndex, formEndIndex) >= 1
+      const isMultiLine = this.TC.calcColsInRange(formStartIndex, formEndIndex) > 1
 
       const top = this.TC.getTopPaddingForIndex(isMultiLine ? formEndIndex : formStartIndex);
 
@@ -697,7 +690,6 @@ export class TextHighlighter {
     const commentType = form.commentType.value;
 
     // Get the value from the hidden input instead of radio
-
     const commentTypeId = parseInt(commentType);
 
     // Add some debugging
