@@ -31,7 +31,7 @@ export class TextHighlighter {
     if (!highlightedDiv || !outputHoverId) {
       throw new Error('highlightedDiv and outputHoverId are required');
     }
-
+    this.isOnComment = false
     this.highlightedDivId = highlightedDiv;
     this.outputHoverId = outputHoverId;
     this.TC = new TextCalibrator(highlightedDiv)
@@ -416,7 +416,15 @@ export class TextHighlighter {
       if (comment) {
         const splits = div.splits
 
-        if (isInside) {
+        if (this.isOnComment && !isInside) {
+          this.isOnComment = false
+        }
+        if (this.isOnComment || isInside) {
+          this.isOnComment = true
+          comment.addEventListener("mouseout", () => {
+            this.isOnComment = false
+          })
+
           this.#positionCommentContent(div.comment)
           clearTimeout(timeoutId);
           comment.style.opacity = 1
@@ -425,7 +433,7 @@ export class TextHighlighter {
             item["elem"].style.opacity = 1;
           });
           this.lastHoveredId = `${startId}-${endId}`
-        } else {
+        } else if (!this.isOnComment) {
           splits.forEach(item => {
             item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
           });
@@ -512,7 +520,8 @@ export class TextHighlighter {
       const hoverSplitObject = this.highlightElements.get(this.lastHoveredId)
       const comment = hoverSplitObject.comment.elem
 
-      if (comment) {
+      if (comment && !this.isOnComment) {
+
         hoverSplitObject.splits.forEach(item => {
           item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
         });
@@ -524,7 +533,6 @@ export class TextHighlighter {
             comment.style.zIndex = 15;
           }
         }, this.HOVER_TRANSITION_DURATION);
-
       }
       this.lastHoveredId = null
     }
