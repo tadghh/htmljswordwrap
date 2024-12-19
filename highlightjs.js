@@ -636,6 +636,7 @@ export class TextHighlighter {
     const { elem: element, start: startIndexHighlight, end: endIndexHighlight } = highlight
     if (element) {
       const [xOffset, yOffset] = this.TC.getHighlighOffsets(startIndexHighlight)
+
       element.style.width = `${this.TC.getCumulativeWidthForIndexRange(startIndexHighlight, endIndexHighlight)}px`;
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     } else {

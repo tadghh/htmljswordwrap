@@ -242,10 +242,7 @@ export class TextCalibrator {
   getCumulativeWidthForIndexRange(startIndex, endIndex) {
     const key = `${startIndex}-${endIndex}`;
     if (!this.widthSums.has(key)) {
-      let sum = 0;
-      for (let i = startIndex; i <= endIndex; i++) {
-        sum += this.getCharacterWidth(this.contentTextCleaned[i]);
-      }
+      let sum = this.getWordWidth(this.contentTextCleaned.slice(startIndex, endIndex + 1));
       this.widthSums.set(key, sum);
     }
     return this.widthSums.get(key);
