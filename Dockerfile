@@ -34,11 +34,19 @@ RUN for file in *.css; do \
     fi \
     done
 
+# Pre-compress files with gzip and brotli
+RUN for file in min.*; do \
+    if [ -f "$file" ]; then \
+        gzip -9 -k "$file"; \
+        brotli -9 -k "$file"; \
+    fi \
+    done
+
 # Final stage
 FROM alpine:3.19
 
 # Install lighttpd
-RUN apk add --no-cache lighttpd
+RUN apk add --no-cache lighttpd lighttpd-mod_deflate brotli
 
 # Copy lighttpd configuration
 COPY lighttpd.conf /etc/lighttpd/lighttpd.conf
@@ -47,6 +55,8 @@ COPY lighttpd.conf /etc/lighttpd/lighttpd.conf
 COPY --from=build /build/min.*.html /var/www/html/
 COPY --from=build /build/min.*.js /var/www/html/
 COPY --from=build /build/min.*.css /var/www/html/
+COPY --from=build /build/min.*.gz /var/www/html/
+COPY --from=build /build/min.*.br /var/www/html/
 COPY *.png /var/www/html/
 COPY *.svg /var/www/html/
 
