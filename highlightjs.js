@@ -412,12 +412,13 @@ export class TextHighlighter {
     // Store timeouts in a Map keyed by comment element
     const timeouts = new Map();
 
-
     this.highlightElements.forEach((div) => {
-      const { start: startId, end: endId, comment, splits } = div;
+      const { start: startId, end: endId, comment } = div;
+
       if (!comment?.elem) return;
 
       const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !isLastIndex;
+      const { splits } = div;
 
       if (this.isOnComment && !isInside) {
         this.isOnComment = false
@@ -505,7 +506,8 @@ export class TextHighlighter {
 
     // Use binary search to find letter index
     const letterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
-
+    this.#handleMouseHoveringHighlight()
+    this.#updateFormTransparency()
     if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
       const char = this.contentTextCleaned[letterIndex];
       const charWidth = this.TC.getCharacterWidth(char);
@@ -519,8 +521,6 @@ export class TextHighlighter {
         `mouseColSafe: ${this.mouseColSafe} ` +
         `mouseX: ${event.clientX} ` +
         `highlight left padding: ${this.TC.getHighlightAreaLeftPadding()}`;
-
-      this.#liveItems()
     }
   };
 
@@ -609,10 +609,6 @@ export class TextHighlighter {
     });
   }
 
-  #liveItems() {
-    this.#handleMouseHoveringHighlight()
-    this.#updateFormTransparency()
-  }
 
   // Positioning
 
@@ -631,7 +627,7 @@ export class TextHighlighter {
   // Updates items that depend on window size or related
   #repositionItems() {
     this.TC.recalibrate();
-    this.highlightElements.forEach((divArray, key) => {
+    this.highlightElements.forEach((_, key) => {
       this.#updateHighlightElements(key);
     });
     if (this.formElement) {
@@ -648,7 +644,6 @@ export class TextHighlighter {
     this.mouseCol = Math.floor(this.relativeY / this.TC.getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
 
-    this.#liveItems()
     this.#repositionItems()
   }
 
