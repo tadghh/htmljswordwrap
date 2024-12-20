@@ -396,12 +396,13 @@ export class TextCalibrator {
   getWordColCount() {
     return this.wordStats.length - 1
   }
-
+  updateWordCalc() {
+    this.wordStats = this.calcWordPositions();
+  }
   // updates values
   recalibrate() {
     this.mouseLeftOffset = window.scrollX;
     this.mouseTopOffset = window.scrollY;
-    this.wordStats = this.calcWordPositions();
     this.divRect = this.highlightedDiv.getBoundingClientRect();
   }
 }

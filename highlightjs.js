@@ -588,9 +588,9 @@ export class TextHighlighter {
   #addEventListeners() {
     window.addEventListener("resize", () => {
       this.TC.recalibrate();
-      this.#handleResizeOrScroll()
+      this.TC.updateWordCalc();
     });
-    window.addEventListener("scroll", this.#handleResizeOrScroll);
+    window.addEventListener("scroll", this.#repositionItems());
 
     this.highlightedDiv.addEventListener("mouseleave", (event) => {
       this.#handleMouseOutOpacity(event.clientX)
@@ -611,9 +611,7 @@ export class TextHighlighter {
   // Positioning
 
   // Updates offsets and other positioning values
-  #handleResizeOrScroll = () => {
-    this.#repositionItems();
-  };
+
 
   // Updates offsets, along with the current word data structure
   #updateOffsetsAndBounds() {
@@ -634,7 +632,7 @@ export class TextHighlighter {
   }
 
   // Used to force update positioning even if the mouse or other events haven't triggered
-  repositionItems() {
+  repositionDynamicItems() {
     // Use the last mouse x and y as the mouse may not be moving
     this.relativeX = this.relativeXRaw - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
     this.relativeY = this.relativeYRaw - this.TC.getHighlightAreaTopPadding();
