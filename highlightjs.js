@@ -40,7 +40,7 @@ export class TextHighlighter {
     this._mouseUpFunction = this.defaultFormAction.bind(this);
     this._highlightSubmissionAPI = null;
     this._highlightColors = {
-      1: 'black',     // Misc comments
+      1: 'gray',     // Misc comments
       2: 'pink',      // Incorrect info
       3: 'lightblue', // Sources?
       4: 'skyblue',   // Question
