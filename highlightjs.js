@@ -214,7 +214,6 @@ export class TextHighlighter {
   // Highlights
   // Updates the highlight elements, adjusting for screen size
   #updateHighlightElements(key) {
-    this.#updateOffsetsAndBounds();
     const splitData = this.highlightElements.get(key);
     const { splits: highlightSplits, colorId, start: startId, end: endId } = splitData;
 
@@ -266,7 +265,7 @@ export class TextHighlighter {
         floatingDiv.className = "highlightedText split";
         document.body.appendChild(floatingDiv);
 
-        // Dont need to include trailing spaces in the selection
+        // Don't need to include trailing spaces in the selection
         let cleanedEndIndex = colEndIndex
         if (this.contentTextCleaned[cleanedEndIndex] === " ") {
           cleanedEndIndex--
@@ -587,10 +586,15 @@ export class TextHighlighter {
 
   #addEventListeners() {
     window.addEventListener("resize", () => {
-      this.TC.recalibrate();
+      this.#repositionItems()
       this.TC.updateWordCalc();
+
     });
-    window.addEventListener("scroll", this.#repositionItems());
+
+    window.addEventListener("scroll", () => {
+      this.#updateOffsetsAndBounds();
+      this.#repositionItems();
+    });
 
     this.highlightedDiv.addEventListener("mouseleave", (event) => {
       this.#handleMouseOutOpacity(event.clientX)
@@ -609,9 +613,6 @@ export class TextHighlighter {
 
 
   // Positioning
-
-  // Updates offsets and other positioning values
-
 
   // Updates offsets, along with the current word data structure
   #updateOffsetsAndBounds() {
@@ -632,7 +633,7 @@ export class TextHighlighter {
   }
 
   // Used to force update positioning even if the mouse or other events haven't triggered
-  repositionDynamicItems() {
+  repositionItems() {
     // Use the last mouse x and y as the mouse may not be moving
     this.relativeX = this.relativeXRaw - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET
     this.relativeY = this.relativeYRaw - this.TC.getHighlightAreaTopPadding();

@@ -112,7 +112,7 @@ function movingHighlight() {
 
     // Request the next frame
     requestAnimationFrame(animate);
-    highlighter3.repositionDynamicItems()
+    highlighter3.repositionItems()
   }
 
   // Start the animation
