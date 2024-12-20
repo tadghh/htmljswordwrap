@@ -83,10 +83,7 @@ export class TextHighlighter {
   }
 
   #initializeStyleSheet() {
-    document.styleSheets[0].insertRule(`::selection {
-        background: ${this.#getColor(1)};
-        color: white;
-    }`, 0);
+
     return this;
   }
 
@@ -534,6 +531,12 @@ export class TextHighlighter {
   };
 
   #handleMouseDown = () => {
+    document.styleSheets[0].deleteRule(0);
+    document.styleSheets[0].insertRule(`::selection {
+      background: ${this.#getColor(1)};
+      color: white;
+  }`, 0);
+    console.log(this.#getColor(1))
     this.mouseCol = Math.floor(this.relativeY / this.TC.getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
 
