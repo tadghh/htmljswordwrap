@@ -641,14 +641,15 @@ export class TextHighlighter {
 
     this.mouseCol = Math.floor(this.relativeY / this.TC.getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
+
+    // Update item positions
     this.#repositionItems()
+
     this.highlightElements.forEach((div) => {
       const { comment } = div;
       this.#positionCommentContent(comment);
-
     })
     this.#handleMouseHoveringHighlight()
-
   }
 
   // positions the given comment object for the highlight

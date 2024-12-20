@@ -94,6 +94,7 @@ function movingHighlight() {
   const radius = 20; // Size of the circle
   const speed = 0.05; // Speed of rotation
   let angle = 0;
+
   const highlighter3 = new TextHighlighter("highlightedDivMoving", "outputHover3").initialize();
   highlighter3.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
   const movingDiv = document.getElementById("highlightedDivMoving");
