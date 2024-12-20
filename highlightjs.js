@@ -164,11 +164,6 @@ export class TextHighlighter {
     this.TC.setTextWidthSensitivity(newInt);
   }
 
-  // enables the submission form transparency
-  toggleFormTransparency() {
-    this.formTransparency = this.formTransparency ? true : false
-  }
-
   // gets the index when the mouse was pressed
   getStartLetterIndex() {
     const startIndex = this.#cleanSelectionIndexes()[0]
@@ -312,10 +307,11 @@ export class TextHighlighter {
       const color = this.#getColor(selectedId);
       this.highlightElements.get(rawId).comment.type = selectedId;
       this.highlightElements.get(rawId).colorId = selectedId;
-
-      items.map((item) => {
-        item["elem"].style.backgroundColor = color
-      })
+      requestAnimationFrame(() => {
+        items.map((item) => {
+          item.elem.style.backgroundColor = color
+        })
+      });
     }
   }
 

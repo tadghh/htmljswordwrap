@@ -396,6 +396,7 @@ export class TextCalibrator {
   getWordColCount() {
     return this.wordStats.length - 1
   }
+
   updateWordCalc() {
     this.wordStats = this.calcWordPositions();
   }
