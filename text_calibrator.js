@@ -325,12 +325,13 @@ export class TextCalibrator {
     // Early return if the index is the start of the column
     if (index === colStartIndex) return 0;
 
-    let cumulativeWidth = 0;
     // Direct iteration avoids memory allocation from slice()
+    let calcString = ""
     for (let i = colStartIndex; i < index; i++) {
-      cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
+      calcString += this.contentTextCleaned[i]
+      // cumulativeWidth += this.getCharacterWidth(this.contentTextCleaned[i]);
     }
-    return cumulativeWidth;
+    return this.getWordWidth(calcString);
   }
 
   // Gets the start index for a given index

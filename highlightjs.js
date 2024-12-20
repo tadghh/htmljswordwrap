@@ -35,6 +35,7 @@ export class TextHighlighter {
     this.highlightedDivId = highlightedDiv;
     this.outputHoverId = outputHoverId;
     this.TC = new TextCalibrator(highlightedDiv)
+    this.listeners = new WeakMap();
     // Set default values
     this._mouseUpFunction = this.defaultFormAction.bind(this);
     this._highlightSubmissionAPI = null;
@@ -405,40 +406,37 @@ export class TextHighlighter {
 
   // Changes the opacity of the given hovered highlight and comment depending on if the mouse is within the indexes a highlight
   #handleMouseHoveringHighlight() {
-    // Cache the current mouse position calculation
     const currentMouseIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe);
     const isLastIndex = this.TC.isRangeLastIndex(this.relativeX, this.mouseColSafe);
 
     // Store timeouts in a Map keyed by comment element
     const timeouts = new Map();
 
-    // Use WeakMap to store event listeners
-    const listeners = new WeakMap();
 
     this.highlightElements.forEach((div) => {
       const { start: startId, end: endId, comment, splits } = div;
       if (!comment?.elem) return;
 
       const isInside = (currentMouseIndex >= startId && currentMouseIndex <= endId) && !isLastIndex;
-      const commentElem = comment.elem;
 
-      // Early exit if nothing changed
       if (this.isOnComment && !isInside) {
         this.isOnComment = false
       }
-      if (this.lastHoveredId === `${startId}-${endId}` && this.isOnComment) return;
+
+      const commentElem = comment.elem;
 
       const handleCommentHover = () => {
         if (!this.isOnComment && isInside) {
           this.isOnComment = true;
 
           // Only add listener if not already added
-          if (!listeners.has(commentElem)) {
-            const mouseoutListener = () => {
+          if (!this.listeners.has(commentElem)) {
+            const mouseoutListener = (event) => {
               this.isOnComment = false;
+              this.#handleMouseOutOpacity(event.clientX)
             };
-            commentElem.addEventListener("mouseout", mouseoutListener);
-            listeners.set(commentElem, mouseoutListener);
+            commentElem.addEventListener("mouseleave", mouseoutListener);
+            this.listeners.set(commentElem, mouseoutListener);
           }
 
           this.#positionCommentContent(comment);
@@ -469,18 +467,16 @@ export class TextHighlighter {
             });
           });
 
-          if (commentElem.style.opacity === '1') {
-            commentElem.style.opacity = '0';
+          commentElem.style.opacity = '0';
 
-            // Set timeout for z-index change
-            const timeoutId = setTimeout(() => {
-              if (commentElem.style.opacity === '0') {
-                commentElem.style.zIndex = '15';
-              }
-            }, this.HOVER_TRANSITION_DURATION);
+          // Set timeout for z-index change
+          const timeoutId = setTimeout(() => {
+            if (commentElem.style.opacity === '0') {
+              commentElem.style.zIndex = '15';
+            }
+          }, this.HOVER_TRANSITION_DURATION);
 
-            timeouts.set(commentElem, timeoutId);
-          }
+          timeouts.set(commentElem, timeoutId);
 
           this.lastHoveredId = null;
         }
@@ -490,6 +486,7 @@ export class TextHighlighter {
       requestAnimationFrame(handleCommentHover);
     });
   }
+
 
   #handleMouseMove = (event) => {
     // make other vars to store last unmodified version
@@ -553,26 +550,40 @@ export class TextHighlighter {
   };
 
 
-  #handleMouseOutOpacity = () => {
+  #handleMouseOutOpacity = (mouseX = null) => {
     if (this.lastHoveredId) {
-      const hoverSplitObject = this.highlightElements.get(this.lastHoveredId)
-      const comment = hoverSplitObject.comment.elem
+      const hoverSplitObject = this.highlightElements.get(this.lastHoveredId);
+      const { end: endId, comment, splits } = hoverSplitObject;
 
-      if (comment && !this.isOnComment) {
+      if (mouseX - 5 < this.TC.getHighlightAreaLeftPadding() ||
+        mouseX > this.TC.getPaddingForIndex(endId) + this.TC.getHighlightAreaLeftPadding()) {
 
-        hoverSplitObject.splits.forEach(item => {
-          item["elem"].style.opacity = this.UNFOCUSED_OPACITY;
-        });
+        const commentElement = comment.elem;
+        if (commentElement) {
+          // Batch reading layout properties
+          const elementsToUpdate = [...splits.map(item => item.elem), commentElement];
 
-        comment.style.opacity = 0
+          // Force layout reflow
+          void elementsToUpdate[0].offsetHeight;
 
-        setTimeout(() => {
-          if (comment.style.opacity == 0) {
-            comment.style.zIndex = 15;
-          }
-        }, this.HOVER_TRANSITION_DURATION);
+          // Batch style updates
+          requestAnimationFrame(() => {
+            splits.forEach(item => {
+              item.elem.style.opacity = this.UNFOCUSED_OPACITY;
+            });
+            commentElement.style.opacity = 0;
+          });
+
+          setTimeout(() => {
+            if (commentElement.style.opacity == 0) {
+              commentElement.style.zIndex = 15;
+            }
+          }, this.HOVER_TRANSITION_DURATION);
+        }
+
+        this.lastHoveredId = null;
+        this.isOnComment = false;
       }
-      this.lastHoveredId = null
     }
   }
 
@@ -583,7 +594,9 @@ export class TextHighlighter {
     });
     window.addEventListener("scroll", this.#handleResizeOrScroll);
 
-    this.highlightedDiv.addEventListener("mouseout", this.#handleMouseOutOpacity);
+    this.highlightedDiv.addEventListener("mouseleave", (event) => {
+      this.#handleMouseOutOpacity(event.clientX)
+    });
     this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
     this.highlightedDiv.addEventListener("mouseup", this.#handleMouseUp);
