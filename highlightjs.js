@@ -429,7 +429,7 @@ export class TextHighlighter {
       const handleCommentHover = () => {
         if (!this.isOnComment && isInside) {
           this.isOnComment = true;
-
+          this.#positionCommentContent(comment);
           // Only add listener if not already added
           if (!this.listeners.has(commentElem)) {
             const mouseoutListener = (event) => {
@@ -439,8 +439,6 @@ export class TextHighlighter {
             commentElem.addEventListener("mouseleave", mouseoutListener);
             this.listeners.set(commentElem, mouseoutListener);
           }
-
-          this.#positionCommentContent(comment);
 
           // Clear any existing timeout
           const existingTimeout = timeouts.get(commentElem);
@@ -643,8 +641,14 @@ export class TextHighlighter {
 
     this.mouseCol = Math.floor(this.relativeY / this.TC.getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
-
     this.#repositionItems()
+    this.highlightElements.forEach((div) => {
+      const { comment } = div;
+      this.#positionCommentContent(comment);
+
+    })
+    this.#handleMouseHoveringHighlight()
+
   }
 
   // positions the given comment object for the highlight
