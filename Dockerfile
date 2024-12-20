@@ -48,6 +48,7 @@ COPY --from=build /build/min.*.html /var/www/html/
 COPY --from=build /build/min.*.js /var/www/html/
 COPY --from=build /build/min.*.css /var/www/html/
 COPY *.png /var/www/html/
+COPY *.svg /var/www/html/
 
 # Remove the 'min.' prefix from filenames
 RUN cd /var/www/html && \
