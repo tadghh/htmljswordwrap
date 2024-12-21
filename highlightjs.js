@@ -3,12 +3,12 @@ import { TextCalibrator } from "./text_calibrator.js";
 
 export class TextHighlighter {
   constructor(highlightedDiv, outputHoverId) {
-    if (!highlightedDiv || !outputHoverId) {
+    if (!highlightedDiv) {
       throw new Error('highlightedDiv and outputHoverId are required');
     }
     this.isOnComment = false
     this.highlightedDivId = highlightedDiv;
-    this.outputHoverId = outputHoverId;
+    this.outputHoverId = outputHoverId ? outputHoverId : null;
     this.TC = new TextCalibrator(highlightedDiv)
     this.listeners = new WeakMap();
 
@@ -60,6 +60,7 @@ export class TextHighlighter {
     this.MAX_DISTANCE_FORM_DIVISOR = 6;
     this.HOVER_TRANSITION_DURATION = 150;
     this.UNFOCUSED_OPACITY = 0.2;
+    this.MOUSE_OUT_OFFSET = 5;
     return this;
   }
 
@@ -92,12 +93,53 @@ export class TextHighlighter {
 
   #initializeDOMElements() {
     this.highlightedDiv = document.getElementById(this.highlightedDivId);
-    this.outputHover = document.getElementById(this.outputHoverId);
 
-    if (!this.highlightedDiv || !this.outputHover) {
-      throw new Error('Could not find required DOM elements');
+    const mouseDefault = (event) => {
+      this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding()
+      this.relativeY = event.clientY - this.TC.getHighlightAreaTopPadding();
+      this.relativeXRaw = event.clientX
+      this.relativeYRaw = event.clientY
+
+      // Single division operation
+      this.mouseCol = Math.floor(this.relativeY / this.TC.getTextContentVerticalSectionCount());
+      this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
+
+      this.#handleMouseHoveringHighlight()
+      this.#updateFormTransparency()
     }
 
+    let mouseMove = mouseDefault
+    if (this.outputHoverId != null) {
+      this.outputHover = document.getElementById(this.outputHoverId);
+
+      mouseMove = (event) => {
+        mouseDefault(event);
+        // Determine start and end indices once
+        const startIndex = this.TC.getStartIndex(this.mouseColSafe);
+
+        // Use binary search to find letter index
+        const letterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
+        if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
+          const char = this.contentTextCleaned[letterIndex];
+          const charWidth = this.TC.getCharacterWidth(char);
+          // Create the output string only if needed
+          this.outputHover.textContent =
+            `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
+            `cumWidth: ${this.TC.getCumulativeWidthForIndexRange(startIndex, letterIndex).toFixed(2)}px, ` +
+            `relX: ${this.relativeX.toFixed(2)}px) ` +
+            `mouseCol: ${this.mouseCol} ` +
+            `mouseColSafe: ${this.mouseColSafe} ` +
+            `mouseX: ${event.clientX} ` +
+            `highlight left padding: ${this.TC.getHighlightAreaLeftPadding()}`;
+        }
+      }
+    }
+
+
+    if (!this.highlightedDiv) {
+      throw new Error('Could not find required DOM elements');
+    }
+    this.mouseMoveMethod = mouseMove
     return this;
   }
 
@@ -462,36 +504,7 @@ export class TextHighlighter {
   #handleMouseMove = (event) => {
     // make other vars to store last unmodified version
     // updated by recalling padding methdos
-    this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding()
-    this.relativeY = event.clientY - this.TC.getHighlightAreaTopPadding();
-    this.relativeXRaw = event.clientX
-    this.relativeYRaw = event.clientY
-
-    // Single division operation
-    this.mouseCol = Math.floor(this.relativeY / this.TC.getTextContentVerticalSectionCount());
-    this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
-
-    // Determine start and end indices once
-    const startIndex = this.TC.getStartIndex(this.mouseColSafe);
-
-    // Use binary search to find letter index
-    const letterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
-    this.#handleMouseHoveringHighlight()
-    this.#updateFormTransparency()
-    if (letterIndex >= 0 && letterIndex < this.contentTextCleaned.length) {
-      const char = this.contentTextCleaned[letterIndex];
-      const charWidth = this.TC.getCharacterWidth(char);
-
-      // Create the output string only if needed
-      this.outputHover.textContent =
-        `Letter: '${char}' (index: ${letterIndex}, width: ${charWidth.toFixed(2)}px, ` +
-        `cumWidth: ${this.TC.getCumulativeWidthForIndexRange(startIndex, letterIndex).toFixed(2)}px, ` +
-        `relX: ${this.relativeX.toFixed(2)}px) ` +
-        `mouseCol: ${this.mouseCol} ` +
-        `mouseColSafe: ${this.mouseColSafe} ` +
-        `mouseX: ${event.clientX} ` +
-        `highlight left padding: ${this.TC.getHighlightAreaLeftPadding()}`;
-    }
+    this.mouseMoveMethod(event)
   };
 
   // handles mouse up, behavior depends on the current form being inactive
@@ -530,8 +543,8 @@ export class TextHighlighter {
     if (this.lastHoveredId) {
       const hoverSplitObject = this.highlightElements.get(this.lastHoveredId);
       const { end: endId, comment, splits } = hoverSplitObject;
-
-      if (mouseX - this.MOUSE_OUT_OFFSET < this.TC.getHighlightAreaLeftPadding() ||
+      console.log(this.MOUSE_OUT_OFFSET)
+      if ((mouseX - this.MOUSE_OUT_OFFSET) < this.TC.getHighlightAreaLeftPadding() ||
         mouseX > this.TC.getPaddingForIndex(endId) + this.TC.getHighlightAreaLeftPadding()) {
 
         const commentElement = comment.elem;

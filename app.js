@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function defaultExample() {
-  const highlighter1 = new TextHighlighter("highlightedDiv1", "outputHover1")
+  const highlighter1 = new TextHighlighter("highlightedDiv1")
     .setFormTransparency(true)
     .initialize();
 
