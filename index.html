@@ -81,7 +81,27 @@
 					</div>
 
 					<p id="outputHover2">Hover text:</p>
-					<div id="customForm"></div>
+					<div>
+						<form id="customForm" action="">
+							<div id="commentFormHeader">
+								<label for="text" style="color: white"
+									>Custom Form Content</label
+								>
+								<div id="selectionRange">
+									<div id="startIndexForm"></div>
+									<div id="endIndexForm"></div>
+									<small id="formHoverIndicator"></small>
+								</div>
+							</div>
+
+							<textarea id="text" name="comment"></textarea>
+
+							<div id="commentType"></div>
+
+							<button type="submit">Comment</button>
+							<button type="button" class="close-btn">X</button>
+						</form>
+					</div>
 				</div>
 			</div>
 			<div id="test-container">

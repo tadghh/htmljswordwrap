@@ -193,7 +193,11 @@ body,
 #prjTitle {
 	color: var(--main-bg-color);
 }
-
+#outputHover3,
+#outputHover2,
+#outputHover1 {
+	height: 60px;
+}
 h1,
 #outputHover3,
 #outputHover2,

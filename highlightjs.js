@@ -68,6 +68,11 @@ export class TextHighlighter {
     return this;
   }
 
+  setFormId(id) {
+    this._formId = id;
+    return this;
+  }
+
   setFormTransparency(isTransparent) {
     this._formTransparency = isTransparent;
     return this;
@@ -92,6 +97,8 @@ export class TextHighlighter {
     this.highlightSubmissionAPI = this._highlightSubmissionAPI;
     this.highlightColors = this._highlightColors;
     this.defaultFormHTML = this._defaultFormHTML || TextHighlighter.FORM_HTML;
+    this.formId = this._formId || null;
+
     this.formTransparency = this._formTransparency || false;
     this.startLetterIndex = -1;
     this.endLetterIndex = -1;
@@ -626,7 +633,8 @@ export class TextHighlighter {
     this.highlightElements.forEach((_, key) => {
       this.#updateHighlightElements(key);
     });
-    if (this.formElement) {
+    if (this.formElement && this.formId === null) {
+
       this.#positionCommentForm()
     }
   }
@@ -795,7 +803,7 @@ export class TextHighlighter {
       const formElement = floatingDivForm.querySelector('form');
       const closeButton = floatingDivForm.querySelector('.close-btn');
 
-      closeButton.addEventListener('click', () => this.#closeForm());
+      closeButton.addEventListener('click', () => this.closeForm());
 
       floatingDivForm.id = id;
       floatingDivForm.className = "floatingForm";
@@ -935,12 +943,18 @@ export class TextHighlighter {
 
   // resets the form and clears the current highlights
   // this path is used when closing instead of submitting a comment
-  #closeForm() {
+  closeForm() {
     if (this.formElement && this.formIsActive) {
       let x = this.formElement["start"]
       let y = this.formElement["end"]
       this.#removeFormHighlights(`${x}-${y}`)
       this.#removeForm()
+    }
+  }
+  closeFormId(id) {
+    window.getSelection().removeAllRanges();
+    if (this.highlightElements.get(id)) {
+      this.#removeFormHighlights(`${id}`)
     }
   }
 
@@ -951,7 +965,9 @@ export class TextHighlighter {
 
   defaultFormAction() {
     this.createHighlight();
-    this.#createForm(this.startLetterIndex, this.endLetterIndex)
+    if (this.formId === null) {
+      this.#createForm(this.startLetterIndex, this.endLetterIndex)
+    }
     this.#repositionItems()
   }
 
