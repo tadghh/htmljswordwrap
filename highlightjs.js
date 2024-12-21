@@ -60,7 +60,6 @@ export class TextHighlighter {
     this.MAX_DISTANCE_FORM_DIVISOR = 6;
     this.HOVER_TRANSITION_DURATION = 150;
     this.UNFOCUSED_OPACITY = 0.2;
-    this.MOUSE_OUT_OFFSET = 5;
     return this;
   }
 
@@ -533,7 +532,7 @@ export class TextHighlighter {
       const { end: endId, comment, splits } = hoverSplitObject;
 
       if (mouseX - this.MOUSE_OUT_OFFSET < this.TC.getHighlightAreaLeftPadding() ||
-        mouseX > this.TC.getPaddingForIndex(endId) + this.TC.getHighlightAreaLeftPadding() + this.fontSizeRaw) {
+        mouseX > this.TC.getPaddingForIndex(endId) + this.TC.getHighlightAreaLeftPadding()) {
 
         const commentElement = comment.elem;
         if (commentElement) {

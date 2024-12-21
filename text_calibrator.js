@@ -333,6 +333,22 @@ export class TextCalibrator {
     }
     return this.getWordWidth(calcString);
   }
+  getPaddingForIndexInclusive(index) {
+    if (index < 0) return null;
+
+    const colStartIndex = this.getStartIndexForIndex(index);
+    if (colStartIndex < 0) return null;
+
+    // Early return if the index is the start of the column
+    if (index === colStartIndex) return 0;
+
+    // Direct iteration avoids memory allocation from slice()
+    let calcString = ""
+    for (let i = colStartIndex; i <= index; i++) {
+      calcString += this.contentTextCleaned[i]
+    }
+    return this.getWordWidth(calcString);
+  }
 
   // Gets the start index for a given index
   getStartIndexForIndex(index) {
