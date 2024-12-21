@@ -559,7 +559,7 @@ export class TextHighlighter {
       const { end: endId, comment, splits } = hoverSplitObject;
 
       if (mouseX - 5 < this.TC.getHighlightAreaLeftPadding() ||
-        mouseX > this.TC.getPaddingForIndex(endId) + this.TC.getHighlightAreaLeftPadding()) {
+        mouseX > this.TC.getPaddingForIndex(endId) + this.TC.getHighlightAreaLeftPadding() + this.fontSizeRaw) {
 
         const commentElement = comment.elem;
         if (commentElement) {
@@ -592,9 +592,9 @@ export class TextHighlighter {
 
   #addEventListeners() {
     window.addEventListener("resize", () => {
-      this.#repositionItems()
+      this.#updateOffsetsAndBounds();
       this.TC.updateWordCalc();
-
+      this.#repositionItems()
     });
 
     window.addEventListener("scroll", () => {
