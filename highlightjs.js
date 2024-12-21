@@ -84,6 +84,7 @@ export class TextHighlighter {
     this.MAX_DISTANCE_FORM_DIVISOR = 6;
     this.HOVER_TRANSITION_DURATION = 150;
     this.UNFOCUSED_OPACITY = 0.2;
+    this.MOUSE_OUT_OFFSET = 5;
     return this;
   }
 
@@ -122,9 +123,6 @@ export class TextHighlighter {
     if (!this.highlightedDiv || !this.outputHover) {
       throw new Error('Could not find required DOM elements');
     }
-
-    this.mouseTopOffset = window.scrollY;
-    this.mouseLeftOffset = window.scrollX;
 
     return this;
   }
@@ -558,17 +556,11 @@ export class TextHighlighter {
       const hoverSplitObject = this.highlightElements.get(this.lastHoveredId);
       const { end: endId, comment, splits } = hoverSplitObject;
 
-      if (mouseX - 5 < this.TC.getHighlightAreaLeftPadding() ||
+      if (mouseX - this.MOUSE_OUT_OFFSET < this.TC.getHighlightAreaLeftPadding() ||
         mouseX > this.TC.getPaddingForIndex(endId) + this.TC.getHighlightAreaLeftPadding() + this.fontSizeRaw) {
 
         const commentElement = comment.elem;
         if (commentElement) {
-          // Batch reading layout properties
-          const elementsToUpdate = [...splits.map(item => item.elem), commentElement];
-
-          // Force layout reflow
-          void elementsToUpdate[0].offsetHeight;
-
           // Batch style updates
           requestAnimationFrame(() => {
             splits.forEach(item => {
@@ -592,13 +584,11 @@ export class TextHighlighter {
 
   #addEventListeners() {
     window.addEventListener("resize", () => {
-      this.#updateOffsetsAndBounds();
       this.TC.updateWordCalc();
       this.#repositionItems()
     });
 
     window.addEventListener("scroll", () => {
-      this.#updateOffsetsAndBounds();
       this.#repositionItems();
     });
 
@@ -619,13 +609,6 @@ export class TextHighlighter {
 
 
   // Positioning
-
-  // Updates offsets, along with the current word data structure
-  #updateOffsetsAndBounds() {
-    this.mouseTopOffset = window.scrollY;
-    // 🤓 Horizontal scroll 👆
-    this.mouseLeftOffset = window.scrollX;
-  }
 
   // Updates items that depend on window size or related
   #repositionItems() {
@@ -734,14 +717,14 @@ export class TextHighlighter {
       const top = this.TC.getTopPaddingForIndex(isMultiLine ? formEndIndex : formStartIndex);
 
       let xOffset = this.TC.getPaddingForIndex(formEndIndex + 1)
-      let yOffset = top + this.mouseTopOffset
+      let yOffset = top + window.scrollY;
 
       if (isOutOfBounds) {
         // make sure form doesn't go off screen
         yOffset += this.fontSizeRaw
         xOffset = this.TC.getPaddingForIndex(endStartIndex)
       }
-      xOffset += this.TC.getHighlightAreaLeftPadding() + this.mouseLeftOffset
+      xOffset += this.TC.getHighlightAreaLeftPadding() + window.scrollX;
       element.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
     }
   }
