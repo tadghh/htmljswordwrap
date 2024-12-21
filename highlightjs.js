@@ -2,31 +2,6 @@
 import { TextCalibrator } from "./text_calibrator.js";
 
 export class TextHighlighter {
-  static FORM_HTML = `
-    <div class="floatingForm">
-        <form action="">
-            <div id="commentFormHeader">
-                <label for="text">Content</label>
-                <div id="selectionRange">
-                    <div id="startIndexForm"></div>
-                    <div id="endIndexForm"></div>
-                    <small id="formHoverIndicator"></small>
-                </div>
-            </div>
-
-            <textarea id="text" name="comment"></textarea>
-
-            <div id="commentType">
-
-            </div>
-
-            <button type="submit">Comment</button>
-        </form>
-        <button type="button" class="close-btn">X</button>
-    </div>
-`;
-
-  // Cache cumulative widths
   constructor(highlightedDiv, outputHoverId) {
     if (!highlightedDiv || !outputHoverId) {
       throw new Error('highlightedDiv and outputHoverId are required');
@@ -36,6 +11,7 @@ export class TextHighlighter {
     this.outputHoverId = outputHoverId;
     this.TC = new TextCalibrator(highlightedDiv)
     this.listeners = new WeakMap();
+
     // Set default values
     this._mouseUpFunction = this.defaultFormAction.bind(this);
     this._highlightSubmissionAPI = null;
@@ -89,7 +65,6 @@ export class TextHighlighter {
   }
 
   #initializeStyleSheet() {
-
     return this;
   }
 
@@ -144,6 +119,7 @@ export class TextHighlighter {
     const offsetSpace = (this.characterWidth / (this.fontSizeRaw / 10));
     this.SELECTION_OFFSET = this.characterWidth + offsetSpace;
     this.SELECTION_OFFSET_NEGATIVE = this.characterWidth - offsetSpace;
+
     return this;
   }
 
@@ -977,4 +953,29 @@ export class TextHighlighter {
       throw error;
     }
   }
+
+
+  static FORM_HTML = `
+  <div class="floatingForm">
+      <form action="">
+          <div id="commentFormHeader">
+              <label for="text">Content</label>
+              <div id="selectionRange">
+                  <div id="startIndexForm"></div>
+                  <div id="endIndexForm"></div>
+                  <small id="formHoverIndicator"></small>
+              </div>
+          </div>
+
+          <textarea id="text" name="comment"></textarea>
+
+          <div id="commentType">
+
+          </div>
+
+          <button type="submit">Comment</button>
+      </form>
+      <button type="button" class="close-btn">X</button>
+  </div>
+`;
 }
