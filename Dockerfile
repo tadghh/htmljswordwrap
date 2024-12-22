@@ -14,7 +14,7 @@ WORKDIR /var/www/html
 
 # Copy configuration and source files
 COPY lighttpd.conf /etc/lighttpd/lighttpd.conf
-COPY *.html *.js *.css *.png *.svg ./
+COPY *.html *.js *.css *.png *.svg *.ico ./
 
 # Minify and compress files
 RUN for file in *.html; do \
