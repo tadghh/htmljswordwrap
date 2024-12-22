@@ -26,6 +26,7 @@ function defaultExample() {
 
 function customHighlight() {
   const formContainer = document.getElementById("customForm")
+
   let colorSquaresContainer = formContainer.querySelector('.color-squares');
 
   // Remove the existing container if it exists
@@ -80,6 +81,7 @@ function customHighlight() {
     colorSquaresContainer = document.createElement('div');
     colorSquaresContainer.className = 'color-squares';
 
+    // adding colors to our custom form
     Object.entries(this.highlightColors).forEach(([value, color]) => {
       // Skip the default color
       if (value !== 'default') {
@@ -129,7 +131,6 @@ function customHighlight() {
 
   highlighter2.setCalibratorWidthSensitivity(2)
   highlighter2.createTextHighlight(747, 760, "Woah this is going somewhere woo hoo", 2)
-
 }
 
 function movingHighlight() {
@@ -154,6 +155,8 @@ function movingHighlight() {
 
     // Request the next frame
     requestAnimationFrame(animate);
+
+    // Force reposition items
     highlighter3.repositionItems()
   }
 
