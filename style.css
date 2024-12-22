@@ -5,11 +5,12 @@
 
 .highlightedDiv,
 .highlightedText,
-.split,
 .highlightComment {
 	font-size: 20px;
 }
-
+#highlightedDiv1 {
+	font-size: 16px;
+}
 #ex2,
 #highlightedDiv2 {
 	font-family: "Franklin Gothic Medium";
@@ -45,13 +46,6 @@
 .highlightedText {
 	will-change: opacity, transform;
 	transition: opacity 0.3s cubic-bezier(0.62, 0.16, 0.13, 1.01);
-}
-
-.highlightedText {
-	position: absolute;
-	z-index: 10;
-	height: 20px;
-	border-radius: 2px;
 }
 
 .highlightComment {

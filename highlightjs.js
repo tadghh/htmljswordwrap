@@ -276,6 +276,13 @@ export class TextHighlighter {
         // Create new highlight
         floatingDiv = document.createElement("div");
         floatingDiv.className = "highlightedText split";
+        // position: absolute;
+        // z-index: 10;
+        // border-radius: 2px;
+        floatingDiv.style.position = "absolute"
+        floatingDiv.style.zIndex = 10
+        floatingDiv.style.borderRadius = "2px"
+        floatingDiv.style.height = this.fontSize
         document.body.appendChild(floatingDiv);
 
         // Don't need to include trailing spaces in the selection
