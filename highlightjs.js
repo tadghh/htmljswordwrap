@@ -247,7 +247,6 @@ export class TextHighlighter {
 
     // Pre-calculate form opacity
     const opacity = this.formIsActive &&
-      this.formElement &&
       `${this.formElement.start}-${this.formElement.end}` === key ? 1 : undefined;
 
     // Prepare new splits array
@@ -512,7 +511,11 @@ export class TextHighlighter {
     // Determine start and end indices once
     this.relativeX = event.clientX - this.TC.getHighlightAreaLeftPadding() + this.SELECTION_OFFSET_NEGATIVE
     if (!this.formIsActive) {
-      this.endLetterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe);
+      const letterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
+      const char = this.contentTextCleaned[letterIndex];
+      const charWidth = this.TC.getCharacterWidth(char);
+      // offset to mimic actual text selection
+      this.endLetterIndex = this.TC.getIndexFromMouse(this.relativeX - (charWidth), this.mouseColSafe);
 
       [this.startLetterIndex, this.endLetterIndex] = this.#cleanSelectionIndexes()
       let totalLength = this.endLetterIndex - this.startLetterIndex;
@@ -529,12 +532,15 @@ export class TextHighlighter {
       background: ${this.#getColor(1)};
       color: white;
   }`, 0);
-    console.log(this.#getColor(1))
     this.mouseCol = Math.floor(this.relativeY / this.TC.getTextContentVerticalSectionCount());
     this.mouseColSafe = Math.max(0, Math.min(this.mouseCol, this.TC.getWordColCount()));
-
+    const letterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
+    const char = this.contentTextCleaned[letterIndex];
+    const charWidth = this.TC.getCharacterWidth(char);
+    // Create the output string only if needed
+    // need to add offset to handle end of char clicking, mimics actual os selection
     if (!this.formIsActive) {
-      this.startLetterIndex = this.TC.getIndexFromMouse(this.relativeX, this.mouseColSafe)
+      this.startLetterIndex = this.TC.getIndexFromMouse(this.relativeX + (charWidth / 2), this.mouseColSafe)
     }
   };
 
@@ -891,12 +897,13 @@ export class TextHighlighter {
 
   // removes the form element and resets it
   #removeForm() {
-    let form = this.formElement["elem"]
+    let form = this.formElement
 
     if (form) {
       let x = this.formElement["start"]
       let y = this.formElement["end"]
 
+      // TODO highlight removal shouldnt be here
       let highlights = this.highlightElements.get(`${x}-${y}`)
       if (highlights) {
         const splits = highlights["splits"]
@@ -906,12 +913,18 @@ export class TextHighlighter {
       }
 
       window.getSelection().removeAllRanges();
-      form.remove()
+      form.elem.remove()
       this.formIsActive = false;
       this.formElement = null
     }
   }
+  setFormState(active, startIndex, endIndex) {
+    this.formElement = {}
+    this.formElement["start"] = startIndex
+    this.formElement["end"] = endIndex
 
+    this.formIsActive = active
+  }
   // resets the form and clears the current highlights
   // this path is used when closing instead of submitting a comment
   closeForm() {
@@ -922,11 +935,14 @@ export class TextHighlighter {
       this.#removeForm()
     }
   }
+
   closeFormId(id) {
     window.getSelection().removeAllRanges();
     if (this.highlightElements.get(id)) {
       this.#removeFormHighlights(`${id}`)
     }
+    this.formIsActive = false;
+    this.formElement = null
   }
 
   getRawId() {

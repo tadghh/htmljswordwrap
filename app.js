@@ -56,10 +56,12 @@ function customHighlight() {
   formContainer.appendChild(colorSquaresContainer);
 
   function textFunction() {
+    highlighter2.setFormState(true, highlighter2.getStartLetterIndex(), highlighter2.getEndLetterIndex())
+
     highlighter2.createHighlight();
 
     let rawId = highlighter2.getRawId();
-
+    console.log(rawId)
     const hiddenInput = document.createElement('input');
     hiddenInput.type = 'hidden';
     hiddenInput.name = 'commentType';
@@ -112,7 +114,7 @@ function customHighlight() {
       const form = event.target;
       const commentContent = form.comment.value;
       const commentType = form.commentType.value;
-
+      highlighter2.closeFormId(rawId)
       event.preventDefault();
       highlighter2.setHighlightComment(commentContent, commentType);
       rawId = null

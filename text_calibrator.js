@@ -202,8 +202,8 @@ export class TextCalibrator {
     let holderString = ""
     for (let i = startIndex; i <= endIndex; i++) {
       holderString += this.contentTextCleaned[i]
-      const currentWidth = this.getWordWidth(holderString);
-      if (currentWidth > targetWidth) {
+
+      if (this.getWordWidth(holderString) >= targetWidth) {
         return i
       }
     }
