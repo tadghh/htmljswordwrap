@@ -623,7 +623,6 @@ export class TextHighlighter {
       this.#updateHighlightElements(key);
     });
     if (this.formElement && this.formId === null) {
-
       this.#positionCommentForm()
     }
   }
@@ -645,7 +644,6 @@ export class TextHighlighter {
         this.#positionCommentContent(div.comment);
       })
     }
-
 
     this.#handleMouseHoveringHighlight()
   }
