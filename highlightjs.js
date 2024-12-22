@@ -11,7 +11,7 @@ export class TextHighlighter {
     this.outputHoverId = outputHoverId ? outputHoverId : null;
     this.TC = new TextCalibrator(highlightedDiv)
     this.listeners = new WeakMap();
-
+    this.isActive = false
     // Set default values
     this._mouseUpFunction = this.defaultFormAction.bind(this);
     this._highlightSubmissionAPI = null;
@@ -442,6 +442,7 @@ export class TextHighlighter {
 
       if (this.isOnComment && !isInside) {
         this.isOnComment = false
+        this.isActive = false
       }
 
       const commentElem = comment.elem;
@@ -449,11 +450,13 @@ export class TextHighlighter {
       const handleCommentHover = () => {
         if (!this.isOnComment && isInside) {
           this.isOnComment = true;
+          this.isActive = true
           this.#positionCommentContent(comment);
           // Only add listener if not already added
           if (!this.listeners.has(commentElem)) {
             const mouseoutListener = (event) => {
               this.isOnComment = false;
+              this.isActive = false
               this.#handleMouseOutOpacity(event.clientX)
             };
             commentElem.addEventListener("mouseleave", mouseoutListener);
@@ -508,6 +511,7 @@ export class TextHighlighter {
 
 
   #handleMouseMove = (event) => {
+    this.isActive = true
     // make other vars to store last unmodified version
     // updated by recalling padding methdos
     this.mouseMoveMethod(event)
@@ -556,7 +560,7 @@ export class TextHighlighter {
     if (this.lastHoveredId) {
       const hoverSplitObject = this.highlightElements.get(this.lastHoveredId);
       const { end: endId, comment, splits } = hoverSplitObject;
-      console.log(this.MOUSE_OUT_OFFSET)
+
       if ((mouseX - this.MOUSE_OUT_OFFSET) < this.TC.getHighlightAreaLeftPadding() ||
         mouseX > this.TC.getPaddingForIndex(endId) + this.TC.getHighlightAreaLeftPadding()) {
 
@@ -595,6 +599,7 @@ export class TextHighlighter {
 
     this.highlightedDiv.addEventListener("mouseleave", (event) => {
       this.#handleMouseOutOpacity(event.clientX)
+      this.isActive = false
     });
     this.highlightedDiv.addEventListener("mousemove", this.#handleMouseMove);
     this.highlightedDiv.addEventListener("mousedown", this.#handleMouseDown);
@@ -634,11 +639,14 @@ export class TextHighlighter {
 
     // Update item positions
     this.#repositionItems()
+    if (this.isActive) {
+      this.highlightElements.forEach((div) => {
 
-    this.highlightElements.forEach((div) => {
-      const { comment } = div;
-      this.#positionCommentContent(comment);
-    })
+        this.#positionCommentContent(div.comment);
+      })
+    }
+
+
     this.#handleMouseHoveringHighlight()
   }
 
