@@ -2,6 +2,9 @@
 
 The goal was to provide a way to quickly annotate/highlight text. This is my first time creating something with the intention for other developers to use it, the dev ux might be a bit mediocre. Code critiques and contributions are encouraged.
 
+### Demo
+A live demo is hosted [here](https://tadgh.dev/highlightjs/)
+
 ### Possible Bugs
 
 - Highlights are added at the top of the DOM, text with a z-index contained in a parent with a lower z-index may cause issues
