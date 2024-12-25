@@ -1,5 +1,6 @@
 export class RainbowText {
-  rainbow(elementId, customColors = null) {
+  rainbow(elementId, customColors = null, className = null) {
+    className = className ? className : "rainbow"
     let startColor1 = null
     let startColor2 = null
     let targetColor1 = null
@@ -9,6 +10,43 @@ export class RainbowText {
     let animateFunctionAction = null
     let updateElementBackground = null
 
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    element.classList.add(className)
+
+    const styleSheet = [...document.styleSheets].find(sheet =>
+      [...sheet.rules].some(rule => rule.selectorText === className)
+    );
+
+    let rule;
+    if (styleSheet) {
+      // Try to find the rule within the found stylesheet
+      rule = [...styleSheet.rules].find(rule => rule.selectorText === className);
+    }
+
+    // If the rule is not found, insert it
+    if (!rule) {
+      let targetStyleSheet = styleSheet;
+      if (!targetStyleSheet) {
+        let styleTag = document.createElement("style");
+        document.head.appendChild(styleTag);
+        targetStyleSheet = styleTag.sheet;
+      }
+
+      // Add the blank '.rainbow' class to the stylesheet
+      targetStyleSheet.insertRule(`.${className} {}`, targetStyleSheet.cssRules.length);
+
+      // Retrieve the newly added rule
+      rule = [...targetStyleSheet.cssRules].find(rule => rule.selectorText === `.${className}`);
+    }
+
+    if (rule) {
+      rule.style.backgroundSize = "200% 200%";
+      rule.style.backgroundClip = "text";
+      rule.style.webkitTextStroke = "4px transparent";
+      rule.style.transition = "background 1s ease";
+    }
     if (customColors == null) {
       startColor1 = this.getRandomRGB();
       startColor2 = this.getRandomRGB();
@@ -22,10 +60,10 @@ export class RainbowText {
         targetColor2 = this.getRandomRGB();
       }
 
-      updateElementBackground = (element) => {
+      updateElementBackground = () => {
         const color1 = this.interpolateColor(startColor1, targetColor1, progress);
         const color2 = this.interpolateColor(startColor2, targetColor2, progress);
-        element.style.background = `linear-gradient(to right, ${color1}, ${color2})`;
+        rule.style.background = `linear-gradient(to right, ${color1}, ${color2})`;
       }
     } else {
       const createGradients = (colors) => {
@@ -52,19 +90,16 @@ export class RainbowText {
         currentIndex = (currentIndex + 1) % rgbGradients.length;
       }
 
-      updateElementBackground = (element) => {
+      updateElementBackground = () => {
         const currentGradient = rgbGradients[currentIndex];
         const nextGradient = rgbGradients[(currentIndex + 1) % rgbGradients.length];
 
         const color1 = this.interpolateColor(currentGradient[0], nextGradient[0], progress);
         const color2 = this.interpolateColor(currentGradient[1], nextGradient[1], progress);
 
-        element.style.background = `linear-gradient(to right, ${color1}, ${color2})`;
+        rule.style.background = `linear-gradient(to right, ${color1}, ${color2})`;
       }
     }
-
-    const element = document.getElementById(elementId);
-    if (!element) return;
 
     const animate = () => {
       if (!element.isConnected) return;
@@ -75,9 +110,8 @@ export class RainbowText {
         animateFunctionAction()
       }
 
-      updateElementBackground(element)
-      element.style.backgroundClip = "text";
-      element.style.webkitTextStroke = "3px transparent";
+      updateElementBackground()
+      rule.style.backgroundClip = "text";
 
       requestAnimationFrame(animate);
     };
