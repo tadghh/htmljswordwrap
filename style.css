@@ -181,17 +181,20 @@ body,
 	--main-bg-color: rgb(32, 32, 32);
 	--comment-text-color: rgb(7, 7, 7);
 	background-color: var(--main-bg-color);
-	margin: 0px;
 }
 
 #prjTitle {
 	color: var(--main-bg-color);
+	padding-bottom: 4px;
+	padding-right: 2px;
 }
+
 #outputHover3,
 #outputHover2,
 #outputHover1 {
 	height: 60px;
 }
+
 h1,
 #outputHover3,
 #outputHover2,
@@ -199,6 +202,7 @@ h1,
 	color: white;
 	font-weight: bold;
 }
+
 #moving-example {
 	margin-left: auto;
 	margin-top: 40px;
