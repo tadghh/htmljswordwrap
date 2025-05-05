@@ -1,12 +1,6 @@
 server.document-root = "/var/www/html"
-debug.log-request-handling = "enable"
-debug.log-request-header   = "enable"
-debug.log-response-header  = "enable"
-debug.log-request-header-on-error = "enable"
-debug.log-state-handling   = "enable"
-
 server.errorlog = "/dev/stderr"
-accesslog.filename = "/dev/stdout"
+
 index-file.names = ( "index.html" )
 
 # Modules
@@ -48,29 +42,19 @@ deflate.compression-level = 9
 setenv.add-response-header = (
     "Vary" => "Accept-Encoding"
 )
-
+alias.url = (
+    "/highlightjs/" => "/var/www/html/"
+)
 # Cache control headers for static assets
 $HTTP["url"] =~ "\.(css|js|png|ico|svg)$" {
     setenv.add-response-header = (
         "Cache-Control" => "public, max-age=31536000"
     )
 }
-# Handle redirect first
-$HTTP["url"] =~ "^/highlightjs$" {
-    url.redirect = ("^(.*)$" => "/highlightjs/")
-}
 
-# Then handle the rewrite for paths with trailing slash
-$HTTP["url"] =~ "^/highlightjs/(.*)" {
-    url.rewrite-once = ("^/highlightjs/(.*)" => "/$1")
-}
 # Handle requests under /highlightjs path
-$HTTP["url"] =~ "^/(.*)" {
-    url.redirect = (
-        "^/highlightjs$" => "/highlightjs/"
-    )
-    
-    url.rewrite-once = (
-        "^/highlightjs(.*)" => "/$1"
-    )
-}
+#$HTTP["url"] =~ "^/(.*)" {
+   # url.rewrite-once = (
+  #      "^/highlightjs(.*)" => "/$1"
+ #   )
+#}
